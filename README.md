@@ -6,13 +6,13 @@ Update...
 
 #### Finished
 
-* `compute-masks` to get kinds of masks(ibm, irm etc)
+* Compute kinds of masks(ibm, irm etc)
+* Compute (phase angle/power&magnitude spectrum/complex STFT results) of input wave
+* Seperate target component from input wave according to input masks
+* Estimate wave from enhanced spectrum and reference wave
 
-* `compute-stft-stats` to compute (phase angle/power spectrum/complex STFT results) of input waveform
+#### Unit Test
 
-* `wav-seperate`to seperate target from input waveform according to assigned masks
-
-  ​
-
-
-
+|    Data    | Mask | PESQ(noisy/enhan) |
+| :--------: | :--: | :---------------: |
+| CHiME4 dev | IRM  |  2.16744/2.64598  |
