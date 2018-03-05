@@ -8,7 +8,7 @@ set -ue
 train_dir=data/train
 
 egs_dir=
-exp_dir=exp/dnn
+exp_dir=exp/sigmoid_dnn1024
 
 train_stage=-6
 train_cmd="run.pl"
@@ -39,7 +39,8 @@ input dim=$stft_dim name=input
 relu-batchnorm-layer name=dnn1 dim=2048 input=Append(-2,-1,0,1,2)
 relu-batchnorm-layer name=dnn2 dim=2048
 relu-batchnorm-layer name=dnn3 dim=2048
-output-layer name=output input=dnn3 dim=$stft_dim include-log-softmax=False objective-type=quadratic
+relu-batchnorm-layer name=dnn4 dim=2048
+output-layer name=output input=dnn4 dim=$stft_dim include-log-softmax=false include-sigmoid=true objective-type=quadratic
 EOF
     steps/nnet3/xconfig_to_configs.py --xconfig-file $exp_dir/configs/network.xconfig --config-dir $exp_dir/configs/
 fi
@@ -63,7 +64,7 @@ if [ $stage -eq 2 ]; then
         --feat-dir $train_dir \
         --use-gpu $use_gpu \
         --nj $nj \
-        --dir $exp_dir > train.log 2>&1 || exit 1;
+        --dir $exp_dir >> train.log 2>&1 || exit 1;
     mv train.log $exp_dir
 fi
 
@@ -82,7 +83,7 @@ if [ $stage -eq 3 ]; then
         scp:$sep_dir/JOB/cmvn.scp ark:- ark:- |"
 
     # mkdir -p $exp_dir/mask
-    $train_cmd JOB=1:$nj $exp_dir/mask/wav-seperate.JOB.log nnet3-compute $exp_dir/final.raw "$noisy_feats" ark:- \| \
-        wav-seperate --config=conf/stft.conf scp:$sep_dir/JOB/wav.scp ark:- scp:$sep_dir/JOB/dst.scp
+    $train_cmd JOB=1:$nj $exp_dir/mask/wav-seperate.JOB.log nnet3-compute $exp_dir/test.raw "$noisy_feats" ark:- \| \
+        wav-seperate --config=conf/stft.conf scp:$sep_dir/JOB/wav.scp ark:- scp:$sep_dir/JOB/dst.scp || exit 1
 fi
 echo "$0: Done"

@@ -48,7 +48,7 @@ void ShortTimeFTComputer::ComputeSpectrum(MatrixBase<BaseFloat> &stft,
             (*spectrum)(t, f) = r * r + i * i;
         }
     }
-    if (!opts_.power)
+    if (!opts_.apply_pow)
         spectrum->ApplyPow(0.5);
     if (opts_.apply_log) {
         // to avoid nan
@@ -107,7 +107,7 @@ void ShortTimeFTComputer::Polar(MatrixBase<BaseFloat> &spectrum, MatrixBase<Base
     
     if (opts_.apply_log)
         spectrum.ApplyExp();
-    if (opts_.power)
+    if (opts_.apply_pow)
         spectrum.ApplyPow(0.5);
 
     for (int32 t = 0; t < num_frames; t++) {
@@ -155,10 +155,15 @@ void ShortTimeFTComputer::CacheWindow(const ShortTimeFTOptions &opts) {
     double a = M_2PI / (frame_length - 1);
     for (int32 i = 0; i < frame_length; i++) {
         double d = static_cast<double>(i);
-        if (opts.window == "hanning") {
-            window_(i) = 0.50 - 0.50 * cos(a * d);          
+        // numpy's coeff is 0.42
+        if (opts.window == "blackman") {
+            window_(i) = 0.42 - 0.5 * cos(a * d) + 0.08 * cos(2 * a * d);
         } else if (opts.window == "hamming") {
             window_(i) = 0.54 - 0.46 * cos(a * d);
+        } else if (opts.window == "hanning") {
+            window_(i) = 0.50 - 0.50 * cos(a * d);          
+        } else if (opts.window == "rectangular") {
+            window_(i) = 1.0;
         } else {
             KALDI_ERR << "Unknown window type " << opts.window;
         }

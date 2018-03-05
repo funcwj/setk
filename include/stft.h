@@ -15,31 +15,25 @@ struct ShortTimeFTOptions {
 
     bool normalize_input;
     bool volumn;
-    bool power;
+    bool apply_pow;
     bool apply_log;
 
-    ShortTimeFTOptions():
-        frame_shift(256), frame_length(1024), 
+    ShortTimeFTOptions(): frame_shift(256), frame_length(1024), 
         window("hamming"), normalize_input(false), 
-        apply_log(false), power(false) {}
+        apply_log(false), apply_pow(false) {}
 
     int32 PaddingLength() {
         return RoundUpToNearestPowerOfTwo(frame_length);
     }
 
     void Register(OptionsItf *opts) {
-        opts->Register("frame-shift", &frame_shift, 
-                       "Frame shift in samples");
-        opts->Register("frame-length", &frame_length, 
-                       "Frame length in samples");
-        opts->Register("window", &window, 
-                       "Type of window(\"hamming\"|\"hanning\")");
-        opts->Register("normalize-input", &normalize_input,
-                       "Scale wave samples into [-1, 1], like MATLAB or librosa");
-        opts->Register("power", &power, 
-                       "Using power spectrum instead of amplitude spectrum");
-        opts->Register("apply-log", &apply_log, 
-                       "Apply log on computed spectrum");
+        opts->Register("frame-shift", &frame_shift, "Frame shift in number of samples");
+        opts->Register("frame-length", &frame_length, "Frame length in number of samples");
+        opts->Register("window", &window, "Type of window(\"hamming\"|\"hanning\"|\"blackman\"|\"rectangular\")");
+        opts->Register("normalize-input", &normalize_input, "Normalize wave samples into range [-1, 1],"
+                                                            "like MATLAB or librosa");
+        opts->Register("apply-pow", &apply_pow, "Using power spectrum instead of magnitude spectrum");
+        opts->Register("apply-log", &apply_log, "Apply log on computed spectrum");
     }
 };
 
@@ -94,6 +88,7 @@ private:
 
     BaseFloat int16_max = static_cast<BaseFloat>(std::numeric_limits<int16>::max());
     BaseFloat float_inf = static_cast<BaseFloat>(std::numeric_limits<BaseFloat>::infinity());
+
 
     int32 NumFrames(int32 num_samples) {
         return static_cast<int32>((num_samples - opts_.frame_length) / opts_.frame_shift) + 1;

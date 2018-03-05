@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
 
         // config power
         if (mask_type == "wiener")
-            stft_options.power = true;
+            stft_options.apply_pow = true;
         // compute mask do not need to apply log 
         stft_options.apply_log = false;
         ShortTimeFTComputer stft_computer(stft_options);

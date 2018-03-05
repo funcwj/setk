@@ -17,6 +17,7 @@ void SeperateSpeech(ShortTimeFTComputer &stft_computer,
                     bool track_volumn) {
     Matrix<BaseFloat> specs, args;
     stft_computer.Compute(noisy_data, NULL, &specs, &args);
+    // here need raw spectrum(means no power & log) to make sure mask work properly
     specs.MulElements(target_mask);
     
     Matrix<BaseFloat> target_stft; 
@@ -62,6 +63,10 @@ int main(int argc, char *argv[]) {
 
         if (noisy_is_rspecifier != mask_is_rspecifier)
             KALDI_ERR << "Configure with noisy file and target mask must keep same";
+        
+        // when reconstruct waveform, just need magnitude spectrum
+        stft_options.apply_log = false;
+        stft_options.apply_pow = false;
 
         ShortTimeFTComputer stft_computer(stft_options);
 
