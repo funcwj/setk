@@ -116,6 +116,7 @@ int main(int argc, char *argv[]) {
             }
             KALDI_LOG << "Done " << num_utts << " utterances out of " << num_done
                       << ", " << num_no_tgt_utts << " missing targets";
+            return num_done == 0 ? 1: 0;
         } else {
             bool binary;
             Input kn(noise_in, &binary);
@@ -130,8 +131,6 @@ int main(int argc, char *argv[]) {
             WriteKaldiObject(mask, mask_out, wx_binary);
             KALDI_LOG << "Done processed " << noise_in;
         }
-
-        return 1;
 
     } catch(const std::exception& e) {
         std::cerr << e.what();

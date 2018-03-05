@@ -103,6 +103,7 @@ int main(int argc, char *argv[]) {
             }
             KALDI_LOG << "Done " << num_utts << " utterances out of " << num_done
                       << ", " << num_no_tgt_utts << " missing targets masks";
+            return num_done == 0 ? 1: 0;
         } else {
             bool binary;
             Input ki(noisy_in, &binary);
@@ -123,7 +124,6 @@ int main(int argc, char *argv[]) {
             KALDI_LOG << "Done processed " << noisy_in;
         }
 
-        return 1;
 
     } catch(const std::exception& e) {
         std::cerr << e.what();

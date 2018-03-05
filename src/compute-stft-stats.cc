@@ -85,6 +85,7 @@ int main(int argc, char *argv[]) {
                 KALDI_VLOG(2) << "Processed features for key " << utt_key;
             }
             KALDI_LOG << "Done " << num_utts << " utterances";
+            return num_utts == 0 ? 1: 0;
         } else {
             bool binary;
             Input ki(wave_in, &binary);
@@ -95,8 +96,6 @@ int main(int argc, char *argv[]) {
             WriteKaldiObject(feature, stft_out, wx_binary);
             KALDI_LOG << "Done processed " << wave_in;
         }
-
-        return 1;
 
     } catch(const std::exception& e) {
         std::cerr << e.what();
