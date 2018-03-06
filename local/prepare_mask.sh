@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# For CHiME4 mask & spectrum prepare
 # wujian@2018
 
 set -eu
@@ -14,24 +16,25 @@ for x in train dev test; do mkdir -p $data_dir/$x; done
 # prepare clean/noise parts of simulated data
 for x in noise clean; do
     find $seperated_data/dt_ch5 -name "*_$x.wav" | \
-        awk -F '/' '{split($NF, a, ".");print a[1]"\t"$0}' | \
+        awk -F '/' '{split($NF, a, ".");print a[1]"_"substr(a[2], 0, 3)"\t"$0}' | \
         sort -k1 > $data_dir/dev/$x.scp
-    find $seperated_data/tr_ch5 -name "*_$x.wav" | \
-        awk -F '/' '{split($NF, a, ".");print a[1]"\t"$0}' | \
+    find $seperated_data/tr05_*_simu -name "*_$x.wav" | \
+        awk -F '/' '{split($NF, a, ".");print a[1]"_"substr(a[2], 0, 3)"\t"$0}' | \
         sort -k1  > $data_dir/train/$x.scp
 done
 
 # prepare origin noisy wave
-find $multichan_data/tr05_*_simu -name "*.CH5.wav" | \
-    awk -F '/' '{split($NF, a, ".");print a[1]"\t"$0}' | \
+find $multichan_data/tr05_*_simu -name "*.wav" | \
+    awk -F '/' '{split($NF, a, ".");print a[1]"_"a[2]"\t"$0}' | \
     sort -k1 > $data_dir/train/wav.scp
 
+# using ch5 as dev
 find $multichan_data/dt05_*_simu -name "*.CH5.wav" | \
-    awk -F '/' '{split($NF, a, ".");print a[1]"\t"$0}' | \
+    awk -F '/' '{split($NF, a, ".");print a[1]"_"a[2]"\t"$0}' | \
     sort -k1 > $data_dir/dev/wav.scp
 
 find $multichan_data/et05_*_real -name "*.CH5.wav" | \
-    awk -F '/' '{split($NF, a, ".");print a[1]"\t"$0}' | \
+    awk -F '/' '{split($NF, a, ".");print a[1]"_"a[2]"\t"$0}' | \
     sort -k1 > $data_dir/test/wav.scp
 
 # compute stft and target masks

@@ -16,7 +16,9 @@ void EstimateSpeech(ShortTimeFTComputer &stft_computer,
                     Matrix<BaseFloat>  *target_speech,
                     bool track_volumn) {
     Matrix<BaseFloat> refer_phase, target_stft;
+    // compute reference phase as target reference
     stft_computer.Compute(refer_data, NULL, NULL, &refer_phase);
+    // spectrum can be (log) magnitude/power spectrum
     stft_computer.Polar(spectrum, refer_phase, &target_stft);   
     if (track_volumn) {
         BaseFloat range = refer_data.LargestAbsElem();
