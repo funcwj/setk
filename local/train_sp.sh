@@ -6,7 +6,7 @@ set -ue
 . ./path.sh || exit 1
 
 train_dir=data/spectrum/noisy
-exp_dir=exp/spectrum/1024_dnn2048
+exp_dir=exp/spectrum/conn_1024_dnn2048
 
 target_scp=data/spectrum/clean/feats.scp
 
@@ -25,12 +25,34 @@ minbatch=512
 momentum=0.0
 # samples_per_iter=80000
 
-stage=1
+stage=0
 egs_opts="--nj 20"
+cmvn_opts="--norm-vars=false --norm-means=false"
 nj=20
 
 . parse_options.sh || exit 1
 
+# type 1: mse for input_sp \dot predict_mask - target_sp
+# NOTE: keep input_sp & target_sp applying the same operation
+
+if [ $stage -eq 0 ]; then
+    echo "$0: config networks..."
+    mkdir -p $exp_dir/configs
+    stft_dim=$(feat-to-dim scp:$train_dir/feats.scp -)
+    cat <<EOF > $exp_dir/configs/network.xconfig
+input dim=$stft_dim name=input
+relu-batchnorm-layer name=dnn1 dim=2048 input=Append(-2,-1,0,1,2)
+relu-batchnorm-layer name=dnn2 dim=2048
+relu-batchnorm-layer name=dnn3 dim=2048
+relu-batchnorm-layer name=dnn4 dim=2048
+# a version of modified output-layer config in steps/libs/nnet3/xconfig/basic_layers.py
+# add two configs: 'include-sigmoid' and 'masked-input'
+output-layer name=output input=dnn4 dim=$stft_dim include-sigmoid=true masked-input=input objective-type=quadratic
+EOF
+    steps/nnet3/xconfig_to_configs.py --xconfig-file $exp_dir/configs/network.xconfig --config-dir $exp_dir/configs/
+fi
+
+# type 2: mse for predict_sp - target_sp
 if [ $stage -eq 1 ]; then
     echo "$0: config networks..."
     mkdir -p $exp_dir/configs
@@ -41,7 +63,8 @@ relu-batchnorm-layer name=dnn1 dim=2048 input=Append(-2,-1,0,1,2)
 relu-batchnorm-layer name=dnn2 dim=2048
 relu-batchnorm-layer name=dnn3 dim=2048
 relu-batchnorm-layer name=dnn4 dim=2048
-output-layer name=output input=dnn4 dim=$stft_dim include-log-softmax=false include-sigmoid=false objective-type=quadratic
+# a version of modified output-layer config in steps/libs/nnet3/xconfig/basic_layers.py
+output-layer name=output input=dnn4 dim=$stft_dim objective-type=quadratic
 EOF
     steps/nnet3/xconfig_to_configs.py --xconfig-file $exp_dir/configs/network.xconfig --config-dir $exp_dir/configs/
 fi
@@ -51,7 +74,7 @@ if [ $stage -eq 2 ]; then
     # --trainer.samples-per-iter $samples_per_iter \
     steps/nnet3/train_raw_dnn.py --stage=$train_stage \
         --cmd=$train_cmd \
-        --feat.cmvn-opts="--norm-means=true --norm-vars=true" \
+        --feat.cmvn-opts="$cmvn_opts" \
         --trainer.num-epochs $num_epochs \
         --trainer.optimization.num-jobs-initial $num_jobs_initial \
         --trainer.optimization.num-jobs-final $num_jobs_final \

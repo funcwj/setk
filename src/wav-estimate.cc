@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
             KALDI_ERR << "Cannot mix archives with regular files";
 
         if (spectrum_is_rspecifier != refer_is_rspecifier)
-            KALDI_ERR << "Configure with noisy file and target mask must keep same";
+            KALDI_ERR << "Configure with spectrum and reference wave must keep same";
         
         ShortTimeFTComputer stft_computer(stft_options);
 

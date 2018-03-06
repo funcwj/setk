@@ -13,6 +13,9 @@ Update...
 
 #### Unit Test
 
-|    Data    | Mask | PESQ(noisy/enhan) |
-| :--------: | :--: | :---------------: |
-| CHiME4 dev | IRM  |  2.16744/2.64598  |
+* experiment on CHiME4 dt05_simu(CH5)
+
+| Training Data | Mask | PESQ(noisy/enhan) |
+| :-----------: | :--: | :---------------: |
+|      CH5      | IRM  |     2.18/2.65     |
+|    CH[1-6]    | IRM  |     2.18/2.70     |
