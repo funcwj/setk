@@ -14,7 +14,7 @@ train_cmd="run.pl"
 
 initial_effective_lrate=0.0015
 final_effective_lrate=0.00005
-num_epochs=40
+num_epochs=20
 num_jobs_initial=2
 num_jobs_final=6
 remove_egs=true
@@ -59,7 +59,6 @@ if [ $stage -eq 2 ]; then
         --trainer.optimization.minibatch-size $minbatch \
         --trainer.optimization.momentum $momentum \
         --cleanup.remove-egs $remove_egs \
-        --cleanup.preserve-model-interval 500 \
         --targets-scp $train_dir/masks.scp \
         --feat-dir $train_dir \
         --use-gpu $use_gpu \
@@ -83,7 +82,7 @@ if [ $stage -eq 3 ]; then
 
     noisy_feats="ark:copy-feats scp:$sep_dir/JOB/feats.scp ark:- | apply-cmvn $cmvn_opts --utt2spk=ark:$sep_dir/JOB/utt2spk \
         scp:$sep_dir/JOB/cmvn.scp ark:- ark:- |"
-    clean_masks="nnet3-compute $exp_dir/412.nnet \"$noisy_feats\" ark:- |"
+    clean_masks="nnet3-compute $exp_dir/final.raw \"$noisy_feats\" ark:- |"
 
     # mkdir -p $exp_dir/mask
     $train_cmd JOB=1:$nj $exp_dir/mask/wav-seperate.JOB.log wav-seperate --config=conf/stft.conf \

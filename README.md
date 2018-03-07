@@ -15,7 +15,9 @@ Update...
 
 * experiment on CHiME4 dt05_simu(CH5)
 
-| Training Data | Mask | PESQ(noisy/enhan) |
-| :-----------: | :--: | :---------------: |
-|      CH5      | IRM  |     2.18/2.65     |
-|    CH[1-6]    | IRM  |     2.18/2.70     |
+| Training Data | Model | PESQ(noisy/enhan) |
+| :-----------: | :---: | :---------------: |
+|      CH5      |  IRM  |     2.18/2.65     |
+|    CH[1-6]    |  IRM  |     2.18/2.70     |
+|      CH5      |  LSP  |     2.18/2.49     |
+|      CH5      |  CM   |     2.18/2.58     |
