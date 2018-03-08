@@ -7,7 +7,7 @@ set -ue
 
 train_dir=data/train
 
-exp_dir=exp/aug_sigmoid_dnn1024
+exp_dir=exp/aug_sigmoid_dnn2048
 
 train_stage=-1
 train_cmd="run.pl"

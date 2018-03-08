@@ -5,24 +5,25 @@ set -ue
 
 . ./path.sh || exit 1
 
-train_dir=data/spectrum/noisy
-exp_dir=exp/spectrum/conn_1024_dnn2048
+train_dir=data/spectrum/noisy.gmvn
+exp_dir=exp/tune/c4
 
-target_scp=data/spectrum/clean/feats.scp
+target_dir=data/spectrum/clean.gmvn
+target_scp=$target_dir/feats.scp
 
 train_stage=-6
 train_cmd="run.pl"
 
-initial_effective_lrate=0.0015
+initial_effective_lrate=0.001
 final_effective_lrate=0.00005
-num_epochs=40
+num_epochs=20
 num_jobs_initial=1
-num_jobs_final=2
+num_jobs_final=1
 remove_egs=true
 use_gpu=true
 
 minbatch=512
-momentum=0.0
+momentum=0.8
 # samples_per_iter=80000
 
 stage=0
@@ -83,7 +84,6 @@ if [ $stage -eq 2 ]; then
         --trainer.optimization.minibatch-size $minbatch \
         --trainer.optimization.momentum $momentum \
         --cleanup.remove-egs $remove_egs \
-        --cleanup.preserve-model-interval 500 \
         --targets-scp $target_scp \
         --feat-dir $train_dir \
         --use-gpu $use_gpu \
@@ -107,7 +107,23 @@ if [ $stage -eq 3 ]; then
 
     noisy_feats="ark:copy-feats scp:$sep_dir/JOB/feats.scp ark:- | apply-cmvn $cmvn_opts --utt2spk=ark:$sep_dir/JOB/utt2spk \
         scp:$sep_dir/JOB/cmvn.scp ark:- ark:- |"
-    clean_spect="nnet3-compute $exp_dir/test.nnet \"$noisy_feats\" ark:- |"
+    clean_spect="nnet3-compute $exp_dir/final.raw \"$noisy_feats\" ark:- |"
+
+    # mkdir -p $exp_dir/mask
+    $train_cmd JOB=1:$nj $exp_dir/estimate/wav-estimate.JOB.log wav-estimate --config=conf/stft.conf \
+        "ark:$clean_spect" scp:$sep_dir/JOB/wav.scp scp:$sep_dir/JOB/dst.scp || exit 1
+fi
+
+if [ $stage -eq 4 ]; then
+    echo "$0: estimate wave for $test_dir..."
+
+    ./utils/split_data.sh $test_dir $nj && sep_dir=$test_dir/split$nj
+
+    for n in `seq $nj`; do sed "s:isolated:enhan:g" $sep_dir/$n/wav.scp > $sep_dir/$n/dst.scp; done
+    mkdir -p $(cat $sep_dir/?/dst.scp | awk '{print $2}' | awk -F "/[^/]*$" '{print $1}' | sort -u)  
+
+    noisy_feats="ark:copy-feats scp:$sep_dir/JOB/feats.scp ark:- | apply-cmvn --norm-vars=true $train_dir/gmvn.mat ark:- ark:- |"
+    clean_spect="nnet3-compute $exp_dir/final.raw \"$noisy_feats\" ark:- | apply-cmvn --norm-vars=true --reverse $target_dir/gmvn.mat ark:- ark:- |"
 
     # mkdir -p $exp_dir/mask
     $train_cmd JOB=1:$nj $exp_dir/estimate/wav-estimate.JOB.log wav-estimate --config=conf/stft.conf \

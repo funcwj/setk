@@ -42,8 +42,12 @@ class ShortTimeFTComputer {
 public:
     ShortTimeFTComputer(const ShortTimeFTOptions &opts): 
         opts_(opts), frame_shift_(opts.frame_shift), frame_length_(opts.frame_length) {
-        CacheWindow(opts); 
+        CacheWindow(opts_); 
+        srfft_ = new SplitRadixRealFft<BaseFloat>(opts_.PaddingLength());
     }
+
+    ~ShortTimeFTComputer() { delete srfft_; }
+
     // Run STFT to transform int16 samples into stft results(complex)
     // format of spectrum: [r0, r(n/2-1), r1, i1, ... r(n/2-2), i(n/2-2)]
     // note that i0 == i(n/2-1) == 0, egs:
@@ -81,6 +85,8 @@ private:
     void CacheWindow(const ShortTimeFTOptions &opts);
 
     ShortTimeFTOptions opts_;
+    SplitRadixRealFft<BaseFloat> *srfft_;
+
     Vector<BaseFloat> window_;
 
     BaseFloat frame_shift_;

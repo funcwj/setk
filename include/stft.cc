@@ -29,7 +29,7 @@ void ShortTimeFTComputer::ShortTimeFT(const MatrixBase<BaseFloat> &wave, Matrix<
         iend = ibeg + frame_length_ <= num_samples ? ibeg + frame_length_: num_samples;  
         specs.Range(0, iend - ibeg).CopyFromVec(samples.Range(ibeg, iend - ibeg)); 
         specs.Range(0, frame_length_).MulElements(window_);
-        RealFft(&specs, true);
+        srfft_->Compute(specs.Data(), true);
     } 
 }
     
@@ -133,7 +133,7 @@ void ShortTimeFTComputer::InverseShortTimeFT(MatrixBase<BaseFloat> &stft, Matrix
     for (int32 i = 0; i < num_frames; i++) {
         SubVector<BaseFloat> specs(stft, i);
         // iRealFFT
-        RealFft(&specs, false);
+        srfft_->Compute(specs.Data(), false);
         specs.Scale(1.0 / frame_length_);
 
         seg.CopyFromVec(specs.Range(0, frame_length_));
