@@ -2,7 +2,7 @@
 
 This is some speech enhancement tools implemented based on kaldi.
 
-Update...
+Updating...
 
 #### Finished
 
@@ -10,6 +10,16 @@ Update...
 * Compute (phase angle/power&magnitude spectrum/complex STFT results) of input wave
 * Seperate target component from input wave according to input masks
 * Estimate wave from enhanced spectrum and reference wave
+
+
+
+#### Install
+```shell
+mkdir build
+export KALDI_ROOT=/kaldi/root/dir
+cmake ..
+make
+```
 
 #### Unit Test
 

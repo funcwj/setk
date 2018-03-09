@@ -3,7 +3,11 @@ project(kaldi_enhan)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(KALDI_DIR /gruntdata/jianwu.wj/kaldi)
+if ($ENV{KALDI_ROOT})
+    message(FATAL_ERROR "not find environment variable definition: \"KALDI_ROOT\"")
+endif()
+
+set(KALDI_DIR $ENV{KALDI_ROOT})
 set(DEPEND_LIBS kaldi-base kaldi-util kaldi-matrix kaldi-feat)
 
 add_definitions(-O3 -g -std=c++11 -DHAVE_CLAPACK)
