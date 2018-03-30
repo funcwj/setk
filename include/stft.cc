@@ -22,6 +22,11 @@ void ShortTimeFTComputer::ShortTimeFT(const MatrixBase<BaseFloat> &wave, Matrix<
     if (opts_.normalize_input)
         samples.Scale(1.0 / int16_max);
 
+    if (opts_.enable_scale) {
+        BaseFloat samp_norm = samples.Norm(float_inf);
+        samples.Scale(int16_max / samp_norm);
+    }
+
     int32 ibeg, iend;
     for (int32 i = 0; i < num_frames; i++) {
         SubVector<BaseFloat> specs(*stft, i);

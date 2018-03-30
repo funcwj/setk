@@ -13,13 +13,13 @@ struct ShortTimeFTOptions {
     BaseFloat frame_length;
     std::string window;
 
-    bool normalize_input;
+    bool normalize_input, enable_scale;
     bool volumn;
     bool apply_pow;
     bool apply_log;
 
     ShortTimeFTOptions(): frame_shift(256), frame_length(1024), 
-        window("hamming"), normalize_input(false), 
+        window("hamming"), normalize_input(false), enable_scale(false),
         apply_log(false), apply_pow(false) {}
 
     int32 PaddingLength() {
@@ -30,8 +30,8 @@ struct ShortTimeFTOptions {
         opts->Register("frame-shift", &frame_shift, "Frame shift in number of samples");
         opts->Register("frame-length", &frame_length, "Frame length in number of samples");
         opts->Register("window", &window, "Type of window(\"hamming\"|\"hanning\"|\"blackman\"|\"rectangular\")");
-        opts->Register("normalize-input", &normalize_input, "Normalize wave samples into range [-1, 1],"
-                                                            "like MATLAB or librosa");
+        opts->Register("normalize-input", &normalize_input, "Scale samples into range [-1, 1], like MATLAB or librosa");
+        opts->Register("enable-scale", &enable_scale, "Let inf-norm of sample vector be one");
         opts->Register("apply-pow", &apply_pow, "Using power spectrum instead of magnitude spectrum");
         opts->Register("apply-log", &apply_log, "Apply log on computed spectrum");
     }

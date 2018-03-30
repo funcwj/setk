@@ -77,6 +77,7 @@ int main(int argc, char *argv[]) {
                     
                 Matrix<BaseFloat> feature;
                 ComputeSTFTStats(stft_computer, wave_data.Data(), output, &feature);
+
                 kaldi_writer.Write(utt_key, feature);
 
                 num_utts += 1;
