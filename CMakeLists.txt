@@ -1,18 +1,41 @@
 cmake_minimum_required(VERSION 3.4)
-project(kaldi_enhan)
+project("Complex Matrix based on Kaldi")
 
 set(CMAKE_CXX_STANDARD 11)
 
-if ($ENV{KALDI_ROOT})
-    message(FATAL_ERROR "not find environment variable definition: \"KALDI_ROOT\"")
+MESSAGE(STATUS "detected OS: ${CMAKE_SYSTEM}")  
+message(STATUS "defined KALDI_ROOT=" $ENV{KALDI_ROOT})
+
+set(KALDI_ROOT $ENV{KALDI_ROOT})
+
+if(NOT DEFINED KALDI_ROOT)
+    message(FATAL_ERROR "Can not find definition of KALDI_ROOT, 
+                         export KALDI_ROOT=/path/to/kaldi first")
 endif()
 
-set(KALDI_DIR $ENV{KALDI_ROOT})
 set(DEPEND_LIBS kaldi-base kaldi-util kaldi-matrix kaldi-feat)
 
 add_definitions(-O3 -g -std=c++11)
-include_directories(${KALDI_DIR}/src ${KALDI_DIR}/tools/openfst/include ${CMAKE_SOURCE_DIR})
-link_directories(${KALDI_DIR}/src/lib)
+include_directories(${KALDI_ROOT}/src ${KALDI_ROOT}/tools/openfst/include ${CMAKE_SOURCE_DIR})
+link_directories(${KALDI_ROOT}/src/lib)
 
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
+
+if(APPLE)
+    SET(CMAKE_EXE_LINKER_FLAGS "-framework Accelerate")
+    add_definitions(-DHAVE_CLAPACK)
+    include_directories(${KALDI_ROOT}/tools/CLAPACK)
+elseif(UNIX)
+    add_definitions(-DHAVE_OPENBLAS)
+    set(OPENBLAS_ROOT $ENV{OPENBLAS_ROOT})
+    if(NOT DEFINED OPENBLAS_ROOT)
+        message(FATAL_ERROR "Can not find definition of KALDI_ROOT, 
+                             export OPENBLAS_ROOT=/path/to/openfst first")
+        include_directories(${OPENBLAS_ROOT}/include)
+        link_directories(${OPENBLAS_ROOT}/lib)
+        set(DEPEND_LIBS ${DEPEND_LIBS} openblas)
+    endif()
+endif()
+
+
 add_subdirectory(src)
