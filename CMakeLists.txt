@@ -28,7 +28,7 @@ elseif(UNIX)
     add_definitions(-DHAVE_OPENBLAS)
     set(OPENBLAS_ROOT $ENV{OPENBLAS_ROOT})
     if(NOT DEFINED OPENBLAS_ROOT)
-        message(FATAL_ERROR "Can not find definition of KALDI_ROOT, 
+        message(FATAL_ERROR "Can not find definition of OPENBLAS_ROOT, 
                              export OPENBLAS_ROOT=/path/to/openfst first")
     endif()
     include_directories(${OPENBLAS_ROOT}/include)
