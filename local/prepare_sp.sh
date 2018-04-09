@@ -24,7 +24,7 @@ find $multichan_data/tr05_*_simu -name "*.CH5.wav" | \
 for x in clean noisy; do
     awk '{print $1"\t"$1}' $data_dir/$x/wav.scp > $data_dir/$x/utt2spk
     cat $data_dir/$x/utt2spk | ./utils/utt2spk_to_spk2utt.pl > $data_dir/$x/spk2utt
-    ./local/compute_stft_stats.sh --stft-config conf/stft.conf --stats-type spectrum --nj $nj \
+    ./scripts/compute_stft_stats.sh --stft-config conf/stft.conf --stats-type spectrum --nj $nj \
         $data_dir/$x exp/compute_stft_stats stft/$x
     ./steps/compute_cmvn_stats.sh $data_dir/$x exp/make_cmvn stft/$x
 done

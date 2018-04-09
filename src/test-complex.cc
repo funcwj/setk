@@ -282,6 +282,27 @@ void test_cmatrix_hermite() {
     }
 }
 
+void test_copyfromfft() {
+    for (int32 i = 0; i < 10; i++) {
+        int32 dim = Rand() % 8 + 2;
+        Vector<BaseFloat> rv(dim * 2);
+        CVector<BaseFloat> cv(dim + 1);
+        rv.SetRandn();
+        cv.CopyFromRealfft(rv);
+        std::cout << rv;
+        std::cout << cv;
+    }
+    for (int32 i = 0; i < 10; i++) {
+        int32 r = Rand() % 8 + 2, c = Rand() % 8 + 2;
+        Matrix<BaseFloat> rm(r, c * 2);
+        CMatrix<BaseFloat> cm(r, c + 1);
+        rm.SetRandn();
+        cm.CopyFromRealfft(rm);
+        std::cout << rm;
+        std::cout << cm;
+    }
+}
+
 int main() {
     // test_cvector_init();
     // test_cvector_addvec();
@@ -297,7 +318,8 @@ int main() {
     // test_cvector_addmatvec();
     // test_cmatrix_mulelements();
     // test_cmatrix_invert();
-    test_cmatrix_heig();
+    // test_cmatrix_heig();
     // test_cmatrix_hermite();
+    test_copyfromfft();
     return 0;
 }

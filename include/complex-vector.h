@@ -82,6 +82,8 @@ public:
         
     void CopyFromVec(const VectorBase<Real> &v, ComplexIndexType kIndex);
 
+    void CopyFromRealfft(const VectorBase<Real> &v);
+
 protected:
 
     ~CVectorBase() {}

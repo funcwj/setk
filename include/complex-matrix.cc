@@ -153,6 +153,12 @@ void CMatrixBase<Real>::CopyFromMat(const CMatrixBase<Real> &M,
     }
 }
 
+template<typename Real>
+void CMatrixBase<Real>::CopyFromRealfft(const MatrixBase<Real> &M) {
+    KALDI_ASSERT(num_rows_ == M.NumRows() && (num_cols_ - 1) * 2 == M.NumCols());
+    for (MatrixIndexT i = 0; i < num_rows_; i++)
+        this->Row(i).CopyFromRealfft(M.Row(i)); 
+}
 
 template<typename Real>
 void CMatrixBase<Real>::AddMatMat(const Real alpha_r, const Real alpha_i,

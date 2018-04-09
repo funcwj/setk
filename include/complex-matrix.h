@@ -108,6 +108,7 @@ public:
     // this = this^H
     void Hermite();
 
+    // this == this^H
     bool IsHermitian(Real cutoff = 1.0e-5);
     
     // init from complex matrix, enable conjugate & transpose
@@ -117,6 +118,8 @@ public:
     // init from real matrix
     void CopyFromMat(const MatrixBase<Real> &M, 
                      ComplexIndexType index = kReal);
+
+    void CopyFromRealfft(const MatrixBase<Real> &M);
 
     std::string Info() const;
 

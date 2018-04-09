@@ -4,15 +4,14 @@ project("Complex Matrix based on Kaldi")
 set(CMAKE_CXX_STANDARD 11)
 
 MESSAGE(STATUS "detected OS: ${CMAKE_SYSTEM}")  
-message(STATUS "defined KALDI_ROOT=" $ENV{KALDI_ROOT})
 
 set(KALDI_ROOT $ENV{KALDI_ROOT})
-
 if(NOT DEFINED KALDI_ROOT)
     message(FATAL_ERROR "Can not find definition of KALDI_ROOT, 
                          export KALDI_ROOT=/path/to/kaldi first")
 endif()
 
+message(STATUS "defined KALDI_ROOT=" $ENV{KALDI_ROOT})
 set(DEPEND_LIBS kaldi-base kaldi-util kaldi-matrix kaldi-feat)
 
 add_definitions(-O3 -g -std=c++11)
@@ -31,10 +30,11 @@ elseif(UNIX)
     if(NOT DEFINED OPENBLAS_ROOT)
         message(FATAL_ERROR "Can not find definition of KALDI_ROOT, 
                              export OPENBLAS_ROOT=/path/to/openfst first")
-        include_directories(${OPENBLAS_ROOT}/include)
-        link_directories(${OPENBLAS_ROOT}/lib)
-        set(DEPEND_LIBS ${DEPEND_LIBS} openblas)
     endif()
+    include_directories(${OPENBLAS_ROOT}/include)
+    link_directories(${OPENBLAS_ROOT}/lib)
+    set(DEPEND_LIBS ${DEPEND_LIBS} openblas)
+    message(STATUS "defined OPENBLAS_ROOT=" $ENV{OPENBLAS_ROOT})
 endif()
 
 

@@ -41,11 +41,11 @@ find $multichan_data/et05_*_real -name "*.CH5.wav" | \
 for x in train dev test; do
     awk '{print $1"\t"$1}' $data_dir/$x/wav.scp > $data_dir/$x/utt2spk
     cat $data_dir/$x/utt2spk | ./utils/utt2spk_to_spk2utt.pl > $data_dir/$x/spk2utt
-    ./local/compute_stft_stats.sh --stats-type spectrum --nj $nj \
+    ./scripts/compute_stft_stats.sh --stats-type spectrum --nj $nj \
         $data_dir/$x exp/compute_stft_stats stft/$x
     ./steps/compute_cmvn_stats.sh $data_dir/$x exp/make_cmvn stft/$x
     if [ $x != "test" ]; then
-        ./local/compute_masks.sh --mask irm --nj $nj --noise false \
+        ./scripts/compute_masks.sh --mask irm --nj $nj --noise false \
             $data_dir/$x exp/compute_masks mask/$x
     fi
 done

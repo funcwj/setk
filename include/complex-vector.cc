@@ -115,6 +115,18 @@ void CVectorBase<Real>::CopyFromVec(const VectorBase<Real> &v, ComplexIndexType 
 }
 
 
+template<typename Real>
+void CVectorBase<Real>::CopyFromRealfft(const VectorBase<Real> &v) {
+    KALDI_ASSERT((dim_ - 1) * 2 == v.Dim());
+    for (MatrixIndexT i = 0; i < dim_; i++) {
+        if (i == 0)
+            (*this)(i, kReal) = v(0), (*this)(i, kImag) = 0;
+        else if (i == dim_ - 1)
+            (*this)(i, kReal) = v(1), (*this)(i, kImag) = 0;
+        else
+            (*this)(i, kReal) = v(i * 2), (*this)(i, kImag) = v(i * 2 + 1);
+    }
+}
 // Implement of CVector
 
 template<typename Real>
