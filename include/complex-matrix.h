@@ -91,13 +91,18 @@ public:
     void SetRandn();
     
     void SetUnit();
+
+    void Add(Real alpha_r, Real alpha_i);
     
     // this = this * alpha
     void Scale(Real alpha_r, Real alpha_i);
     
     // ajust cblas mm results into normal form
     // (a, bi) => (b+a)/2 (b-a)/2
-    void Adjust();
+    void AdjustOut();
+
+    // (a, bi) => (a-b) (a+b)
+    void AdjustIn();
 
     // this = this'
     void Conjugate();
@@ -121,7 +126,12 @@ public:
 
     void CopyFromRealfft(const MatrixBase<Real> &M);
 
+    void CopyColFromRealfft(const VectorBase<Real> &v, const MatrixIndexT cindex);
+
+
     std::string Info() const;
+
+    void AddToDiag(const Real alpha_r, const Real alpha_i);
 
     // this = this .* A
     void MulElements(const CMatrixBase<Real> &A);
@@ -275,7 +285,7 @@ std::ostream & operator << (std::ostream &os, const CMatrixBase<Real> &cm) {
         for (MatrixIndexT i = 0; i < cm.NumRows(); i++) {
             os << "\n  ";
             for (MatrixIndexT j = 0; j < cm.NumCols(); j++)
-            os << cm(i, j, kReal) << (cm(i, j, kImag) >=0 ? "+": "") << cm(i, j, kImag) << "i ";
+            os << cm(i, j, kReal) << (cm(i, j, kImag) >= 0 ? "+": "") << cm(i, j, kImag) << "i ";
         }
         os << "]\n";
     }

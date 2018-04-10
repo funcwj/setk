@@ -28,6 +28,7 @@ void CMatrixBase<Real>::SetRandn() {
     }
 }
 
+
 template<typename Real>
 void CMatrixBase<Real>::SetUnit() {
     SetZero();
@@ -36,12 +37,31 @@ void CMatrixBase<Real>::SetUnit() {
 }
 
 template<typename Real>
-void CMatrixBase<Real>::Adjust() {
+void CMatrixBase<Real>::Add(Real alpha_r, Real alpha_i) {
+    for (MatrixIndexT i = 0; i < num_rows_; i++)
+        for (MatrixIndexT j = 0; j < num_cols_; j++) {
+            (*this)(i, j, kReal) += alpha_r;
+            (*this)(i, j, kImag) -= alpha_i;
+        }
+}
+
+template<typename Real>
+void CMatrixBase<Real>::AdjustOut() {
     for (MatrixIndexT i = 0; i < num_rows_; i++)
         for (MatrixIndexT j = 0; j < num_cols_; j++) {
             (*this)(i, j, kReal) += (*this)(i, j, kImag);
             (*this)(i, j, kReal) /= 2;
             (*this)(i, j, kImag) -= (*this)(i, j, kReal);
+        }
+}
+
+template<typename Real>
+void CMatrixBase<Real>::AdjustIn() {
+    for (MatrixIndexT i = 0; i < num_rows_; i++)
+        for (MatrixIndexT j = 0; j < num_cols_; j++) {
+            (*this)(i, j, kReal) -= (*this)(i, j, kImag);
+            (*this)(i, j, kImag) *= 2;
+            (*this)(i, j, kImag) += (*this)(i, j, kReal);
         }
 }
 
@@ -118,6 +138,16 @@ std::string CMatrixBase<Real>::Info() const {
     return ostr.str();
 }
 
+
+template<typename Real>
+void CMatrixBase<Real>::AddToDiag(const Real alpha_r, const Real alpha_i) {
+    MatrixIndexT add_times = std::min(num_cols_, num_rows_);
+    for (MatrixIndexT index = 0; index < add_times; index++) {
+        (*this)(index, index, kReal) += alpha_r;
+        (*this)(index, index, kImag) += alpha_i;
+    }
+}
+
 template<typename Real>
 void CMatrixBase<Real>::CopyFromMat(const MatrixBase<Real> &M, ComplexIndexType index) {
     KALDI_ASSERT(static_cast<const void*>(data_) != static_cast<const void*>(M.Data()));
@@ -160,6 +190,22 @@ void CMatrixBase<Real>::CopyFromRealfft(const MatrixBase<Real> &M) {
         this->Row(i).CopyFromRealfft(M.Row(i)); 
 }
 
+
+template<typename Real>
+void CMatrixBase<Real>::CopyColFromRealfft(const VectorBase<Real> &v,
+                                           const MatrixIndexT cindex) {
+    KALDI_ASSERT((num_rows_ - 1) * 2 == v.Dim());
+    for (MatrixIndexT i = 0; i < num_rows_; i++) {
+        if (i == 0)
+            (*this)(i, cindex, kReal) = v(0), (*this)(i, cindex, kImag) = 0;
+        else if (i == num_rows_ - 1)
+            (*this)(i, cindex, kReal) = v(1), (*this)(i, cindex, kImag) = 0;
+        else
+            (*this)(i, cindex, kReal) = v(i * 2), (*this)(i, cindex, kImag) = v(i * 2 + 1);
+    }
+}
+
+
 template<typename Real>
 void CMatrixBase<Real>::AddMatMat(const Real alpha_r, const Real alpha_i,
                                   const CMatrixBase<Real>& A, MatrixTransposeType transA,
@@ -171,10 +217,11 @@ void CMatrixBase<Real>::AddMatMat(const Real alpha_r, const Real alpha_i,
                  || (transA == kTrans && transB == kTrans && A.num_rows_ == B.num_cols_ && A.num_cols_ == num_rows_ && B.num_rows_ == num_cols_));
     KALDI_ASSERT(&A !=  this && &B != this);
     if (num_rows_ == 0) return;
-    Complex<Real> alpha(alpha_r, alpha_i), beta(beta_r, beta_i);
+    AdjustIn();
+    Complex<Real> alpha(alpha_r - alpha_i, alpha_r + alpha_i), beta(beta_r, beta_i);
     cblas_CZgemm(&alpha, transA, A.data_, A.num_rows_, A.num_cols_, A.stride_,
                 transB, B.data_, B.stride_, &beta, data_, num_rows_, num_cols_, stride_);
-    Adjust();
+    AdjustOut();
 }
 
 
@@ -186,9 +233,10 @@ void CMatrixBase<Real>::AddVecVec(const Real alpha_r, const Real alpha_i,
     KALDI_ASSERT(num_rows_ == a.Dim() && num_cols_ == b.Dim());
     if (num_rows_ == 0)
         return;
-    Complex<Real> alpha(alpha_r, alpha_i);
+    AdjustIn();
+    Complex<Real> alpha(alpha_r - alpha_i, alpha_r + alpha_i);
     cblas_CZger(a.Dim(), b.Dim(), &alpha, a.Data(), 1, b.Data(), 1, data_, stride_, (conj == kConj ? true: false));
-    Adjust();
+    AdjustOut();
 }
 
 
@@ -197,9 +245,10 @@ void CMatrixBase<Real>::AddMat(const Real alpha_r, const Real alpha_i,
                                const CMatrixBase<Real> &M,
                                MatrixTransposeType trans) {
     KALDI_ASSERT(&M != this);
-    Complex<Real> alpha(alpha_r, alpha_i);
+    Complex<Real> alpha(alpha_r - alpha_i, alpha_r + alpha_i);
     Real *mdata = M.data_;
     MatrixIndexT mstride = M.stride_;
+    AdjustIn();
     if (trans == kNoTrans) {
         KALDI_ASSERT(M.num_cols_ == num_cols_ && M.num_rows_ == num_rows_);
         if (num_rows_ == 0) return;
@@ -214,7 +263,7 @@ void CMatrixBase<Real>::AddMat(const Real alpha_r, const Real alpha_i,
             cblas_CZaxpy(num_cols_, &alpha, mdata + row * 2, mstride >> 1, data_ + stride_ * row, 1);
         }
     }
-    Adjust();
+    AdjustOut();
 }
 
 // using clapack
@@ -302,8 +351,8 @@ void CMatrixBase<Real>::HEig(Vector<Real> *eig_value, CMatrix<Real> *eig_vector)
         else
             KALDI_ERR << "The algorithm failed to converge";
     }
-    // NOTE: can add eig_vector->Herimite() to get same results as MATLAB
     // each row is a eigen vector
+    // NOTE: can add eig_vector->Herimite() to get same results as MATLAB
     // and for A.Eig(&V, D)
     // have A * V = V * D, see test-complex.cc
     // by default, eig_value is in ascend order.

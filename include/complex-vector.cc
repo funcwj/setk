@@ -32,6 +32,13 @@ std::complex<Real> CVectorBase<Real>::Sum() const {
 }
 
 template<typename Real>
+std::string CVectorBase<Real>::Info() const {
+    std::ostringstream ostr;
+    ostr << "Dimention: " << dim_ << ", --addr = " << data_ << std::endl;
+    return ostr.str();
+}
+
+template<typename Real>
 void CVectorBase<Real>::Add(Real cr, Real ci) {
     for (MatrixIndexT i = 0; i < dim_; i++) {
         (*this)(i, kReal) += cr;
@@ -47,13 +54,23 @@ void CVectorBase<Real>::Conjugate() {
 }
 
 template<typename Real>
-void CVectorBase<Real>::Adjust() {
+void CVectorBase<Real>::AdjustOut() {
     for (MatrixIndexT i = 0; i < dim_; i++) {
         (*this)(i, kReal) += (*this)(i, kImag);
         (*this)(i, kReal) /= 2;
         (*this)(i, kImag) -= (*this)(i, kReal);
     }
 }
+
+template<typename Real>
+void CVectorBase<Real>::AdjustIn() {
+    for (MatrixIndexT i = 0; i < dim_; i++) {
+        (*this)(i, kReal) -= (*this)(i, kImag);
+        (*this)(i, kImag) *= 2;
+        (*this)(i, kImag) += (*this)(i, kReal);
+    }
+}
+
 
 template<typename Real>
 void CVectorBase<Real>::Scale(const Real alpha_r, const Real alpha_i) {
@@ -93,17 +110,22 @@ void CVectorBase<Real>::AddMatVec(const Real alpha_r, const Real alpha_i,
     KALDI_ASSERT((trans == kNoTrans && M.NumCols() == v.dim_ && M.NumRows() == dim_)
                  || (trans == kTrans && M.NumRows() == v.dim_ && M.NumCols() == dim_));
     KALDI_ASSERT(&v != this);
-    Complex<Real> alpha(alpha_r, alpha_i), beta(beta_r, beta_i);
+    AdjustIn();
+    // NOTE: alpha need to adjust!!
+    Complex<Real> alpha(alpha_r - alpha_i, alpha_i + alpha_r), beta(beta_r, beta_i);
     cblas_CZgemv(trans, M.NumRows(), M.NumCols(), &alpha, M.Data(), M.Stride(),
-                v.Data(), 1, &beta, data_, 1);
-    Adjust();
+                 v.Data(), 1, &beta, data_, 1);
+    AdjustOut();
 }
 
 template<typename Real>
-void CVectorBase<Real>::CopyFromVec(const CVectorBase<Real> &v) {
+void CVectorBase<Real>::CopyFromVec(const CVectorBase<Real> &v, ConjugateType conj) {
     KALDI_ASSERT(dim_ == v.Dim());
     if (data_ != v.data_) {
         std::memcpy(this->data_, v.data_, 2 * dim_ * sizeof(Real));
+        if (conj == kConj)
+            for (MatrixIndexT i = 0; i < dim_; i++)
+                (*this)(i, kImag) *= (-1.0);
     }
 }
 

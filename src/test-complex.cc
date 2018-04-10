@@ -2,6 +2,7 @@
 // wujian@2018
 
 #include "include/complex-base.h"
+#include "include/beamformer.h"
 #include "include/complex-vector.h"
 #include "include/complex-matrix.h"
 
@@ -45,9 +46,10 @@ void test_cvector_addvec() {
 }
 
 void test_cvector_scale() {
-    CVector<BaseFloat> v(10);
     BaseFloat a, b;
     for (int32 i = 0; i < 5; i++) {
+        int32 dim = Rand() % 6 + 2;
+        CVector<BaseFloat> v(dim);
         v.SetRandn();
         std::cout << v;
         a = RandGauss(), b = RandGauss();
@@ -56,6 +58,22 @@ void test_cvector_scale() {
         std::cout << v;
     }
 }
+
+void test_cmatrix_scale() {
+    BaseFloat a, b;
+    for (int32 i = 0; i < 5; i++) {
+        int32 r = Rand() % 6 + 2, c = Rand() % 6 + 2;
+        CMatrix<BaseFloat> m(r, c);
+        m.SetRandn();
+        std::cout << m;
+        a = RandGauss(), b = RandGauss();
+        std::cout << "(" << a << ", " << b << ")" << std::endl;
+        m.Scale(a, 0);
+        std::cout << m;
+    }
+}
+
+
 
 void test_cvector_mulelements() {
     CVector<BaseFloat> v1(6), v2(6);
@@ -96,28 +114,32 @@ void test_subcvector() {
 }
 
 void test_cvector_vecvec() {
-    CVector<BaseFloat> v1(6), v2(6);
     BaseFloat dr, di;
     for(int32 i = 0; i < 10; i++) {
+        int32 dim = Rand() % 6 + 2;
+        CVector<BaseFloat> v1(dim), v2(dim);
         v1.SetRandn(), v2.SetRandn();
-        std::cout << v1;
-        std::cout << v2;
-        std::cout << VecVec(v1, v2, (i % 2 ? kConj: kNoConj)) << std::endl;
+        std::cout << "v1:\n" << v1;
+        std::cout << "v2:\n" << v2;
+        std::cout << "v1 * v2^" << (i % 2 ? "H": "T") << " = " << VecVec(v1, v2, (i % 2 ? kConj: kNoConj)) << std::endl;
     }
 } 
 
 
 void test_cvector_addmatvec() {
     for (int32 i = 0; i < 10; i++) {
-        CMatrix<BaseFloat> m1(5, 6), m2(6, 5);
-        CVector<BaseFloat> v1(6), v2(5);
-        v1.SetRandn(), m1.SetRandn(), m2.SetRandn();
+        int32 r = Rand() % 6 + 2, c = Rand() % 6 + 2;
+        CMatrix<BaseFloat> m1(r, c), m2(c, r);
+        CVector<BaseFloat> v1(c), v2(r);
+        v1.SetRandn(), v2.SetRandn();
+        m1.SetRandn(), m2.SetRandn();
+        std::cout << v1;
+        std::cout << v2;
         std::cout << m1;
         std::cout << m2;
-        std::cout << v1;
-        v2.AddMatVec(1, 1, m1, kNoTrans, v1, 0, 0);
+        v2.AddMatVec(1, 0, m1, kNoTrans, v1, 1, 1);
         std::cout << v2;
-        v2.AddMatVec(1, 1, m2, kTrans, v1, 0, 0);
+        v2.AddMatVec(1, 0, m2, kTrans, v1, 1, 1);
         std::cout << v2;
     }
 }
@@ -166,43 +188,47 @@ void test_cmatrix_basic_op() {
 }
 
 void test_cmatrix_addmatmat() {
-    CMatrix<BaseFloat> cm1(5, 7), cm2(7, 5), ans(5, 5);
     for (int32 i = 0; i < 10; i++) {
-        cm1.SetRandn(), cm2.SetRandn();
-        ans.AddMatMat(1, 1, cm1, kNoTrans, cm2, kNoTrans, 0, 0);
-        std::cout << cm1;
-        std::cout << cm2;
-        std::cout << ans;
+        int32 m = Rand() % 5 + 2, n = Rand() % 5 + 2, k = Rand() % 5 + 2;
+        CMatrix<BaseFloat> cm1(m, n), cm2(n, k), ans(m, k);
+        cm1.SetRandn(), cm2.SetRandn(), ans.SetRandn();
+        std::cout << "ans:\n" << ans;
+        ans.AddMatMat(2, 1, cm1, kNoTrans, cm2, kNoTrans, 0.5, 1);
+        std::cout << "cm1:\n" << cm1;
+        std::cout << "cm2:\n" << cm2;
+        std::cout << "ans = (0.5+1i) * ans + (2+1i) * cm1 * cm2:\n" << ans;
     }    
 }
 
 void test_cmatrix_addvecvec() {
     for (int32 i = 0; i < 10; i++) {
-        CMatrix<BaseFloat> cm(5, 6);
-        CVector<BaseFloat> cv1(5), cv2(6);
+        int32 r = Rand() % 5 + 2, c = Rand() % 5 + 2;
+        CMatrix<BaseFloat> cm(r, c);
+        cm.SetRandn();
+        std::cout << "cm:\n" << cm;
+        CVector<BaseFloat> cv1(r), cv2(c);
         cv1.SetRandn(), cv2.SetRandn();
-        std::cout << cv1;
-        std::cout << cv2;
-        cm.AddVecVec(1, 1, cv1, cv2, kNoConj);
-        std::cout << cm;
-        cm.SetZero();
-        cm.AddVecVec(1, 1, cv1, cv2, kConj);
-        std::cout << cm;
+        std::cout << "cv1:\n" << cv1;
+        std::cout << "cv2:\n" << cv2;
+        cm.AddVecVec(1, 0.5, cv1, cv2, kNoConj);
+        std::cout << "cm = cm + (1+0.5i) * cv1 * cv2^T:\n" << cm;
+        cm.AddVecVec(0.5, 2, cv1, cv2, kConj);
+        std::cout << "cm = cm + (0.5+2i) * cv1 * cv2^H:\n" << cm;
     }    
 }
 
 void test_cmatrix_addmat() {
     for (int32 i = 0; i < 10; i++) {
-        CMatrix<BaseFloat> cm(5, 6), m1(5, 6), m2(6, 5);
-        m1.SetRandn(), m2.SetRandn();
-        std::cout << m1;
-        std::cout << m2;
-        std::cout << cm;
+        int32 r = Rand() % 5 + 2, c = Rand() % 5 + 2;
+        CMatrix<BaseFloat> cm(r, c), m1(r, c), m2(c, r);
+        cm.SetRandn(), m1.SetRandn(), m2.SetRandn();
+        std::cout << "m1:\n" << m1;
+        std::cout << "m2:\n" << m2;
+        std::cout << "cm:\n" << cm;
         cm.AddMat(1, 1, m1, kNoTrans);
-        std::cout << cm;
-        cm.SetZero();
+        std::cout << "cm + m1:\n" << cm;
         cm.AddMat(1, 1, m2, kTrans);
-        std::cout << cm;
+        std::cout << "cm + m2.T:\n" << cm;
     }
 }
 
@@ -258,11 +284,12 @@ void test_cmatrix_heig() {
         std::cout << eig_values;
         std::cout << eig_vectors;
         eig_vectors.Hermite();
+        std::cout << eig_vectors;
         CMatrix<BaseFloat> diag(eig_values);
         L.AddMatMat(1, 1, cm, kNoTrans, eig_vectors, kNoTrans, 0, 0);
         R.AddMatMat(1, 1, eig_vectors, kNoTrans, diag, kNoTrans, 0, 0);
+        L.AddMat(-1, 0, R);
         std::cout << L;
-        std::cout << R;
     }
 }
 
@@ -303,6 +330,64 @@ void test_copyfromfft() {
     }
 }
 
+void test_estimate_psd() {
+    for (int32 i = 0; i < 10; i++) {
+        int32 f = Rand() % 6 + 4, t = Rand() % 6 + 4, c = Rand() % 5 + 3;
+        CMatrix<BaseFloat> src_stft(f * t, c), psd; 
+        Matrix<BaseFloat> mask(t, f);
+        src_stft.SetRandn();
+        mask.SetRandn();
+        EstimatePsd(src_stft, mask, &psd);
+        std::cout << "f = " << f << ", t = " << t << ", c = " << c << std::endl;
+        for (int32 j = 0; j < f; j++) {
+            SubCMatrix<BaseFloat> covar(psd, j * c, c, 0, c);
+            KALDI_ASSERT(covar.IsHermitian());
+        }
+    }
+}
+
+void test_beamform() {
+    for (int32 i = 0; i < 10; i++) {
+        int32 f = Rand() % 6 + 4, t = Rand() % 6 + 4, c = Rand() % 5 + 3;
+        CMatrix<BaseFloat> src_stft(f * t, c), weights(f, c), enh_stft; 
+        src_stft.SetRandn();
+        weights.SetRandn();
+        weights.Conjugate();
+        Beamform(src_stft, weights, &enh_stft);
+        std::cout << "f = " << f << ", t = " << t << ", c = " << c << std::endl;
+        std::cout << enh_stft;
+    }
+}
+
+void test_estimate_steervector() {
+    for (int32 i = 0; i < 10; i++) {
+        int32 f = Rand() % 6 + 4, t = Rand() % 6 + 4, c = Rand() % 5 + 3;
+        CMatrix<BaseFloat> psd(f * c, c), hmat, sv;
+        for (int32 j = 0; j < f; j++) {
+            create_hermite_cmatrix(&hmat, c);
+            psd.RowRange(j * c, c).CopyFromMat(hmat);
+        }
+        std::cout << "f = " << f << ", t = " << t << ", c = " << c << std::endl;
+        EstimateSteerVector(psd, &sv);
+        std::cout << sv;
+    }
+}
+
+void test_compute_mvdr_beamweights() {
+    for (int32 i = 0; i < 10; i++) {
+        int32 f = Rand() % 6 + 4, t = Rand() % 6 + 4, c = Rand() % 5 + 3;
+        CMatrix<BaseFloat> psd(f * c, c), hmat, weights, sv(f, c);
+        sv.SetRandn();
+        for (int32 j = 0; j < f; j++) {
+            create_hermite_cmatrix(&hmat, c);
+            psd.RowRange(j * c, c).CopyFromMat(hmat);
+        }
+        std::cout << "f = " << f << ", t = " << t << ", c = " << c << std::endl;
+        ComputeMvdrBeamWeights(psd, sv, &weights);
+        std::cout << weights;
+    }
+}
+
 int main() {
     // test_cvector_init();
     // test_cvector_addvec();
@@ -320,6 +405,11 @@ int main() {
     // test_cmatrix_invert();
     // test_cmatrix_heig();
     // test_cmatrix_hermite();
-    test_copyfromfft();
+    // test_copyfromfft();
+    // test_estimate_psd();
+    // test_cmatrix_scale();
+    // test_beamform();
+    // test_estimate_steervector();
+    test_compute_mvdr_beamweights();
     return 0;
 }

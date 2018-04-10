@@ -50,9 +50,13 @@ public:
 
     std::complex<Real> Sum() const;
 
+    std::string Info() const;
     // ajust cblas mm results into normal form
     // (a, bi) => (b+a)/2 (b-a)/2
-    void Adjust();
+    void AdjustIn();
+
+    // (a, bi) => (a-b) (a+b)
+    void AdjustOut();
 
     // this += c 
     void Add(Real cr, Real ci);
@@ -78,7 +82,7 @@ public:
     // this = this'
     void Conjugate();
 
-    void CopyFromVec(const CVectorBase<Real> &v);
+    void CopyFromVec(const CVectorBase<Real> &v, ConjugateType conj = kNoConj);
         
     void CopyFromVec(const VectorBase<Real> &v, ComplexIndexType kIndex);
 
@@ -171,6 +175,11 @@ public:
         CVectorBase<Real>::dim_   = size;
     }
 
+    SubCVector(const CMatrixBase<Real> &matrix, MatrixIndexT row) {
+        CVectorBase<Real>::data_ = const_cast<Real*>(matrix.RowData(row));
+        CVectorBase<Real>::dim_  = matrix.NumCols();
+    }
+
     ~SubCVector() {} 
 
 private:
@@ -180,11 +189,11 @@ private:
 
 template<typename Real>
 std::complex<Real> VecVec(const CVectorBase<Real> &v1, const CVectorBase<Real> &v2, 
-                          ConjugateType conjA = kNoConj) {
+                          ConjugateType conj = kNoConj) {
     MatrixIndexT dim = v1.Dim();
     KALDI_ASSERT(dim == v2.Dim());
     Complex<Real> dot;
-    cblas_CZdot(dim, v1.Data(), 1, v2.Data(), 1, conjA == kConj ? true: false, &dot);
+    cblas_CZdot(dim, v1.Data(), 1, v2.Data(), 1, conj == kConj ? true: false, &dot);
     return std::complex<Real>(dot.real, dot.imag);
 }
 
