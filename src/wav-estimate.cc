@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
                     KALDI_LOG << "Processed " << num_utts << " utterances";
                 KALDI_VLOG(2) << "Estimate target for utterance " << utt_key;
             }
-            KALDI_LOG << "Done " << num_utts << " utterances out of " << num_done
+            KALDI_LOG << "Done " << num_done << " utterances out of " << num_utts
                       << ", " << num_no_tgt_utts << " missing targets masks";
             return num_done == 0 ? 1: 0;
         } else {

@@ -69,7 +69,8 @@ template<typename Real>
 void CMatrixBase<Real>::Conjugate() {
     for (MatrixIndexT i = 0; i < num_rows_; i++) {
         for (MatrixIndexT j = 0; j < num_cols_; j++)
-            (*this)(i, j, kImag) *= (-1.0);
+            if ((*this)(i, j, kImag) != 0)
+                (*this)(i, j, kImag) *= (-1.0);
     }
 }
 
@@ -192,16 +193,21 @@ void CMatrixBase<Real>::CopyFromRealfft(const MatrixBase<Real> &M) {
 
 
 template<typename Real>
-void CMatrixBase<Real>::CopyColFromRealfft(const VectorBase<Real> &v,
-                                           const MatrixIndexT cindex) {
-    KALDI_ASSERT((num_rows_ - 1) * 2 == v.Dim());
-    for (MatrixIndexT i = 0; i < num_rows_; i++) {
-        if (i == 0)
-            (*this)(i, cindex, kReal) = v(0), (*this)(i, cindex, kImag) = 0;
-        else if (i == num_rows_ - 1)
-            (*this)(i, cindex, kReal) = v(1), (*this)(i, cindex, kImag) = 0;
-        else
-            (*this)(i, cindex, kReal) = v(i * 2), (*this)(i, cindex, kImag) = v(i * 2 + 1);
+void CMatrixBase<Real>::CopyRowFromVec(const CVectorBase<Real> &v, const MatrixIndexT rindex) {
+    KALDI_ASSERT(v.Dim() == num_cols_ && static_cast<UnsignedMatrixIndexT>(rindex) <
+                 static_cast<UnsignedMatrixIndexT>(num_rows_));
+    const Real *vec_data = v.Data();
+    Real *row_data = RowData(rindex);
+    std::memcpy(row_data, vec_data, num_cols_ * 2 * sizeof(Real));
+}
+
+template<typename Real>
+void CMatrixBase<Real>::CopyColFromVec(const CVectorBase<Real> &v, const MatrixIndexT cindex) {
+    KALDI_ASSERT(v.Dim() == num_rows_ && static_cast<UnsignedMatrixIndexT>(cindex) <
+                 static_cast<UnsignedMatrixIndexT>(num_cols_));
+    for (int32 r = 0; r < num_rows_; r++) {
+        (*this)(r, cindex, kReal) = v(r, kReal);
+        (*this)(r, cindex, kImag) = v(r, kImag);
     }
 }
 

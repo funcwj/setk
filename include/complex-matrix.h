@@ -126,7 +126,11 @@ public:
 
     void CopyFromRealfft(const MatrixBase<Real> &M);
 
-    void CopyColFromRealfft(const VectorBase<Real> &v, const MatrixIndexT cindex);
+    // copy vector into rindex row of matrix
+    void CopyRowFromVec(const CVectorBase<Real> &v, const MatrixIndexT rindex);
+
+    // copy vector into cindex col of matrix
+    void CopyColFromVec(const CVectorBase<Real> &v, const MatrixIndexT cindex);
 
 
     std::string Info() const;

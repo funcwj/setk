@@ -49,7 +49,8 @@ void CVectorBase<Real>::Add(Real cr, Real ci) {
 template<typename Real>
 void CVectorBase<Real>::Conjugate() {
     for (MatrixIndexT i = 0; i < dim_; i++) {
-        (*this)(i, kImag) *= (-1.0);
+        if ((*this)(i, kImag) != 0)
+            (*this)(i, kImag) *= (-1.0);
     }
 }
 
@@ -125,7 +126,8 @@ void CVectorBase<Real>::CopyFromVec(const CVectorBase<Real> &v, ConjugateType co
         std::memcpy(this->data_, v.data_, 2 * dim_ * sizeof(Real));
         if (conj == kConj)
             for (MatrixIndexT i = 0; i < dim_; i++)
-                (*this)(i, kImag) *= (-1.0);
+                if ((*this)(i, kImag) != 0)
+                    (*this)(i, kImag) *= (-1.0);
     }
 }
 
@@ -149,6 +151,8 @@ void CVectorBase<Real>::CopyFromRealfft(const VectorBase<Real> &v) {
             (*this)(i, kReal) = v(i * 2), (*this)(i, kImag) = v(i * 2 + 1);
     }
 }
+
+
 // Implement of CVector
 
 template<typename Real>

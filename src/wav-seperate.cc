@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
             int num_utts = 0, num_no_tgt_utts = 0, num_done = 0;
             for (; !noisy_reader.Done(); noisy_reader.Next()) {
                 std::string utt_key = noisy_reader.Key();
-                num_utts += 1;
+                num_utts++;
 
                 if (!mask_reader.HasKey(utt_key)) {
                     KALDI_WARN << utt_key << ", missing target masks";
@@ -101,9 +101,10 @@ int main(int argc, char *argv[]) {
                     KALDI_LOG << "Processed " << num_utts << " utterances";
                 KALDI_VLOG(2) << "Seperate target for utterance " << utt_key;
             }
-            KALDI_LOG << "Done " << num_utts << " utterances out of " << num_done
+            KALDI_LOG << "Done " << num_done << " utterances out of " << num_utts
                       << ", " << num_no_tgt_utts << " missing targets masks";
             return num_done == 0 ? 1: 0;
+
         } else {
             bool binary;
             Input ki(noisy_in, &binary);

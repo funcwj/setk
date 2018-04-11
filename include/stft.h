@@ -61,7 +61,7 @@ public:
     //  -0.04591224+0.08162118j  1.56411987+0.13796286j  0.08509277+0.27094417j
     //  0.72716829-0.08915424j  0.87527244-1.57259355j -2.86146448+0.j        ]
     void ShortTimeFT(const MatrixBase<BaseFloat> &wave, Matrix<BaseFloat> *stft);
-    
+
     // using overlapadd to reconstruct waveform from realfft's complex results
     void InverseShortTimeFT(MatrixBase<BaseFloat> &stft, Matrix<BaseFloat> *wave, 
                             BaseFloat range = 0);
