@@ -10,6 +10,8 @@
 
 namespace kaldi {
 
+// Cast CMatrix into Matrix, in Realfft format, to reconstruct speech
+// The Realfft format is space efficient, so I refused to use CMatrix in stft.h
 void CastIntoRealfft(const CMatrix<BaseFloat> &cstft,
                      Matrix<BaseFloat> *rstft) {
     int32 num_rows = cstft.NumRows(), num_cols = (cstft.NumCols() - 1) * 2;
@@ -136,7 +138,7 @@ void ComputeMvdrBeamWeights(const CMatrixBase<BaseFloat> &noise_psd,
 
 
 // target_psd:  (num_bins x num_channels, num_channels)
-// noise_psd:  (num_bins x num_channels, num_channels)
+// noise_psd:   (num_bins x num_channels, num_channels)
 // beam_weights:(num_bins, num_channels)
 void ComputeGevdBeamWeights(const CMatrixBase<BaseFloat> &target_psd,
                             const CMatrixBase<BaseFloat> &noise_psd,

@@ -13,6 +13,7 @@ int main(int argc, char *argv[]) {
     try{
         const char *usage = 
             "Do max-SNR (using generalized eigenvector decomposition method) beamformer, depending on TF mask\n"
+            "\n"
             "Usage: apply-supervised-max-snr [options...] <mask-rspecifier> <ch1-rspecifier> ... <target-wav-wspecifier>\n";
 
         ParseOptions po(usage);
@@ -148,7 +149,7 @@ int main(int argc, char *argv[]) {
 
             if (num_done % 100 == 0)
                 KALDI_LOG << "Processed " << num_utts << " utterances.";
-            KALDI_VLOG(2) << "Do mvdr beamforming for utterance-id " << utt_key << " done.";
+            KALDI_VLOG(2) << "Do max-snr beamforming for utterance-id " << utt_key << " done.";
         }
 
         KALDI_LOG << "Done " << num_done << " utterances out of " << num_utts

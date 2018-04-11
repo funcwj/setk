@@ -38,7 +38,6 @@ int main(int argc, char *argv[]) {
         const char *usage = 
             "Compute T-F mask(using for speech enhancement)\n"
             "\n"
-            "For ratio | wiener mask\n"
             "Usage:  compute-masks [options...] <noise-rspecifier> <clean-rspecifier> <mask-wspecifier>\n"
             "   or:  compute-masks [options...] <noise-rxfilename> <clean-rxfilename> <mask-wxfilename>\n"
             "By default, this command compute clean masks, to compute noise part, using <noise-rspecifier> instead\n";

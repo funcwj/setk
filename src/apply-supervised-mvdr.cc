@@ -13,6 +13,7 @@ int main(int argc, char *argv[]) {
     try{
         const char *usage = 
             "Do minimum variance distortionless response (MVDR) beamformer, depending on TF mask\n"
+            "\n"
             "Usage: apply-supervised-mvdr [options...] <mask-rspecifier> <ch1-rspecifier> ... <target-wav-wspecifier>\n";
 
         ParseOptions po(usage);

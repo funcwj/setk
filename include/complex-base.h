@@ -1,4 +1,4 @@
-// complex-math-base.h
+// complex-base.h
 // wujian@2018
 
 #ifndef COMPLEX_MATH_BASE_H

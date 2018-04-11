@@ -1,4 +1,4 @@
-// test_stft.cc
+// test-stft.cc
 // wujian@18.2.12
 
 #include "matrix/matrix-lib.h"

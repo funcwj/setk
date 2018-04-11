@@ -133,19 +133,19 @@ inline void cblas_CZgemv(MatrixTransposeType trans, MatrixIndexT num_rows,
 //            integer *lda, real *w, complex *work, integer *lwork, real *rwork, 
 //            integer *info);
 
-inline void clapack_CZheev(KaldiBlasInt *num_rows, void *eig_vecs, KaldiBlasInt *stride, float *eig_value,
+inline void clapack_CZheev(KaldiBlasInt *num_rows, void *V, KaldiBlasInt *stride, float *D,
                            void *work, KaldiBlasInt *lwork, float *rwork, KaldiBlasInt *info) {
     
-    cheev_(const_cast<char*>("V"), const_cast<char*>("U"), num_rows, reinterpret_cast<KaldiComplexFloat*>(eig_vecs),
-           stride, eig_value, reinterpret_cast<KaldiComplexFloat*>(work), lwork, rwork, info);
+    cheev_(const_cast<char*>("V"), const_cast<char*>("U"), num_rows, reinterpret_cast<KaldiComplexFloat*>(V),
+           stride, D, reinterpret_cast<KaldiComplexFloat*>(work), lwork, rwork, info);
 }
 
 
-inline void clapack_CZheev(KaldiBlasInt *num_rows, void *eig_vecs, KaldiBlasInt *stride, double *eig_value,
+inline void clapack_CZheev(KaldiBlasInt *num_rows, void *V, KaldiBlasInt *stride, double *D,
                            void *work, KaldiBlasInt *lwork, double *rwork, KaldiBlasInt *info) {
     
-    zheev_(const_cast<char*>("V"), const_cast<char*>("U"), num_rows, reinterpret_cast<KaldiComplexDouble*>(eig_vecs),
-           stride, eig_value, reinterpret_cast<KaldiComplexDouble*>(work), lwork, rwork, info);
+    zheev_(const_cast<char*>("V"), const_cast<char*>("U"), num_rows, reinterpret_cast<KaldiComplexDouble*>(V),
+           stride, D, reinterpret_cast<KaldiComplexDouble*>(work), lwork, rwork, info);
 }
 
 // function prototype: compute generalized eigen vector & value for hermite matrix
@@ -154,16 +154,16 @@ inline void clapack_CZheev(KaldiBlasInt *num_rows, void *eig_vecs, KaldiBlasInt 
 //            complex *work, integer *lwork, real *rwork, integer *info);
 
 inline void clapack_CZhegv(KaldiBlasInt *itype, KaldiBlasInt *num_rows, void *A, KaldiBlasInt *stride_a, void *B, KaldiBlasInt *stride_b,
-                           float *eig_value, void *work, KaldiBlasInt *lwork, float *rwork, KaldiBlasInt *info) {
+                           float *D, void *work, KaldiBlasInt *lwork, float *rwork, KaldiBlasInt *info) {
     chegv_(itype, const_cast<char*>("V"), const_cast<char*>("U"), num_rows,
-           reinterpret_cast<KaldiComplexFloat*>(A), stride_a, reinterpret_cast<KaldiComplexFloat*>(B), stride_b, eig_value, 
+           reinterpret_cast<KaldiComplexFloat*>(A), stride_a, reinterpret_cast<KaldiComplexFloat*>(B), stride_b, D, 
            reinterpret_cast<KaldiComplexFloat*>(work), lwork, rwork, info);
 }
 
 inline void clapack_CZhegv(KaldiBlasInt *itype, KaldiBlasInt *num_rows, void *A, KaldiBlasInt *stride_a, void *B, KaldiBlasInt *stride_b,
-                           double *eig_value, void *work, KaldiBlasInt *lwork, double *rwork, KaldiBlasInt *info) {
+                           double *D, void *work, KaldiBlasInt *lwork, double *rwork, KaldiBlasInt *info) {
     zhegv_(itype, const_cast<char*>("V"), const_cast<char*>("U"), num_rows,
-           reinterpret_cast<KaldiComplexDouble*>(A), stride_a, reinterpret_cast<KaldiComplexDouble*>(B), stride_b, eig_value, 
+           reinterpret_cast<KaldiComplexDouble*>(A), stride_a, reinterpret_cast<KaldiComplexDouble*>(B), stride_b, D, 
            reinterpret_cast<KaldiComplexDouble*>(work), lwork, rwork, info);
 }
 

@@ -284,7 +284,8 @@ private:
     SubCMatrix<Real> &operator = (const SubCMatrix<Real> &other);
 };
 
-
+// I do not implement Write/Read function cause I refused to write them into disk.
+// This function is only used for debug.
 template<typename Real>
 std::ostream & operator << (std::ostream &os, const CMatrixBase<Real> &cm) {
     if (cm.NumCols() == 0) {
