@@ -330,16 +330,32 @@ bool CMatrixBase<Real>::IsHermitian(Real cutoff) {
     return true;
 }
 
-// inline void clapack_CZheev(KaldiBlasInt *num_rows, void *eig_vecs, KaldiBlasInt *stride, float *eig_value,
+template<typename Real>
+bool CMatrixBase<Real>::IsHermitianPosDef() {
+    if (!IsHermitian())
+        return false;
+    Vector<Real> D(num_rows_); CMatrix<Real> V(num_rows_, num_rows_);
+    this->HEig(&D, &V);
+    bool positive = true;
+    for (int32 i = 0; i < num_rows_; i++) {
+        if (D(i) <= 0)
+            positive = false;
+    }
+    return positive;
+}
+
+
+// inline void clapack_CZheev(KaldiBlasInt *num_rows, void *eig_vecs, KaldiBlasInt *stride, float *D,
 //                            void *work, KaldiBlasInt *lwork, float *rwork, KaldiBlasInt *info)
 template<typename Real>
-void CMatrixBase<Real>::HEig(Vector<Real> *eig_value, CMatrix<Real> *eig_vector) {
+void CMatrixBase<Real>::HEig(VectorBase<Real> *D, CMatrixBase<Real> *V) {
     KALDI_ASSERT(IsHermitian());
-    eig_vector->Resize(num_rows_, num_cols_);
-    eig_value->Resize(num_rows_);
-    KaldiBlasInt stride = (eig_vector->Stride() >> 1), num_rows = num_rows_, result; 
+    KALDI_ASSERT(V->NumCols() == V->NumRows() && num_rows_ == V->NumRows());
+    KALDI_ASSERT(D->Dim() == num_rows_);
+
+    KaldiBlasInt stride = (V->Stride() >> 1), num_rows = num_rows_, result = -1; 
     
-    eig_vector->CopyFromMat(*this);
+    V->CopyFromMat(*this);
     KaldiBlasInt lwork = std::max(1, 2 * num_rows - 1);
     CVector<Real> work(lwork);
 
@@ -348,8 +364,9 @@ void CMatrixBase<Real>::HEig(Vector<Real> *eig_value, CMatrix<Real> *eig_vector)
             sizeof(Real) * std::max(1, 3 * num_rows - 2), &temp))) == NULL)
         throw std::bad_alloc();
 
-    clapack_CZheev(&num_rows, eig_vector->Data(), &stride, eig_value->Data(),
+    clapack_CZheev(&num_rows, V->Data(), &stride, D->Data(),
                     work.Data(), &lwork, rwork, &result);
+    KALDI_MEMALIGN_FREE(rwork);
 
     if (result != 0) {
         if (result < 0)
@@ -358,11 +375,47 @@ void CMatrixBase<Real>::HEig(Vector<Real> *eig_value, CMatrix<Real> *eig_vector)
             KALDI_ERR << "The algorithm failed to converge";
     }
     // each row is a eigen vector
-    // NOTE: can add eig_vector->Herimite() to get same results as MATLAB
+    // NOTE: can add V->Herimite() to get same results as MATLAB
     // and for A.Eig(&V, D)
     // have A * V = V * D, see test-complex.cc
-    // by default, eig_value is in ascend order.
+    // by default, eigen value is in ascend order.
 }
+
+
+// void clapack_CZhegv(KaldiBlasInt *itype, KaldiBlasInt *num_rows, void *A, KaldiBlasInt *stride_a, void *B, KaldiBlasInt *stride_b,
+//                     double *D, void *work, KaldiBlasInt *lwork, double *rwork, KaldiBlasInt *info) {
+template<typename Real>
+void CMatrixBase<Real>::HGeneralizedEig(CMatrixBase<Real> *B, VectorBase<Real> *D,
+                                        CMatrixBase<Real> *V) {
+    KALDI_ASSERT(IsHermitian());
+    KALDI_ASSERT(B->IsHermitianPosDef());
+    KALDI_ASSERT(V->NumCols() == V->NumRows() && num_rows_ == B->NumRows());
+    KALDI_ASSERT(B->NumRows() == D->Dim() && num_rows_ == V->NumRows());
+
+    V->CopyFromMat(*this);
+    KaldiBlasInt stride_a = (V->Stride() >> 1), num_rows = num_rows_;
+    KaldiBlasInt stride_b = (B->Stride() >> 1), result = -1, itype = 1; 
+
+    KaldiBlasInt lwork = std::max(1, 2 * num_rows - 1);
+    CVector<Real> work(lwork);
+
+    Real *rwork; void *temp;
+    if ((rwork = static_cast<Real*>(KALDI_MEMALIGN(16, 
+            sizeof(Real) * std::max(1, 3 * num_rows - 2), &temp))) == NULL)
+        throw std::bad_alloc();
+    
+    clapack_CZhegv(&itype, &num_rows, V->Data(), &stride_a, B->Data(), &stride_b, 
+                   D->Data(), work.Data(), &lwork, rwork, &result);
+    KALDI_MEMALIGN_FREE(rwork);
+
+    if (result != 0) {
+        if (result < 0)
+            KALDI_ERR << "clapack_CZhegv(): " << -result << "-th parameter had an illegal value";
+        else
+            KALDI_ERR << "The algorithm failed to converge";
+    }
+}
+
 
 // Implement for CMatrix
 

@@ -115,6 +115,8 @@ public:
 
     // this == this^H
     bool IsHermitian(Real cutoff = 1.0e-5);
+
+    bool IsHermitianPosDef();
     
     // init from complex matrix, enable conjugate & transpose
     void CopyFromMat(const CMatrixBase<Real> &M, 
@@ -166,8 +168,11 @@ public:
     // For Hermite matrix, eigen values are all real.
     // And eig_value is in ascend order.
     // To get same results as MATLAB, call eig_vector.Hermite(）after
+    void HEig(VectorBase<Real> *D, CMatrixBase<Real> *V);
 
-    void HEig(Vector<Real> *eig_value, CMatrix<Real> *eig_vector);
+
+    void HGeneralizedEig(CMatrixBase<Real> *B, VectorBase<Real> *D,
+                         CMatrixBase<Real> *V);
 
 protected:
 

@@ -88,12 +88,12 @@ void EstimateSteerVector(const CMatrixBase<BaseFloat> &target_psd,
     int32 num_bins = target_psd.NumRows() / num_channels;
     steer_vector->Resize(num_bins, num_channels);
     
-    CMatrix<BaseFloat> V; Vector<BaseFloat> D;
+    CMatrix<BaseFloat> V(num_channels, num_channels); Vector<BaseFloat> D(num_channels);
     for (int32 f = 0; f < num_bins; f++) {
         target_psd.RowRange(f * num_channels, num_channels).HEig(&D, &V);
-        KALDI_VLOG(2) << "Compute eigen-dcomposition for matrix: " << target_psd.RowRange(f * num_channels, num_channels);
-        KALDI_VLOG(2) << "Computed eigen values:" << D;
-        KALDI_VLOG(2) << "Computed eigen vectors(row-major):" << V;
+        KALDI_VLOG(3) << "Compute eigen-dcomposition for matrix: " << target_psd.RowRange(f * num_channels, num_channels);
+        KALDI_VLOG(3) << "Computed eigen values:" << D;
+        KALDI_VLOG(3) << "Computed eigen vectors(row-major):" << V;
         // steer_vector->Row(f).CopyFromVec(V.Row(num_channels - 1), kConj); 
         steer_vector->Row(f).CopyFromVec(V.Row(num_channels - 1), kConj); 
     }
@@ -119,20 +119,41 @@ void ComputeMvdrBeamWeights(const CMatrixBase<BaseFloat> &noise_psd,
     for (int32 f = 0; f < num_bins; f++) {
         SubCVector<BaseFloat> numerator(*beam_weights, f), steer(steer_vector, f);
         psd_inv.CopyFromMat(noise_psd.RowRange(f * num_channels, num_channels));
-        KALDI_VLOG(2) << "Noise power spectrum matrix: " << psd_inv;
-        KALDI_VLOG(2) << "Using steer vector: " << steer;
+        KALDI_VLOG(3) << "Noise power spectrum matrix: " << psd_inv;
+        KALDI_VLOG(3) << "Using steer vector: " << steer;
         psd_inv.Invert(); // may be singular, using diag loading to avoid
         numerator.AddMatVec(1, 0, psd_inv, kNoTrans, steer, 0, 0); 
-        KALDI_VLOG(2) << "R^{-1} * d: " << numerator;
+        KALDI_VLOG(3) << "R^{-1} * d: " << numerator;
         std::complex<BaseFloat> s = std::complex<BaseFloat>(1.0, 0) / VecVec(numerator, steer, kConj);
-        KALDI_VLOG(2) << "1 / (d^H * R^{-1} * d): " << "(" << std::real(s) 
+        KALDI_VLOG(3) << "1 / (d^H * R^{-1} * d): " << "(" << std::real(s) 
                       << (std::imag(s) >= 0 ? "+": "") << std::imag(s) << ")" << std::endl;
         numerator.Scale(std::real(s), std::imag(s));
-        KALDI_VLOG(2) << "R^{-1} * d / (d^H * R^{-1} * d): " << numerator;
+        KALDI_VLOG(3) << "R^{-1} * d / (d^H * R^{-1} * d): " << numerator;
     }
     beam_weights->Conjugate();
     // using beam_weights in Beamform
 }
+
+
+// target_psd:  (num_bins x num_channels, num_channels)
+// noise_psd:  (num_bins x num_channels, num_channels)
+// beam_weights:(num_bins, num_channels)
+void ComputeGevdBeamWeights(const CMatrixBase<BaseFloat> &target_psd,
+                            const CMatrixBase<BaseFloat> &noise_psd,
+                            CMatrix<BaseFloat> *beam_weights) {
+    KALDI_ASSERT(target_psd.NumCols() == noise_psd.NumCols() && target_psd.NumRows() == noise_psd.NumRows()); 
+    KALDI_ASSERT(target_psd.NumRows() % target_psd.NumRows() == 0);
+    int32 num_channels = target_psd.NumCols(), num_bins = target_psd.NumRows() / target_psd.NumCols();
+
+    beam_weights->Resize(num_bins, num_channels);
+    CMatrix<BaseFloat> V(num_channels, num_channels); Vector<BaseFloat> D(num_channels);
+    for (int32 f = 0; f < num_bins; f++) {
+        SubCMatrix<BaseFloat> B(noise_psd, f * num_channels, num_channels, 0, num_channels);
+        target_psd.RowRange(f * num_channels, num_channels).HGeneralizedEig(&B, &D, &V);     
+        beam_weights->Row(f).CopyFromVec(V.Row(num_channels - 1), kConj);
+    }
+}
+
 
 // src_stft:    (num_bins x num_frames, num_channels)
 // weights:     (num_bins, num_channels), need to apply conjugate before calling this function

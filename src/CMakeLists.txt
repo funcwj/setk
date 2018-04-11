@@ -10,6 +10,7 @@ add_executable(wav-seperate wav-seperate.cc ${STFT})
 add_executable(wav-estimate wav-estimate.cc ${STFT})
 add_executable(test-complex test-complex.cc ${STFT})
 add_executable(apply-supervised-mvdr apply-supervised-mvdr.cc ${STFT})
+add_executable(apply-supervised-max-snr apply-supervised-max-snr.cc ${STFT})
 
 # target_link_libraries(test-stft ${DEPEND_LIBS})
 target_link_libraries(compute-stft-stats ${DEPEND_LIBS})
@@ -18,4 +19,5 @@ target_link_libraries(wav-seperate ${DEPEND_LIBS})
 target_link_libraries(wav-estimate ${DEPEND_LIBS})
 target_link_libraries(test-complex ${DEPEND_LIBS})
 target_link_libraries(apply-supervised-mvdr ${DEPEND_LIBS})
+target_link_libraries(apply-supervised-max-snr ${DEPEND_LIBS})
 
