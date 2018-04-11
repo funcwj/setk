@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.4)
-project("Complex Matrix based on Kaldi")
+project("SETK: speech enhancement tookit on kaldi")
 
 set(CMAKE_CXX_STANDARD 11)
 
@@ -16,12 +16,13 @@ set(DEPEND_LIBS kaldi-base kaldi-util kaldi-matrix kaldi-feat)
 
 add_definitions(-O3 -g -std=c++11)
 include_directories(${KALDI_ROOT}/src ${KALDI_ROOT}/tools/openfst/include ${CMAKE_SOURCE_DIR})
-link_directories(${KALDI_ROOT}/src/lib)
+link_directories(${KALDI_ROOT}/src/lib ${CMAKE_SOURCE_DIR}/lib)
 
-SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
+set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
 
 if(APPLE)
-    SET(CMAKE_EXE_LINKER_FLAGS "-framework Accelerate")
+    set(CMAKE_EXE_LINKER_FLAGS "-framework Accelerate")
     add_definitions(-DHAVE_CLAPACK)
     include_directories(${KALDI_ROOT}/tools/CLAPACK)
 elseif(UNIX)
@@ -37,5 +38,5 @@ elseif(UNIX)
     message(STATUS "defined OPENBLAS_ROOT=" $ENV{OPENBLAS_ROOT})
 endif()
 
-
+add_subdirectory(include)
 add_subdirectory(src)

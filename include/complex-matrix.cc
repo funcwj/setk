@@ -381,7 +381,6 @@ void CMatrixBase<Real>::HEig(VectorBase<Real> *D, CMatrixBase<Real> *V) {
     // by default, eigen value is in ascend order.
 }
 
-
 // void clapack_CZhegv(KaldiBlasInt *itype, KaldiBlasInt *num_rows, void *A, KaldiBlasInt *stride_a, void *B, KaldiBlasInt *stride_b,
 //                     double *D, void *work, KaldiBlasInt *lwork, double *rwork, KaldiBlasInt *info) {
 template<typename Real>
@@ -557,7 +556,6 @@ void CMatrix<Real>::Resize(const MatrixIndexT rows,
         }
     }
     // At this point, resize_type == kSetZero or kUndefined.
-
     if (CMatrixBase<Real>::data_ != NULL) {
         if (rows == CMatrixBase<Real>::num_rows_ && cols == CMatrixBase<Real>::num_cols_) {
         if (resize_type == kSetZero)

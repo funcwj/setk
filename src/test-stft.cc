@@ -64,7 +64,7 @@ void test_istft() {
     opts.frame_shift  = 256;
     opts.normalize_input = false;
     opts.apply_log    = true;
-    opts.power        = true;
+    opts.apply_pow    = true;
 
 
     ShortTimeFTComputer stft_computer(opts);
