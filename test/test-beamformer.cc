@@ -1,6 +1,7 @@
 // test-beamformer.cc
 // wujian@2018
 
+#include "util/common-utils.h"
 #include "include/complex-base.h"
 #include "include/beamformer.h"
 #include "include/complex-vector.h"
@@ -20,6 +21,17 @@ void create_hermite_cmatrix(CMatrix<BaseFloat> *cm, MatrixIndexT s) {
     }
 }
 
+
+void test_string_spliter() {
+    std::string scp = "scp:CH1.scp,CH2.scp,CH3.scp";
+    std::vector<std::string> tokens;    
+    size_t found = scp.find_first_of(":", 0);
+    if (found != std::string::npos)
+        std::cout << scp.substr(0, found) << std::endl;
+    SplitStringToVector(scp.substr(found + 1), ",", false, &tokens);
+    for (std::string &s: tokens)
+        std::cout << s << std::endl;
+}
 
 void test_estimate_psd() {
     for (int32 i = 0; i < 10; i++) {
@@ -98,6 +110,7 @@ int main() {
     // test_beamform();
     // test_estimate_steervector();
     // test_compute_mvdr_beamweights();
-    test_reshape_multiple_stft();
+    // test_reshape_multiple_stft();
+    test_string_spliter();
     return 0;
 }

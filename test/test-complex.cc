@@ -293,14 +293,14 @@ void test_cmatrix_hposdef() {
         std::cout << "B: \n" << b;
         std::cout << a.IsHermitianPosDef() << std::endl;
         std::cout << b.IsHermitianPosDef() << std::endl;
-        a.HGeneralizedEig(&b, &value, &vec);
+        a.Hged(&b, &value, &vec);
         std::cout << value;
         std::cout << vec;
     }       
     
 }
 
-void test_cmatrix_heig() {
+void test_cmatrix_hed() {
     for (int32 i = 0; i < 10; i++) {
         CMatrix<BaseFloat> cm;
         int32 dim = Rand() % 6 + 2;
@@ -308,7 +308,7 @@ void test_cmatrix_heig() {
         std::cout << cm;
         CMatrix<BaseFloat> eig_vectors(dim, dim), L(dim, dim), R(dim, dim);
         Vector<BaseFloat> eig_values(dim);
-        cm.HEig(&eig_values, &eig_vectors);
+        cm.Hed(&eig_values, &eig_vectors);
         std::cout << eig_values;
         std::cout << eig_vectors;
         eig_vectors.Hermite();
@@ -373,7 +373,7 @@ int main() {
     // test_cvector_addmatvec();
     // test_cmatrix_mulelements();
     // test_cmatrix_invert();
-    // test_cmatrix_heig();
+    // test_cmatrix_hed();
     // test_cmatrix_hermite();
     // test_copyfromfft();
     // test_cmatrix_scale();

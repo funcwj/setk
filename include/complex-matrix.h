@@ -168,11 +168,11 @@ public:
     // For Hermite matrix, eigen values are all real.
     // And eig_value is in ascend order.
     // To get same results as MATLAB, call eig_vector.Hermite(）after
-    void HEig(VectorBase<Real> *D, CMatrixBase<Real> *V);
+    void Hed(VectorBase<Real> *D, CMatrixBase<Real> *V);
 
 
-    void HGeneralizedEig(CMatrixBase<Real> *B, VectorBase<Real> *D,
-                         CMatrixBase<Real> *V);
+    void Hged(CMatrixBase<Real> *B, VectorBase<Real> *D,
+              CMatrixBase<Real> *V);
 
 protected:
 

@@ -7,7 +7,7 @@ namespace kaldi {
 
 // Cast CMatrix into Matrix, in Realfft format, to reconstruct speech
 // The Realfft format is space efficient, so I refused to use CMatrix in stft.h
-void CastIntoRealfft(const CMatrix<BaseFloat> &cstft,
+void CastIntoRealfft(const CMatrixBase<BaseFloat> &cstft,
                      Matrix<BaseFloat> *rstft) {
     int32 num_rows = cstft.NumRows(), num_cols = (cstft.NumCols() - 1) * 2;
     rstft->Resize(num_rows, num_cols);
@@ -29,7 +29,7 @@ void CastIntoRealfft(const CMatrix<BaseFloat> &cstft,
 // into [num_bins * num_frames] x num_channels
 // for convenience of psd estimate and beamforming
 void ReshapeMultipleStft(const int32 num_bins, const int32 num_channels, 
-                         const CMatrix<BaseFloat> &src_stft,
+                         const CMatrixBase<BaseFloat> &src_stft,
                          CMatrix<BaseFloat> *dst_stft) {
     KALDI_ASSERT(num_channels * num_bins == src_stft.NumCols());
     int32 num_frames = src_stft.NumRows();
@@ -54,6 +54,7 @@ void EstimatePsd(const CMatrixBase<BaseFloat> &src_stft,
                  CMatrix<BaseFloat> *second_psd) {
     int32 num_channels = src_stft.NumCols(), num_frames = target_mask.NumRows(),
           num_bins = target_mask.NumCols();
+    KALDI_ASSERT(num_frames == src_stft.NumRows() / num_bins);
     KALDI_ASSERT(target_psd);
     target_psd->Resize(num_bins * num_channels, num_channels);
     if (second_psd)
@@ -87,7 +88,7 @@ void EstimateSteerVector(const CMatrixBase<BaseFloat> &target_psd,
     
     CMatrix<BaseFloat> V(num_channels, num_channels); Vector<BaseFloat> D(num_channels);
     for (int32 f = 0; f < num_bins; f++) {
-        target_psd.RowRange(f * num_channels, num_channels).HEig(&D, &V);
+        target_psd.RowRange(f * num_channels, num_channels).Hed(&D, &V);
         KALDI_VLOG(3) << "Compute eigen-dcomposition for matrix: " << target_psd.RowRange(f * num_channels, num_channels);
         KALDI_VLOG(3) << "Computed eigen values:" << D;
         KALDI_VLOG(3) << "Computed eigen vectors(row-major):" << V;
@@ -146,7 +147,7 @@ void ComputeGevdBeamWeights(const CMatrixBase<BaseFloat> &target_psd,
     CMatrix<BaseFloat> V(num_channels, num_channels); Vector<BaseFloat> D(num_channels);
     for (int32 f = 0; f < num_bins; f++) {
         SubCMatrix<BaseFloat> B(noise_psd, f * num_channels, num_channels, 0, num_channels);
-        target_psd.RowRange(f * num_channels, num_channels).HGeneralizedEig(&B, &D, &V);     
+        target_psd.RowRange(f * num_channels, num_channels).Hged(&B, &D, &V);     
         beam_weights->Row(f).CopyFromVec(V.Row(num_channels - 1), kConj);
     }
 }
@@ -169,7 +170,7 @@ void Beamform(const CMatrixBase<BaseFloat> &src_stft,
     KALDI_ASSERT(src_stft.NumRows() % weights.NumRows() == 0);
     int32 num_bins = weights.NumRows(), num_channels = weights.NumCols(),
           num_frames = src_stft.NumRows() / num_bins; 
-    
+
     enh_stft->Resize(num_frames, num_bins);
     // enh_stft[f] = src_stft[f * t: f * t + t] * w^H
     for (int32 f = 0; f < num_bins; f++) {

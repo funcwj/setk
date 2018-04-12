@@ -3,18 +3,35 @@
 // wujian@2018
 //
 
+#include "util/common-utils.h"
 #include "feat/wave-reader.h"
 #include "include/stft.h"
 #include "include/beamformer.h"
 
 using namespace kaldi;
 
+void ParseInputRspecifier(std::string &input_rspecifier, 
+                          std::vector<std::string> *rspecifiers) {
+    size_t found = input_rspecifier.find_first_of(":", 0);
+    if (found == std::string::npos)
+        KALDI_ERR << "Wrong input-rspecifier format: " << input_rspecifier;
+    const std::string &decorator = input_rspecifier.substr(0, found);
+
+    std::vector<std::string> tmp;
+    SplitStringToVector(input_rspecifier.substr(found + 1), ",", false, &tmp);
+    for (std::string &s: tmp)
+        rspecifiers->push_back(decorator + ":" + s);
+}
+
 int main(int argc, char *argv[]) {
     try{
         const char *usage = 
             "Do minimum variance distortionless response (MVDR) beamformer, depending on TF mask\n"
             "\n"
-            "Usage: apply-supervised-mvdr [options...] <mask-rspecifier> <ch1-rspecifier> ... <target-wav-wspecifier>\n";
+            "Usage: apply-supervised-mvdr [options...] <mask-rspecifier> <input-rspecifier> <target-wav-wspecifier>\n"
+            "\n"
+            "e.g.:\n"
+            " apply-supervised-mvdr --config=mask.conf scp:mask.scp scp:CH1.scp,CH2.scp,CH3.scp scp:dst.scp\n";
 
         ParseOptions po(usage);
         ShortTimeFTOptions stft_options;
@@ -22,32 +39,48 @@ int main(int argc, char *argv[]) {
         bool track_volumn = true, normalize_input = true;
         std::string window = "hamming";
         BaseFloat frame_shift = 256, frame_length = 1024;
+        int32 update_periods = 0, minimum_update_periods = 20;
 
-        po.Register("track-volumn", &track_volumn, "If true, keep targets' volumn same as orginal wave files");
         po.Register("frame-shift", &frame_shift, "Frame shift in number of samples");
         po.Register("frame-length", &frame_length, "Frame length in number of samples");
         po.Register("window", &window, "Type of window(\"hamming\"|\"hanning\"|\"blackman\"|\"rectangular\")");
-        po.Register("normalize-input", &normalize_input, "Scale samples into range [-1, 1], like MATLAB or librosa");
+        po.Register("track-volumn", &track_volumn, 
+                    "If true, using average volumn of input channels as target's");
+        po.Register("normalize-input", &normalize_input, 
+                    "Scale samples into float in range [-1, 1], like MATLAB or librosa");
+        po.Register("update-periods", &update_periods, 
+                    "Number of frames to use for estimating psd of noise or target, "
+                    "if zero, do beamforming offline");
 
         po.Read(argc, argv);
 
         int32 num_args = po.NumArgs();
 
-        if (num_args <= 3) {
+        if (num_args != 3) {
             po.PrintUsage();
             exit(1);
         }
 
-        std::string mask_rspecifier = po.GetArg(1), enhan_wspecifier = po.GetArg(num_args);
-        int32 num_channels = num_args - 2;
+        KALDI_ASSERT(update_periods >= 0);
+        if (update_periods < minimum_update_periods && update_periods > 0) {
+            KALDI_WARN << "Value of update_periods may be too small, ignore it";
+        }
+
+        std::string mask_rspecifier = po.GetArg(1), input_rspecifier = po.GetArg(2),
+                    enhan_wspecifier = po.GetArg(3);
+        
+        std::vector<std::string> rspecifiers;
+        ParseInputRspecifier(input_rspecifier, &rspecifiers);
+
+        int32 num_channels = rspecifiers.size();
     
         // Construct wave reader.
         std::vector<RandomAccessTableReader<WaveHolder> > wav_reader(num_channels);
-        for (int32 i = 2; i < num_args; i++) {
-            std::string cur_ch = po.GetArg(i);
+        for (int32 c = 0; c < num_channels; c++) {
+            std::string &cur_ch = rspecifiers[c];
             if (ClassifyRspecifier(cur_ch, NULL, NULL) == kNoRspecifier)
                 KALDI_ERR << cur_ch << " is not a rspecifier";
-            KALDI_ASSERT(wav_reader[i - 2].Open(cur_ch));
+            KALDI_ASSERT(wav_reader[c].Open(cur_ch));
         }
     
         // config stft options
@@ -131,15 +164,34 @@ int main(int argc, char *argv[]) {
             for (int32 c = 0; c < cur_ch; c++) {
                 stft_reshape.ColRange(c * num_bins, num_bins).CopyFromRealfft(mstft[c]);
             }
-            ReshapeMultipleStft(num_bins, cur_ch, stft_reshape, &src_stft); 
 
             CMatrix<BaseFloat> noise_psd, target_psd, steer_vector, beam_weights, enh_stft; 
 
-            EstimatePsd(src_stft, target_mask, &target_psd, &noise_psd);
-            EstimateSteerVector(target_psd, &steer_vector);
-            ComputeMvdrBeamWeights(noise_psd, steer_vector, &beam_weights);
-            Beamform(src_stft, beam_weights, &enh_stft);
-            
+            if (update_periods >= minimum_update_periods) {
+                KALDI_LOG << "Do mvdr beamforming, update power spectrum matrix estimation per " << update_periods << " frames";
+                int32 duration = 0, start_from = 0, num_segments = num_frames / update_periods;
+                CMatrix<BaseFloat> enh_stft_segment;
+                enh_stft.Resize(num_frames, num_bins);
+                for (int32 i = 0; i < num_segments; i++) {
+                    start_from = i * update_periods;
+                    duration = (i == num_segments - 1 ? num_frames - start_from: update_periods); 
+                    ReshapeMultipleStft(num_bins, cur_ch, stft_reshape.RowRange(start_from, duration), &src_stft); 
+                    EstimatePsd(src_stft, target_mask.RowRange(start_from, duration), &target_psd, &noise_psd);
+                    EstimateSteerVector(target_psd, &steer_vector);
+                    ComputeMvdrBeamWeights(noise_psd, steer_vector, &beam_weights);
+                    Beamform(src_stft, beam_weights, &enh_stft_segment);
+                    enh_stft.RowRange(start_from, duration).CopyFromMat(enh_stft_segment);
+                }
+
+            } else {
+                KALDI_LOG << "Do mvdr beamforming offline";
+                ReshapeMultipleStft(num_bins, cur_ch, stft_reshape, &src_stft); 
+                EstimatePsd(src_stft, target_mask, &target_psd, &noise_psd);
+                EstimateSteerVector(target_psd, &steer_vector);
+                ComputeMvdrBeamWeights(noise_psd, steer_vector, &beam_weights);
+                Beamform(src_stft, beam_weights, &enh_stft);
+            }
+
             Matrix<BaseFloat> rstft, enhan_speech;
             CastIntoRealfft(enh_stft, &rstft);
             stft_computer.InverseShortTimeFT(rstft, &enhan_speech, range / cur_ch);

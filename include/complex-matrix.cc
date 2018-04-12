@@ -335,7 +335,7 @@ bool CMatrixBase<Real>::IsHermitianPosDef() {
     if (!IsHermitian())
         return false;
     Vector<Real> D(num_rows_); CMatrix<Real> V(num_rows_, num_rows_);
-    this->HEig(&D, &V);
+    this->Hed(&D, &V);
     bool positive = true;
     for (int32 i = 0; i < num_rows_; i++) {
         if (D(i) <= 0)
@@ -348,7 +348,7 @@ bool CMatrixBase<Real>::IsHermitianPosDef() {
 // inline void clapack_CZheev(KaldiBlasInt *num_rows, void *eig_vecs, KaldiBlasInt *stride, float *D,
 //                            void *work, KaldiBlasInt *lwork, float *rwork, KaldiBlasInt *info)
 template<typename Real>
-void CMatrixBase<Real>::HEig(VectorBase<Real> *D, CMatrixBase<Real> *V) {
+void CMatrixBase<Real>::Hed(VectorBase<Real> *D, CMatrixBase<Real> *V) {
     KALDI_ASSERT(IsHermitian());
     KALDI_ASSERT(V->NumCols() == V->NumRows() && num_rows_ == V->NumRows());
     KALDI_ASSERT(D->Dim() == num_rows_);
@@ -384,8 +384,8 @@ void CMatrixBase<Real>::HEig(VectorBase<Real> *D, CMatrixBase<Real> *V) {
 // void clapack_CZhegv(KaldiBlasInt *itype, KaldiBlasInt *num_rows, void *A, KaldiBlasInt *stride_a, void *B, KaldiBlasInt *stride_b,
 //                     double *D, void *work, KaldiBlasInt *lwork, double *rwork, KaldiBlasInt *info) {
 template<typename Real>
-void CMatrixBase<Real>::HGeneralizedEig(CMatrixBase<Real> *B, VectorBase<Real> *D,
-                                        CMatrixBase<Real> *V) {
+void CMatrixBase<Real>::Hged(CMatrixBase<Real> *B, VectorBase<Real> *D,
+                             CMatrixBase<Real> *V) {
     KALDI_ASSERT(IsHermitian());
     KALDI_ASSERT(B->IsHermitianPosDef());
     KALDI_ASSERT(V->NumCols() == V->NumRows() && num_rows_ == B->NumRows());

@@ -12,7 +12,7 @@ namespace kaldi {
 
 // Cast CMatrix into Matrix, in Realfft format, to reconstruct speech
 // The Realfft format is space efficient, so I refused to use CMatrix in stft.h
-void CastIntoRealfft(const CMatrix<BaseFloat> &cstft,
+void CastIntoRealfft(const CMatrixBase<BaseFloat> &cstft,
                      Matrix<BaseFloat> *rstft);
 
 // src_stft:    (num_frames, num_bins x num_channels)
@@ -21,7 +21,7 @@ void CastIntoRealfft(const CMatrix<BaseFloat> &cstft,
 // into [num_bins * num_frames] x num_channels
 // for convenience of psd estimate and beamforming
 void ReshapeMultipleStft(const int32 num_bins, const int32 num_channels, 
-                         const CMatrix<BaseFloat> &src_stft,
+                         const CMatrixBase<BaseFloat> &src_stft,
                          CMatrix<BaseFloat> *dst_stft);
 
 //
