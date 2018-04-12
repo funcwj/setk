@@ -166,10 +166,11 @@ int main(int argc, char *argv[]) {
             }
 
             CMatrix<BaseFloat> noise_psd, target_psd, steer_vector, beam_weights, enh_stft; 
+            int32 num_segments = (num_frames - minimum_update_periods) / update_periods + 1;
 
-            if (update_periods >= minimum_update_periods) {
-                KALDI_LOG << "Do mvdr beamforming, update power spectrum matrix estimation per " << update_periods << " frames";
-                int32 duration = 0, start_from = 0, num_segments = num_frames / update_periods;
+            if (update_periods >= minimum_update_periods && num_segments > 1) {
+                KALDI_VLOG(1) << "Do mvdr beamforming, update power spectrum matrix estimation per " << update_periods << " frames";
+                int32 duration = 0, start_from = 0;
                 CMatrix<BaseFloat> enh_stft_segment;
                 enh_stft.Resize(num_frames, num_bins);
                 for (int32 i = 0; i < num_segments; i++) {
@@ -184,7 +185,7 @@ int main(int argc, char *argv[]) {
                 }
 
             } else {
-                KALDI_LOG << "Do mvdr beamforming offline";
+                KALDI_VLOG(1) << "Do mvdr beamforming offline";
                 ReshapeMultipleStft(num_bins, cur_ch, stft_reshape, &src_stft); 
                 EstimatePsd(src_stft, target_mask, &target_psd, &noise_psd);
                 EstimateSteerVector(target_psd, &steer_vector);
