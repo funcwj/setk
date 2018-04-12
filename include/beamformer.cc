@@ -5,7 +5,7 @@
 
 namespace kaldi {
 
-// Cast CMatrix into Matrix, in Realfft format, to reconstruct speech
+// Cast CMatrix into Matrix(in Realfft format), for speech reconstrucion
 // The Realfft format is space efficient, so I refused to use CMatrix in stft.h
 void CastIntoRealfft(const CMatrixBase<BaseFloat> &cstft,
                      Matrix<BaseFloat> *rstft) {
@@ -47,7 +47,11 @@ void ReshapeMultipleStft(const int32 num_bins, const int32 num_channels,
 // src_stft:    (num_bins x num_frames, num_channels)
 // target_mask: (num_frames, num_bins)
 // target_psd:  (num_bins x num_channels, num_channels)
-//
+// In matrix format: for X in shape (num_bins x num_frames)
+//      covar = m .* X^H * X                 (1) 
+// which is equal to:
+//      covar = \sum_t m(t) * x(t)^H * x(t)  (2)
+// I implement as (2)
 void EstimatePsd(const CMatrixBase<BaseFloat> &src_stft, 
                  const MatrixBase<BaseFloat> &target_mask,
                  CMatrix<BaseFloat> *target_psd,
@@ -79,6 +83,9 @@ void EstimatePsd(const CMatrixBase<BaseFloat> &src_stft,
 // target_psd:  (num_bins x num_channels, num_channels)
 // steer_vector:(num_bins, num_channels)
 // using maximum eigen vector as estimation of steer vector
+// after A.Hed(&D, &V), there is
+//  A. * V^H = D * V^H 
+// see test_cmatrix_hed() in test/test-complex.cc
 void EstimateSteerVector(const CMatrixBase<BaseFloat> &target_psd,
                          CMatrix<BaseFloat> *steer_vector) {
     int32 num_channels = target_psd.NumCols();
@@ -92,7 +99,6 @@ void EstimateSteerVector(const CMatrixBase<BaseFloat> &target_psd,
         KALDI_VLOG(3) << "Compute eigen-dcomposition for matrix: " << target_psd.RowRange(f * num_channels, num_channels);
         KALDI_VLOG(3) << "Computed eigen values:" << D;
         KALDI_VLOG(3) << "Computed eigen vectors(row-major):" << V;
-        // steer_vector->Row(f).CopyFromVec(V.Row(num_channels - 1), kConj); 
         steer_vector->Row(f).CopyFromVec(V.Row(num_channels - 1), kConj); 
     }
 }
@@ -101,10 +107,8 @@ void EstimateSteerVector(const CMatrixBase<BaseFloat> &target_psd,
 // target_psd:  (num_bins x num_channels, num_channels)
 // steer_vector:(num_bins, num_channels)
 // beam_weights:(num_bins, num_channels)
-// note mvdr:
-// numerator = psd_inv * steer_vector
-// denumerator = numerator * steer_vector^H
-// weight    = numerator / denumerator
+// note mvdr beam weights computation:
+//      w = \frac{R^{-1} * d}{d^H * R^{-1} * d}
 void ComputeMvdrBeamWeights(const CMatrixBase<BaseFloat> &noise_psd,
                             const CMatrixBase<BaseFloat> &steer_vector,
                             CMatrix<BaseFloat> *beam_weights) {
@@ -128,7 +132,6 @@ void ComputeMvdrBeamWeights(const CMatrixBase<BaseFloat> &noise_psd,
         numerator.Scale(std::real(s), std::imag(s));
         KALDI_VLOG(3) << "R^{-1} * d / (d^H * R^{-1} * d): " << numerator;
     }
-    beam_weights->Conjugate();
     // using beam_weights in Beamform
 }
 
@@ -148,21 +151,21 @@ void ComputeGevdBeamWeights(const CMatrixBase<BaseFloat> &target_psd,
     for (int32 f = 0; f < num_bins; f++) {
         SubCMatrix<BaseFloat> B(noise_psd, f * num_channels, num_channels, 0, num_channels);
         target_psd.RowRange(f * num_channels, num_channels).Hged(&B, &D, &V);     
+        KALDI_VLOG(3) << "Computed eigen values:" << D;
+        KALDI_VLOG(3) << "Computed eigen vectors(row-major):" << V;
         beam_weights->Row(f).CopyFromVec(V.Row(num_channels - 1), kConj);
     }
 }
 
 
 // src_stft:    (num_bins x num_frames, num_channels)
-// weights:     (num_bins, num_channels), need to apply conjugate before calling this function
+// weights:     (num_bins, num_channels)
 // enh_stft:    (num_frames, num_bins)
-// note:
 // To avoid Transpose, using AddMatMat instead of:
 // enh_stft->Resize(num_bins, num_frames);
 // for (int32 f = 0; f < num_bins; f++)
 //      enh_stft->Row(f).AddMatVec(1, 0, src_stft.RowRange(f * num_frames, num_frames), kNoTrans, weights.Row(f), 0, 0);
 // enh_stft->Transpose();
-    
 void Beamform(const CMatrixBase<BaseFloat> &src_stft, 
               const CMatrixBase<BaseFloat> &weights,
               CMatrix<BaseFloat> *enh_stft) {
@@ -175,7 +178,7 @@ void Beamform(const CMatrixBase<BaseFloat> &src_stft,
     // enh_stft[f] = src_stft[f * t: f * t + t] * w^H
     for (int32 f = 0; f < num_bins; f++) {
         enh_stft->ColRange(f, 1).AddMatMat(1, 0, src_stft.RowRange(f * num_frames, num_frames), 
-                                           kNoTrans, weights.RowRange(f, 1), kTrans, 0, 0);
+                                           kNoTrans, weights.RowRange(f, 1), kConjTrans, 0, 0);
     }
 }
 

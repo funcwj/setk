@@ -17,6 +17,17 @@ Updating...
 ### Install
 Compile pass on Mac OSX and RedHat. I haven't try them on Ubuntu yet.
 
+Patch `matrix/matrix-common.h` in Kaldi
+```c++
+typedef enum {
+    kTrans          = 112,  // CblasTrans
+    kNoTrans        = 111,  // CblasNoTrans
+    kConjTrans      = 113,  // CblasConjTrans
+    kConjNoTrans    = 114   // CblasConjNoTrans
+} MatrixTransposeType;
+```
+
+Then run
 ```shell
 mkdir build
 export KALDI_ROOT=/kaldi/root/dir

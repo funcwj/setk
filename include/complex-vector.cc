@@ -108,8 +108,8 @@ void CVectorBase<Real>::AddMatVec(const Real alpha_r, const Real alpha_i,
                                   const CMatrixBase<Real> &M, const MatrixTransposeType trans, 
                                   const CVectorBase<Real> &v,
                                   const Real beta_r, const Real beta_i) {
-    KALDI_ASSERT((trans == kNoTrans && M.NumCols() == v.dim_ && M.NumRows() == dim_)
-                 || (trans == kTrans && M.NumRows() == v.dim_ && M.NumCols() == dim_));
+    KALDI_ASSERT(((trans == kNoTrans || trans == kConjNoTrans) && M.NumCols() == v.dim_ && M.NumRows() == dim_)
+                 || ((trans == kTrans || trans == kConjTrans) && M.NumRows() == v.dim_ && M.NumCols() == dim_));
     KALDI_ASSERT(&v != this);
     AdjustIn();
     // NOTE: alpha need to adjust!!

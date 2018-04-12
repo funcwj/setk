@@ -120,8 +120,8 @@ public:
     
     // init from complex matrix, enable conjugate & transpose
     void CopyFromMat(const CMatrixBase<Real> &M, 
-                     MatrixTransposeType trans = kNoTrans,
-                     ConjugateType conj = kNoConj);
+                     MatrixTransposeType trans = kNoTrans);
+
     // init from real matrix
     void CopyFromMat(const MatrixBase<Real> &M, 
                      ComplexIndexType index = kReal);
@@ -216,8 +216,7 @@ public:
     
     // copy constructor, from complex matrix
     explicit CMatrix(const CMatrixBase<Real> &M, 
-                     MatrixTransposeType trans = kNoTrans,
-                     ConjugateType conj = kNoConj);
+                     MatrixTransposeType trans = kNoTrans);
     
     CMatrix(const CMatrix<Real> &M);
 

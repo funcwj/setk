@@ -171,15 +171,15 @@ void test_cmatrix_basic_op() {
     sm.SetUnit();
     std::cout << sm;
     sm.SetRandn();
-    std::cout << sm;
+    std::cout << "sm = " << sm;
     CMatrix<BaseFloat> no_tr(sm, kNoTrans);
-    std::cout << no_tr;
-    CMatrix<BaseFloat> no_tr_cj(sm, kNoTrans, kConj);
-    std::cout << no_tr_cj;
+    std::cout << "copy sm = " << no_tr;
+    CMatrix<BaseFloat> no_tr_cj(sm, kConjNoTrans);
+    std::cout << "conj sm = " << no_tr_cj;
     CMatrix<BaseFloat> tr(sm, kTrans);
-    std::cout << tr;
-    CMatrix<BaseFloat> cj_tr(sm, kTrans, kConj);
-    std::cout << cj_tr;
+    std::cout << "trans sm = " << tr;
+    CMatrix<BaseFloat> cj_tr(sm, kConjTrans);
+    std::cout << "hermite sm = " << cj_tr;
     Matrix<BaseFloat> m(5, 5);
     m.SetRandn();
     CMatrix<BaseFloat> cr(m);
@@ -277,7 +277,7 @@ void create_hposdef_cmatrix(CMatrix<BaseFloat> *cm, int32 dim) {
     CMatrix<BaseFloat> a(dim, dim);
     cm->Resize(dim, dim);
     a.SetRandn();
-    CMatrix<BaseFloat> ah(a, kTrans, kConj);
+    CMatrix<BaseFloat> ah(a, kConjTrans);
     cm->AddMatMat(1, 0, ah, kNoTrans, a, kNoTrans, 0, 0);
 }
 
@@ -311,11 +311,10 @@ void test_cmatrix_hed() {
         cm.Hed(&eig_values, &eig_vectors);
         std::cout << eig_values;
         std::cout << eig_vectors;
-        eig_vectors.Hermite();
         std::cout << eig_vectors;
         CMatrix<BaseFloat> diag(eig_values);
-        L.AddMatMat(1, 1, cm, kNoTrans, eig_vectors, kNoTrans, 0, 0);
-        R.AddMatMat(1, 1, eig_vectors, kNoTrans, diag, kNoTrans, 0, 0);
+        L.AddMatMat(1, 1, cm, kNoTrans, eig_vectors, kConjTrans, 0, 0);
+        R.AddMatMat(1, 1, eig_vectors, kConjTrans, diag, kNoTrans, 0, 0);
         L.AddMat(-1, 0, R);
         std::cout << L;
     }
@@ -373,10 +372,10 @@ int main() {
     // test_cvector_addmatvec();
     // test_cmatrix_mulelements();
     // test_cmatrix_invert();
-    // test_cmatrix_hed();
+    test_cmatrix_hed();
     // test_cmatrix_hermite();
     // test_copyfromfft();
     // test_cmatrix_scale();
-    test_cmatrix_hposdef();
+    // test_cmatrix_hposdef();
     return 0;
 }

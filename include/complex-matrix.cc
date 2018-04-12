@@ -160,18 +160,17 @@ void CMatrixBase<Real>::CopyFromMat(const MatrixBase<Real> &M, ComplexIndexType 
 
 template<typename Real>
 void CMatrixBase<Real>::CopyFromMat(const CMatrixBase<Real> &M,
-                                   MatrixTransposeType Trans, 
-                                   ConjugateType conj) {
+                                   MatrixTransposeType Trans) {
     if (static_cast<const void*>(M.Data()) == static_cast<const void*>(this->Data())) {
-        KALDI_ASSERT(Trans == kNoTrans && M.NumRows() == NumRows() &&
+        KALDI_ASSERT((Trans == kNoTrans || Trans == kConjNoTrans) && M.NumRows() == NumRows() &&
                     M.NumCols() == NumCols() && M.Stride() == Stride());
         return;
     }
-    if (Trans == kNoTrans) {
+    if (Trans == kNoTrans || Trans == kConjNoTrans) {
         KALDI_ASSERT(num_rows_ == M.NumRows() && num_cols_ == M.NumCols());
         for (MatrixIndexT i = 0; i < num_rows_; i++) {
             (*this).Row(i).CopyFromVec(M.Row(i));
-            if (conj == kConj)
+            if (Trans == kConjNoTrans)
                 (*this).Row(i).Conjugate();
         }
     } else {
@@ -179,7 +178,7 @@ void CMatrixBase<Real>::CopyFromMat(const CMatrixBase<Real> &M,
         for (MatrixIndexT i = 0; i < num_rows_; i++)
             for (MatrixIndexT j = 0; j < num_cols_; j++) {
                 (*this)(i, j, kReal) = M(j, i, kReal);
-                (*this)(i, j, kImag) = (conj == kConj ? -M(j, i, kImag): M(j, i, kImag));
+                (*this)(i, j, kImag) = (Trans == kConjTrans ? -M(j, i, kImag): M(j, i, kImag));
         }
     }
 }
@@ -217,10 +216,14 @@ void CMatrixBase<Real>::AddMatMat(const Real alpha_r, const Real alpha_i,
                                   const CMatrixBase<Real>& A, MatrixTransposeType transA,
                                   const CMatrixBase<Real>& B, MatrixTransposeType transB,
                                   const Real beta_r, const Real beta_i) {
-    KALDI_ASSERT((transA == kNoTrans && transB == kNoTrans && A.num_cols_ == B.num_rows_ && A.num_rows_ == num_rows_ && B.num_cols_ == num_cols_)
-                 || (transA == kTrans && transB == kNoTrans && A.num_rows_ == B.num_rows_ && A.num_cols_ == num_rows_ && B.num_cols_ == num_cols_)
-                 || (transA == kNoTrans && transB == kTrans && A.num_cols_ == B.num_cols_ && A.num_rows_ == num_rows_ && B.num_rows_ == num_cols_)
-                 || (transA == kTrans && transB == kTrans && A.num_rows_ == B.num_cols_ && A.num_cols_ == num_rows_ && B.num_rows_ == num_cols_));
+    KALDI_ASSERT(((transA == kNoTrans || transA == kConjNoTrans) && (transB == kNoTrans || transB == kConjNoTrans) 
+                  && A.num_cols_ == B.num_rows_ && A.num_rows_ == num_rows_ && B.num_cols_ == num_cols_)
+                 || ((transA == kTrans || transA == kConjTrans) && (transB == kNoTrans || transB == kConjTrans) 
+                     && A.num_rows_ == B.num_rows_ && A.num_cols_ == num_rows_ && B.num_cols_ == num_cols_)
+                 || ((transA == kNoTrans || transA == kConjNoTrans) && (transB == kTrans || transB == kConjTrans) 
+                     && A.num_cols_ == B.num_cols_ && A.num_rows_ == num_rows_ && B.num_rows_ == num_cols_)
+                 || ((transA == kTrans || transA == kConjTrans) && (transB == kTrans || transB == kConjTrans) 
+                     && A.num_rows_ == B.num_cols_ && A.num_cols_ == num_rows_ && B.num_rows_ == num_cols_));
     KALDI_ASSERT(&A !=  this && &B != this);
     if (num_rows_ == 0) return;
     AdjustIn();
@@ -420,13 +423,12 @@ void CMatrixBase<Real>::Hged(CMatrixBase<Real> *B, VectorBase<Real> *D,
 
 template<typename Real>
 CMatrix<Real>::CMatrix(const CMatrixBase<Real> &M, 
-                       MatrixTransposeType trans, 
-                       ConjugateType conj) {
-    if (trans == kNoTrans)
+                       MatrixTransposeType trans) { 
+    if (trans == kNoTrans || trans == kConjNoTrans)
         Resize(M.num_rows_, M.num_cols_);
     else
         Resize(M.num_cols_, M.num_rows_);
-    this->CopyFromMat(M, trans, conj);
+    this->CopyFromMat(M, trans);
 }
 
 

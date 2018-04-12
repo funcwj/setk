@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
 
             Matrix<BaseFloat> rstft, enhan_speech;
             CastIntoRealfft(enh_stft, &rstft);
-            stft_computer.InverseShortTimeFT(rstft, &enhan_speech, range / cur_ch);
+            stft_computer.InverseShortTimeFT(rstft, &enhan_speech, range / cur_ch - 1);
 
             WaveData target_data(target_freq, enhan_speech);
             wav_writer.Write(utt_key, target_data);
