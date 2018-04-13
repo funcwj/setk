@@ -30,6 +30,7 @@ typedef enum {
 Then run
 ```shell
 mkdir build
+cd build
 export KALDI_ROOT=/kaldi/root/dir
 # if on UNIX, need compile kaldi with openblas
 export OPENBLAS_ROOT=/openblas/root/dir
