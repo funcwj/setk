@@ -17,6 +17,7 @@ void SeperateSpeech(ShortTimeFTComputer &stft_computer,
                     bool track_volumn) {
     Matrix<BaseFloat> specs, args;
     stft_computer.Compute(noisy_data, NULL, &specs, &args);
+    KALDI_ASSERT(SameDim(specs, target_mask));
     // here need raw spectrum(means no power & log) to make sure mask work properly
     specs.MulElements(target_mask);
     
@@ -88,6 +89,7 @@ int main(int argc, char *argv[]) {
 
                 const WaveData &noisy_data = noisy_reader.Value();
                 BaseFloat target_freq = noisy_data.SampFreq();
+                KALDI_ASSERT(noisy_data.Data().NumRows() == 1);
 
                 const Matrix<BaseFloat> &target_mask = mask_reader.Value(utt_key);
                 Matrix<BaseFloat> target_speech;
@@ -114,6 +116,7 @@ int main(int argc, char *argv[]) {
             WaveData noisy_data;
             noisy_data.Read(ki.Stream());
             BaseFloat target_freq = noisy_data.SampFreq();
+            KALDI_ASSERT(noisy_data.Data().NumRows() == 1);
 
             Matrix<BaseFloat> target_speech;
             SeperateSpeech(stft_computer, noisy_data.Data(), target_mask, &target_speech, track_volumn);

@@ -20,6 +20,11 @@ void ComputeMasks(ShortTimeFTComputer &stft_computer,
     stft_computer.Compute(clean_data, NULL, &numerator, NULL);
     stft_computer.Compute(noise_data, NULL, &denumerator, NULL);
 
+    if (!SameDim(numerator, denumerator))
+        KALDI_ERR << "There is obvious length difference between noise wav"
+                  << " and clean wav, " << noise_data.NumCols() << " vs "
+                  << clean_data.NumCols();
+
     if (type == "irm" || type == "wiener") {
         denumerator.AddMat(1, numerator);
         numerator.DivElements(denumerator);
@@ -109,7 +114,10 @@ int main(int argc, char *argv[]) {
 
                 const WaveData &noise_data = noise_reader.Value(), 
                       &clean_data = clean_reader.Value(utt_key);
-                    
+
+                KALDI_ASSERT(noise_data.Data().NumRows() == clean_data.Data().NumRows() &&
+                             noise_data.Data().NumRows() == 1);
+
                 Matrix<BaseFloat> mask;
                 ComputeMasks(stft_computer, noise_data.Data(), clean_data.Data(), mask_type, &mask);
 
@@ -131,6 +139,8 @@ int main(int argc, char *argv[]) {
             WaveData noise_data, clean_data;
             noise_data.Read(kn.Stream());
             clean_data.Read(kt.Stream());
+            KALDI_ASSERT(noise_data.Data().NumRows() == clean_data.Data().NumRows() &&
+                         noise_data.Data().NumRows() == 1);
 
             Matrix<BaseFloat> mask;
             ComputeMasks(stft_computer, noise_data.Data(), clean_data.Data(), mask_type, &mask);

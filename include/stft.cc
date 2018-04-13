@@ -6,36 +6,43 @@
 
 namespace kaldi {
 
+// support multi-channel input
+// wave:    (num_channels, num_samples)
+// stft:    (num_channels x num_frames, num_bins)
 void ShortTimeFTComputer::ShortTimeFT(const MatrixBase<BaseFloat> &wave, Matrix<BaseFloat> *stft) {
     KALDI_ASSERT(wave.NumRows() == 1);
     KALDI_ASSERT(window_.Dim() == frame_length_);
 
-    int32 num_samples = wave.NumCols();
+    int32 num_samples = wave.NumCols(), num_channels = wave.NumRows();
     int32 num_frames  = NumFrames(num_samples);
     
-    stft->Resize(num_frames, opts_.PaddingLength(), kSetZero);
+    stft->Resize(num_frames * num_channels, opts_.PaddingLength(), kSetZero);
     
     // new copy of wave, cause my modify origin matrix
     Matrix<BaseFloat> copy_mat(wave);
-    SubVector<BaseFloat> samples(copy_mat, 0);
 
     if (opts_.normalize_input)
-        samples.Scale(1.0 / int16_max);
-
-    if (opts_.enable_scale) {
-        BaseFloat samp_norm = samples.Norm(float_inf);
-        samples.Scale(int16_max / samp_norm);
-    }
+        copy_mat.Scale(1.0 / int16_max);
 
     int32 ibeg, iend;
-    for (int32 i = 0; i < num_frames; i++) {
-        SubVector<BaseFloat> specs(*stft, i);
-        ibeg = i * frame_shift_;
-        iend = ibeg + frame_length_ <= num_samples ? ibeg + frame_length_: num_samples;  
-        specs.Range(0, iend - ibeg).CopyFromVec(samples.Range(ibeg, iend - ibeg)); 
-        specs.Range(0, frame_length_).MulElements(window_);
-        srfft_->Compute(specs.Data(), true);
-    } 
+    for (int32 c = 0; c < num_channels; c++) {
+        // channel c
+        SubVector<BaseFloat> samples(copy_mat, c);
+
+        if (opts_.enable_scale) {
+            BaseFloat samp_norm = samples.Norm(float_inf);
+            samples.Scale(int16_max / samp_norm);
+        }
+
+        for (int32 i = 0; i < num_frames; i++) {
+            SubVector<BaseFloat> specs(*stft, c * num_channels + i);
+            ibeg = i * frame_shift_;
+            iend = ibeg + frame_length_ <= num_samples ? ibeg + frame_length_: num_samples;  
+            specs.Range(0, iend - ibeg).CopyFromVec(samples.Range(ibeg, iend - ibeg)); 
+            specs.Range(0, frame_length_).MulElements(window_);
+            srfft_->Compute(specs.Data(), true);
+        } 
+    }
 }
     
 void ShortTimeFTComputer::ComputeSpectrum(MatrixBase<BaseFloat> &stft, 
@@ -84,11 +91,8 @@ void ShortTimeFTComputer::Compute(const MatrixBase<BaseFloat> &wave, Matrix<Base
     // support one channel
     KALDI_ASSERT(wave.NumRows() == 1);
     KALDI_ASSERT(window_.Dim() == frame_length_);
-
-    int32 num_samples = wave.NumCols();
-    int32 num_frames  = NumFrames(num_samples);
     
-    Matrix<BaseFloat> stft_cache(num_frames, opts_.PaddingLength());
+    Matrix<BaseFloat> stft_cache;
     ShortTimeFT(wave, &stft_cache);
     
     if (spectrum) {

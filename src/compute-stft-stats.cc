@@ -74,7 +74,10 @@ int main(int argc, char *argv[]) {
             for (; !wave_reader.Done(); wave_reader.Next()) {
                 std::string utt_key = wave_reader.Key();
                 const WaveData &wave_data = wave_reader.Value();
-                    
+                
+                if (wave_data.Data().NumRows() != 1) 
+                    KALDI_WARN << utt_key << ": MULTI-CHANNEL!";
+
                 Matrix<BaseFloat> feature;
                 ComputeSTFTStats(stft_computer, wave_data.Data(), output, &feature);
 
@@ -92,6 +95,8 @@ int main(int argc, char *argv[]) {
             Input ki(wave_in, &binary);
             WaveData wave_input;
             wave_input.Read(ki.Stream());
+            if (wave_input.Data().NumRows() != 1) 
+                    KALDI_WARN << "MULTI-CHANNEL input!";
             Matrix<BaseFloat> feature;
             ComputeSTFTStats(stft_computer, wave_input.Data(), output, &feature);
             WriteKaldiObject(feature, stft_out, wx_binary);

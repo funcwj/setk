@@ -18,6 +18,8 @@ void EstimateSpeech(ShortTimeFTComputer &stft_computer,
     Matrix<BaseFloat> refer_phase, target_stft;
     // compute reference phase as target reference
     stft_computer.Compute(refer_data, NULL, NULL, &refer_phase);
+
+    KALDI_ASSERT(SameDim(spectrum, refer_phase));
     // spectrum can be (log) magnitude/power spectrum
     stft_computer.Polar(spectrum, refer_phase, &target_stft);   
     if (track_volumn) {
@@ -84,6 +86,8 @@ int main(int argc, char *argv[]) {
                 const WaveData &refer_data = refer_reader.Value(utt_key);
                 BaseFloat target_freq = refer_data.SampFreq();
 
+                KALDI_ASSERT(refer_data.Data().NumRows() == 1);
+
                 Matrix<BaseFloat> target_speech;
                 EstimateSpeech(stft_computer, refer_data.Data(), spectrum, &target_speech, track_volumn);
 
@@ -107,6 +111,7 @@ int main(int argc, char *argv[]) {
             WaveData refer_data;
             refer_data.Read(ki.Stream());
             BaseFloat target_freq = refer_data.SampFreq();
+            KALDI_ASSERT(refer_data.Data().NumRows() == 1);
 
             Matrix<BaseFloat> target_speech;
             EstimateSpeech(stft_computer, refer_data.Data(), spectrum, &target_speech, track_volumn);

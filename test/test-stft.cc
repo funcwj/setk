@@ -94,7 +94,7 @@ void test_istft() {
 }
 
 int main() {
-    // test_istft();
-    test_stft();
+    test_istft();
+    // test_stft();
     return 0;
 }
