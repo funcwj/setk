@@ -12,7 +12,7 @@ if(NOT DEFINED KALDI_ROOT)
 endif()
 
 message(STATUS "defined KALDI_ROOT=" $ENV{KALDI_ROOT})
-set(DEPEND_LIBS kaldi-base kaldi-util kaldi-matrix kaldi-feat)
+set(DEPEND_LIBS kaldi-base kaldi-util kaldi-matrix kaldi-feat pthread)
 
 add_definitions(-O3 -g -std=c++11)
 include_directories(${KALDI_ROOT}/src ${KALDI_ROOT}/tools/openfst/include ${CMAKE_SOURCE_DIR})
