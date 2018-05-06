@@ -10,24 +10,28 @@ BaseFloat SparseNMF::Objf(const MatrixBase<BaseFloat> &V) {
     if (!SameDim(V, cost_))
         cost_.Resize(V.NumCols(), V.NumRows());
     cost_.SetZero();
+    
+    Matrix<BaseFloat> tmp(Lambda_);
 
-    if (opts_.beta == 0) {
-        Matrix<BaseFloat> x_div_y(Lambda_);
-        x_div_y.DivElements(V); cost_.AddMat(1, x_div_y);
-        x_div_y.ApplyLog(); cost_.AddMat(-1, x_div_y);
-        cost_.Add(-1);
-    } else if (opts_.beta == 0) {
-        Matrix<BaseFloat> logx(Lambda_);
-        logx.ApplyLog(); cost_.AddMat(1, logx);
-        logx.CopyFromMat(V);
-        logx.ApplyLog(); cost_.AddMat(-1, logx);
-        cost_.MulElements(Lambda_);
-        cost_.AddMat(1, V);
-        cost_.AddMat(-1, Lambda_);
-    } else if (opts_.beta == 0) {
-        cost_.AddMat(1, Lambda_);
-        cost_.AddMat(-1, V);
-        cost_.ApplyPow(2);
+    switch (objf_type) {
+        case kItakuraSaito:
+            tmp.DivElements(V); cost_.AddMat(1, tmp);
+            tmp.ApplyLog(); cost_.AddMat(-1, tmp);
+            cost_.Add(-1);
+            break;
+        case kKullbackLeibler:
+            tmp.ApplyLog(); cost_.AddMat(1, tmp);
+            tmp.CopyFromMat(V);
+            tmp.ApplyLog(); cost_.AddMat(-1, tmp);
+            cost_.MulElements(Lambda_);
+            cost_.AddMat(1, V);
+            cost_.AddMat(-1, Lambda_);
+            break;
+        case kEuclideanDistance:
+            cost_.AddMat(1, Lambda_);
+            cost_.AddMat(-1, V);
+            cost_.ApplyPow(2);
+            break;
     }
     // and sparsity
     return cost_.Sum() + H_.Sum() * opts_.sparsity;
@@ -97,30 +101,34 @@ void SparseNMF::UpdateH(const MatrixBase<BaseFloat> &V) {
     if (!SameDim(Lambda_, denumerator_h))
         denumerator_h.Resize(Lambda_.NumRows(), Lambda_.NumCols());
 
-    if (opts_.beta == 0) {
-        Lambda_.ApplyPow(-1);
-        denumerator_h.AddMatMat(1, W_, kTrans, Lambda_, kNoTrans, 0);
-        denumerator_h.Add(opts_.sparsity);
+    switch (objf_type) {
+        case kItakuraSaito:
+            Lambda_.ApplyPow(-1);
+            denumerator_h.AddMatMat(1, W_, kTrans, Lambda_, kNoTrans, 0);
+            denumerator_h.Add(opts_.sparsity);
 
-        numerator.CopyFromMat(Lambda_);
-        numerator.ApplyPow(2); 
-        numerator.MulElements(V);
+            numerator.CopyFromMat(Lambda_);
+            numerator.ApplyPow(2); 
+            numerator.MulElements(V);
 
-        Hs_.AddMatMat(1, W_, kTrans, numerator, kNoTrans, 0);
-    } else if (opts_.beta == 1) {
-        numerator.CopyFromMat(Lambda_);
-        numerator.ApplyPow(-1); 
-        numerator.MulElements(V);
+            Hs_.AddMatMat(1, W_, kTrans, numerator, kNoTrans, 0);
+            break;
+        case kKullbackLeibler:
+            numerator.CopyFromMat(Lambda_);
+            numerator.ApplyPow(-1); 
+            numerator.MulElements(V);
 
-        Lambda_.ApplyPow(0);
-        denumerator_h.AddMatMat(1, W_, kTrans, Lambda_, kNoTrans, 0);
-        denumerator_h.Add(opts_.sparsity);
+            Lambda_.ApplyPow(0);
+            denumerator_h.AddMatMat(1, W_, kTrans, Lambda_, kNoTrans, 0);
+            denumerator_h.Add(opts_.sparsity);
 
-        Hs_.AddMatMat(1, W_, kTrans, numerator, kNoTrans, 0);
-    } else if (opts_.beta == 2) {
-        denumerator_h.AddMatMat(1, W_, kTrans, Lambda_, kNoTrans, 0);
-        denumerator_h.Add(opts_.sparsity);
-        Hs_.AddMatMat(1, W_, kTrans, V, kNoTrans, 0);
+            Hs_.AddMatMat(1, W_, kTrans, numerator, kNoTrans, 0);
+            break;
+        case kEuclideanDistance:
+            denumerator_h.AddMatMat(1, W_, kTrans, Lambda_, kNoTrans, 0);
+            denumerator_h.Add(opts_.sparsity);
+            Hs_.AddMatMat(1, W_, kTrans, V, kNoTrans, 0);
+            break;
     }
 
     Hs_.DivElements(denumerator_h);
@@ -135,28 +143,33 @@ void SparseNMF::UpdateW(const MatrixBase<BaseFloat> &V) {
     if (!SameDim(Lambda_, denumerator_w))
         denumerator_w.Resize(Lambda_.NumRows(), Lambda_.NumCols());
 
-    if (opts_.beta == 0) {
-        Lambda_.ApplyPow(-1);
-        denumerator_w.AddMatMat(1, Lambda_, kNoTrans, H_, kTrans, 0);
+    switch (objf_type) {
+        case kItakuraSaito:
+            Lambda_.ApplyPow(-1);
+            denumerator_w.AddMatMat(1, Lambda_, kNoTrans, H_, kTrans, 0);
 
-        numerator.CopyFromMat(Lambda_);
-        numerator.ApplyPow(2); 
-        numerator.MulElements(V);
+            numerator.CopyFromMat(Lambda_);
+            numerator.ApplyPow(2); 
+            numerator.MulElements(V);
 
-        Ws_.AddMatMat(1, numerator, kNoTrans, H_, kTrans, 0);
+            Ws_.AddMatMat(1, numerator, kNoTrans, H_, kTrans, 0);
+            break;
 
-    } else if (opts_.beta == 1) {
-        numerator.CopyFromMat(Lambda_);
-        numerator.ApplyPow(-1); 
-        numerator.MulElements(V);
+        case kKullbackLeibler:
+            numerator.CopyFromMat(Lambda_);
+            numerator.ApplyPow(-1); 
+            numerator.MulElements(V);
 
-        Lambda_.ApplyPow(0);
-        denumerator_w.AddMatMat(1,  Lambda_, kNoTrans, H_, kTrans, 0);
+            Lambda_.ApplyPow(0);
+            denumerator_w.AddMatMat(1,  Lambda_, kNoTrans, H_, kTrans, 0);
 
-        Ws_.AddMatMat(1, numerator, kNoTrans, H_, kTrans, 0);
-    } else if (opts_.beta == 2) {
-        denumerator_w.AddMatMat(1, Lambda_, kNoTrans, H_, kTrans, 0);
-        Ws_.AddMatMat(1, V, kNoTrans, H_, kTrans, 0);
+            Ws_.AddMatMat(1, numerator, kNoTrans, H_, kTrans, 0);
+            break;
+
+        case kEuclideanDistance:
+            denumerator_w.AddMatMat(1, Lambda_, kNoTrans, H_, kTrans, 0);
+            Ws_.AddMatMat(1, V, kNoTrans, H_, kTrans, 0);
+            break;
     }
     Ws_.DivElements(denumerator_w);
     W_.MulElements(Ws_);

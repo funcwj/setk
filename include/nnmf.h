@@ -12,6 +12,11 @@
 
 namespace kaldi {
 
+typedef enum {
+    kItakuraSaito,
+    kKullbackLeibler,
+    kEuclideanDistance
+} NMFObjectiveFunction;
 
 struct SparseNMFOptions {
 
@@ -53,7 +58,12 @@ struct SparseNMFOptions {
 class SparseNMF {
 
 public:
-    SparseNMF(const SparseNMFOptions &opts): opts_(opts) {}
+    SparseNMF(const SparseNMFOptions &opts): opts_(opts) {
+        if (opts_.beta == 0) objf_type = kItakuraSaito;
+        else if (opts_.beta == 1) objf_type = kKullbackLeibler;
+        else if (opts_.beta == 2) objf_type = kEuclideanDistance;
+        else KALDI_ERR << "Unsupported value of beta";
+    }
 
     BaseFloat Objf(const MatrixBase<BaseFloat> &V);
 
@@ -71,7 +81,7 @@ private:
     bool CheckNonNegative(const MatrixBase<BaseFloat> &M);
 
     SparseNMFOptions opts_;
-    std::string objf_type;
+    NMFObjectiveFunction objf_type;
     // some variable for NMF
     Matrix<BaseFloat> W_, H_, Ws_, Hs_, Lambda_, cost_;
     Matrix<BaseFloat> numerator, denumerator_w, denumerator_h;
