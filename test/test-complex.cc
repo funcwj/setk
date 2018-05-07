@@ -2,7 +2,6 @@
 // wujian@2018
 
 #include "include/complex-base.h"
-#include "include/beamformer.h"
 #include "include/complex-vector.h"
 #include "include/complex-matrix.h"
 

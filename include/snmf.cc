@@ -1,14 +1,15 @@
-// nnmf.cc
+// snmf.cc
 // wujian@18.5.4
 
-#include "include/nnmf.h"
+#include "include/snmf.h"
 
 
 namespace kaldi {
 
 BaseFloat SparseNMF::Objf(const MatrixBase<BaseFloat> &V) {
+    KALDI_ASSERT(SameDim(V, Lambda_));
     if (!SameDim(V, cost_))
-        cost_.Resize(V.NumCols(), V.NumRows());
+        cost_.Resize(V.NumRows(), V.NumCols());
     cost_.SetZero();
     
     Matrix<BaseFloat> tmp(Lambda_);
@@ -46,8 +47,8 @@ bool SparseNMF::CheckNonNegative(const MatrixBase<BaseFloat> &M) {
 }
 
 
-BaseFloat SparseNMF::DoNMF(const MatrixBase<BaseFloat> &V,
-                           Matrix<BaseFloat> *W, Matrix<BaseFloat> *H) {
+BaseFloat SparseNMF::DoSparseNMF(const MatrixBase<BaseFloat> &V,
+                                 Matrix<BaseFloat> *W, Matrix<BaseFloat> *H) {
     KALDI_ASSERT(V.NumRows() == W->NumRows() && V.NumCols() == H->NumCols());
     // Lazy init
     if (!SameDim(W_, *W))
@@ -65,25 +66,29 @@ BaseFloat SparseNMF::DoNMF(const MatrixBase<BaseFloat> &V,
 
     // init values
     BaseFloat pre_cost, cur_cost;
-    bool es = false;
+    bool stop = false;
     W_.CopyFromMat(*W), H_.CopyFromMat(*H);
     Lambda_.AddMatMat(1, W_, kNoTrans, H_, kNoTrans, 0);
 
     for (int32 iter = 0; iter < opts_.max_iter; iter++) {
-        if (es)
+        if (stop)
             break;
-        if (opts_.update_w)
-            UpdateW(V);
         if (opts_.update_h)
             UpdateH(V);
+        if (opts_.update_w)
+            UpdateW(V);
 
         cur_cost = Objf(V);
-        KALDI_LOG << "On iteration " << iter << ": objfunc " << cur_cost;
+        KALDI_VLOG(3) << "On iteration " << iter << ": objf(" 
+                  << (objf_type == kItakuraSaito ? "IS": (objf_type == kKullbackLeibler ? "KL": "EU")) 
+                  << ") " << cur_cost;
 
-        if (iter >= 1) {
+        if (iter) {
             if (std::abs(pre_cost - cur_cost) / pre_cost < opts_.conv_eps) {
-                es = true;
-                KALDI_LOG << "Convergence reached, aborting iteration";
+                stop = true;
+                KALDI_LOG << "Convergence reached, aborting iteration("
+                          << iter << ") with objf "
+                          << cur_cost / (V.NumRows() * V.NumCols()) << " for each elements";
             }
             pre_cost = cur_cost;
         }
@@ -98,8 +103,8 @@ BaseFloat SparseNMF::DoNMF(const MatrixBase<BaseFloat> &V,
 void SparseNMF::UpdateH(const MatrixBase<BaseFloat> &V) {
     if (!SameDim(Lambda_, numerator))
         numerator.Resize(Lambda_.NumRows(), Lambda_.NumCols());
-    if (!SameDim(Lambda_, denumerator_h))
-        denumerator_h.Resize(Lambda_.NumRows(), Lambda_.NumCols());
+    if (!SameDim(H_, denumerator_h))
+        denumerator_h.Resize(H_.NumRows(), H_.NumCols());
 
     switch (objf_type) {
         case kItakuraSaito:
@@ -118,7 +123,7 @@ void SparseNMF::UpdateH(const MatrixBase<BaseFloat> &V) {
             numerator.ApplyPow(-1); 
             numerator.MulElements(V);
 
-            Lambda_.ApplyPow(0);
+            Lambda_.Set(1);
             denumerator_h.AddMatMat(1, W_, kTrans, Lambda_, kNoTrans, 0);
             denumerator_h.Add(opts_.sparsity);
 
@@ -130,7 +135,7 @@ void SparseNMF::UpdateH(const MatrixBase<BaseFloat> &V) {
             Hs_.AddMatMat(1, W_, kTrans, V, kNoTrans, 0);
             break;
     }
-
+    denumerator_h.ApplyFloor(1e-5);
     Hs_.DivElements(denumerator_h);
     H_.MulElements(Hs_);
     // update Lambda
@@ -140,8 +145,8 @@ void SparseNMF::UpdateH(const MatrixBase<BaseFloat> &V) {
 void SparseNMF::UpdateW(const MatrixBase<BaseFloat> &V) {
     if (!SameDim(Lambda_, numerator))
         numerator.Resize(Lambda_.NumRows(), Lambda_.NumCols());
-    if (!SameDim(Lambda_, denumerator_w))
-        denumerator_w.Resize(Lambda_.NumRows(), Lambda_.NumCols());
+    if (!SameDim(W_, denumerator_w))
+        denumerator_w.Resize(W_.NumRows(), W_.NumCols());
 
     switch (objf_type) {
         case kItakuraSaito:
@@ -160,7 +165,7 @@ void SparseNMF::UpdateW(const MatrixBase<BaseFloat> &V) {
             numerator.ApplyPow(-1); 
             numerator.MulElements(V);
 
-            Lambda_.ApplyPow(0);
+            Lambda_.Set(0);
             denumerator_w.AddMatMat(1,  Lambda_, kNoTrans, H_, kTrans, 0);
 
             Ws_.AddMatMat(1, numerator, kNoTrans, H_, kTrans, 0);
@@ -171,6 +176,7 @@ void SparseNMF::UpdateW(const MatrixBase<BaseFloat> &V) {
             Ws_.AddMatMat(1, V, kNoTrans, H_, kTrans, 0);
             break;
     }
+    denumerator_w.ApplyFloor(1e-5);
     Ws_.DivElements(denumerator_w);
     W_.MulElements(Ws_);
     // update Lambda

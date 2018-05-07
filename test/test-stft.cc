@@ -1,10 +1,6 @@
 // test-stft.cc
 // wujian@18.2.12
 
-#include "matrix/matrix-lib.h"
-#include "base/kaldi-common.h"
-#include "feat/wave-reader.h"
-#include "util/common-utils.h"
 #include "include/stft.h"
 
 using namespace kaldi;

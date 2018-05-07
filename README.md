@@ -15,7 +15,7 @@ Updating...
 * GEV(generalized eigenvector decomposition)/max-SNR beamformer(depend on estimated target mask)
 
 ### Install
-Compile pass on Mac OSX and RedHat. I haven't try them on Ubuntu yet.
+Compile pass on Mac OSX, Ubuntu and RedHat
 
 Patch `matrix/matrix-common.h` in Kaldi
 ```c++

@@ -67,8 +67,8 @@ public:
 
     BaseFloat Objf(const MatrixBase<BaseFloat> &V);
 
-    BaseFloat DoNMF(const MatrixBase<BaseFloat> &V,
-                    Matrix<BaseFloat> *W, Matrix<BaseFloat> *H);
+    BaseFloat DoSparseNMF(const MatrixBase<BaseFloat> &V,
+                          Matrix<BaseFloat> *W, Matrix<BaseFloat> *H);
 
 private:
 
