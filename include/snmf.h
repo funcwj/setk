@@ -30,7 +30,7 @@ struct SparseNMFOptions {
 
     void Register(OptionsItf *opts) {
         opts->Register("beta", &beta,
-                        "Value of beta in definition of beta-divergence,"
+                        "Value of beta in definition of beta-divergence."
                         "beta = 0 yields the Itakura-Saito (IS) distance,"
                         "beta = 1 yields the generalized Kullback-Leibler(KL) divergence,"
                         "beta = 2 yields the Euclidean distance");

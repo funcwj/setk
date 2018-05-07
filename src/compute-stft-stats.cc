@@ -66,9 +66,9 @@ int main(int argc, char *argv[]) {
             SequentialTableReader<WaveHolder> wave_reader(wave_in);
 
             BaseFloatMatrixWriter kaldi_writer;
-            if (!kaldi_writer.Open(stft_out)) {
+            if (!kaldi_writer.Open(stft_out))
                 KALDI_ERR << "Could not initialize output with wspecifier " << stft_out;
-            }
+
             
             int num_utts = 0;
             for (; !wave_reader.Done(); wave_reader.Next()) {
