@@ -113,6 +113,12 @@ public:
     // this = this^H
     void Hermite();
 
+    // this = this.Real/Imag
+    void Part(MatrixBase<Real> *P, ComplexIndexType index);
+
+    // this = |this|
+    void Abs(MatrixBase<Real> *P);
+
     // this == this^H
     bool IsHermitian(Real cutoff = 1.0e-5);
 
@@ -140,10 +146,14 @@ public:
     void AddToDiag(const Real alpha_r, const Real alpha_i);
 
     // this = this .* A
-    void MulElements(const CMatrixBase<Real> &A);
+    void MulElements(const CMatrixBase<Real> &A, 
+                     ConjugateType conj = kNoConj,
+                     bool mul_abs = false);
 
     // this = this ./ A
-    void DivElements(const CMatrixBase<Real> &A);
+    void DivElements(const CMatrixBase<Real> &A, 
+                     ConjugateType conj = kNoConj,
+                     bool div_abs = false);
     
     // this = this * beta + alpha * A * B
     void AddMatMat(const Real alpha_r, const Real alpha_i,

@@ -71,10 +71,14 @@ public:
                    const Real beta_r, const Real beta_i);
 
     // this = this .* v
-    void MulElements(const CVectorBase<Real> &v);
+    void MulElements(const CVectorBase<Real> &v, 
+                     ConjugateType conj = kNoConj,
+                     bool mul_abs = false);
     
     // this = this ./ v
-    void DivElements(const CVectorBase<Real> &v);
+    void DivElements(const CVectorBase<Real> &v, 
+                     ConjugateType conj = kNoConj,
+                     bool div_abs = false);
 
     // this = this * alpha
     void Scale(const Real alpha_r, const Real alpha_i);
@@ -87,6 +91,12 @@ public:
     void CopyFromVec(const VectorBase<Real> &v, ComplexIndexType kIndex);
 
     void CopyFromRealfft(const VectorBase<Real> &v);
+
+    void Part(VectorBase<Real> *p, ComplexIndexType index);
+
+    void Abs(VectorBase<Real> *p);
+
+
 
 protected:
 

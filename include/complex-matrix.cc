@@ -94,21 +94,57 @@ void CMatrixBase<Real>::Hermite() {
 }
 
 template<typename Real>
-void CMatrixBase<Real>::MulElements(const CMatrixBase<Real> &A) {
+void CMatrixBase<Real>::Part(MatrixBase<Real> *P, ComplexIndexType index) {
+    ASSERT(P->NumCols() == num_rows_ && p->NumRows() == num_cols_);
+    for (MatrixIndexT i = 0; i < num_rows_; i++)
+        for (MatrixIndexT j = 0; j < num_cols_; j++)
+            P(i, j) = (index == kReal ? (*this)(i, j, kReal): (*this)(i, j, kImag));
+}
+
+template<typename Real>
+void CMatrixBase<Real>::Abs(MatrixBase<Real> *P) {
+    ASSERT(P->NumCols() == num_rows_ && p->NumRows() == num_cols_);
+    for (MatrixIndexT i = 0; i < num_rows_; i++)
+        for (MatrixIndexT j = 0; j < num_cols_; j++)
+            P(i, j) = (*this)(i, j, kReal) * (*this)(i, j, kReal) + 
+                      (*this)(i, j, kImag) * (*this)(i, j, kImag);
+    P->ApplyPow(0.5);
+}
+
+
+template<typename Real>
+void CMatrixBase<Real>::MulElements(const CMatrixBase<Real> &A, 
+                                    ConjugateType conj, bool mul_abs) {
     KALDI_ASSERT(num_cols_ == A.NumCols() && num_rows_ == A.NumRows());
     for (MatrixIndexT i = 0; i < num_cols_; i++) {
-        for (MatrixIndexT j = 0; j < num_rows_; j++)
-            ComplexMul(A(i, j, kReal), A(i, j, kImag), &(*this)(i, j, kReal), &(*this)(i, j, kImag));
+        for (MatrixIndexT j = 0; j < num_rows_; j++) {
+            if (!mul_abs)
+                ComplexMul(A(i, j, kReal), (conj == kNoConj ? A(i, j, kImag): -A(i, j, kImag)), 
+                    &(*this)(i, j, kReal), &(*this)(i, j, kImag));
+            else {
+                Real abs_mul = std::sqrt((*this)(i, j, kReal) * (*this)(i, j, kReal) +
+                                (*this)(i, j, kImag) * (*this)(i, j, kImag));
+                ComplexMul(abs_mul, 0, &(*this)(i, j, kReal), &(*this)(i, j, kImag));
+            }
+        }
     } 
 }
 
 template<typename Real>
-void CMatrixBase<Real>::DivElements(const CMatrixBase<Real> &A) {
+void CMatrixBase<Real>::DivElements(const CMatrixBase<Real> &A, 
+                                    ConjugateType conj, bool div_abs) {
     KALDI_ASSERT(num_cols_ == A.NumCols() && num_rows_ == A.NumRows());
     Real denomintor = 0;
     for (MatrixIndexT i = 0; i < num_cols_; i++) {
         for (MatrixIndexT j = 0; j < num_rows_; j++) {
-            ComplexDiv(A(i, j, kReal), A(i, j, kImag), &(*this)(i, j, kReal), &(*this)(i, j, kImag));
+            if (!div_abs)
+                ComplexDiv(A(i, j, kReal), (conj == kNoConj ? A(i, j, kImag): -A(i, j, kImag)), 
+                    &(*this)(i, j, kReal), &(*this)(i, j, kImag));
+            else {
+                Real abs_div = std::sqrt((*this)(i, j, kReal) * (*this)(i, j, kReal) +
+                                (*this)(i, j, kImag) * (*this)(i, j, kImag)) + FLT_EPSILON;
+                ComplexDiv(abs_div, 0, &(*this)(i, j, kReal), &(*this)(i, j, kImag));
+            }
         }
     } 
 }

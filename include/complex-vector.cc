@@ -81,18 +81,35 @@ void CVectorBase<Real>::Scale(const Real alpha_r, const Real alpha_i) {
 
 
 template<typename Real>
-void CVectorBase<Real>::MulElements(const CVectorBase<Real> &v) {
+void CVectorBase<Real>::MulElements(const CVectorBase<Real> &v, 
+                                    ConjugateType conj, bool mul_abs) {
     KALDI_ASSERT(dim_ == v.Dim());
-    for (int32 i = 0; i < dim_; i++) 
-        ComplexMul(v(i, kReal), v(i, kImag), data_ + i * 2, data_ + i * 2 + 1);
+    for (int32 i = 0; i < dim_; i++) {
+        if (!abs)
+            ComplexMul(v(i, kReal), (conj == kNoConj ? v(i, kImag): -v(i, kImag)), 
+                data_ + i * 2, data_ + i * 2 + 1);
+        else {
+            Real abs_mul = std::sqrt(v(i, kReal) * v(i, kReal) + v(i, kImag) * v(i, kImag));
+            ComplexMul(abs_mul, 0, data_ + i * 2, data_ + i * 2 + 1);
+        }
+    }
 }
 
 
 template<typename Real>
-void CVectorBase<Real>::DivElements(const CVectorBase<Real> &v) {
+void CVectorBase<Real>::DivElements(const CVectorBase<Real> &v, 
+                                    ConjugateType conj, bool div_abs) {
     KALDI_ASSERT(dim_ == v.Dim());
-    for (int32 i = 0; i < dim_; i++) 
-        ComplexDiv(v(i, kReal), v(i, kImag), data_ + i * 2, data_ + i * 2 + 1);
+    for (int32 i = 0; i < dim_; i++) {
+        if (!abs)
+            ComplexDiv(v(i, kReal), (conj == kNoConj ? v(i, kImag): -v(i, kImag)), 
+                data_ + i * 2, data_ + i * 2 + 1);
+        else {
+            Real abs_div = std::sqrt(v(i, kReal) * v(i, kReal) + 
+                v(i, kImag) * v(i, kImag)) + FLT_EPSILON;
+            ComplexDiv(abs_div, 0, data_ + i * 2, data_ + i * 2 + 1);
+        }
+    }
 }
 
 template<typename Real>
@@ -150,6 +167,22 @@ void CVectorBase<Real>::CopyFromRealfft(const VectorBase<Real> &v) {
         else
             (*this)(i, kReal) = v(i * 2), (*this)(i, kImag) = v(i * 2 + 1);
     }
+}
+
+template<typename Real>
+void CVectorBase<Real>::Part(VectorBase<Real> *p, ComplexIndexType index) {
+    ASSERT(p->Dim() == dim_);
+    for (MatrixIndexT i = 0; i < dim_; i++)
+        P(i) = (index == kReal ? (*this)(i, kReal): (*this)(i, kImag));
+}
+
+template<typename Real>
+void CVectorBase<Real>::Abs(VectorBase<Real> *p) {
+    ASSERT(p->Dim() == dim_);
+    for (MatrixIndexT i = 0; i < dim_; i++)
+        P(i) = (*this)(i, kReal) * (*this)(i, kReal) + 
+               (*this)(i, kImag) * (*this)(i, kImag);
+    P->ApplyPow(0.5);
 }
 
 
