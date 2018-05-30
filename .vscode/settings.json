@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "iterator": "cpp",
-        "__tuple": "cpp",
-        "__locale": "cpp"
-    }
-}

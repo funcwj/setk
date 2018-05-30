@@ -11,8 +11,9 @@ Updating...
 * Seperate target component from input wave according to input masks
 * Estimate wave from enhanced spectrum and reference wave
 * Complex matrix/vector class
-* MVDR(minimum variance distortionless response) beamformer(depend on estimated target mask)
-* GEV(generalized eigenvector decomposition)/max-SNR beamformer(depend on estimated target mask)
+* MVDR(minimum variance distortionless response) beamformer(depend on T-F mask)
+* GEV(generalized eigenvector decomposition)/max-SNR beamformer(depend on T-F mask)
+* Compute angular spectrum based on SRP-PHAT 
 
 ### Install
 Compile pass on Mac OSX and RedHat. I haven't try them on Ubuntu yet.
