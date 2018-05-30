@@ -119,6 +119,9 @@ public:
     // this = |this|
     void Abs(MatrixBase<Real> *P);
 
+    // this = exp(Ej)
+    void Exp(const MatrixBase<Real> &E);
+
     // this == this^H
     bool IsHermitian(Real cutoff = 1.0e-5);
 

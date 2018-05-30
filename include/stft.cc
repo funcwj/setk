@@ -10,7 +10,6 @@ namespace kaldi {
 // wave:    (num_channels, num_samples)
 // stft:    (num_channels x num_frames, num_bins)
 void ShortTimeFTComputer::ShortTimeFT(const MatrixBase<BaseFloat> &wave, Matrix<BaseFloat> *stft) {
-    KALDI_ASSERT(wave.NumRows() == 1);
     KALDI_ASSERT(window_.Dim() == frame_length_);
 
     int32 num_samples = wave.NumCols(), num_channels = wave.NumRows();
@@ -35,7 +34,7 @@ void ShortTimeFTComputer::ShortTimeFT(const MatrixBase<BaseFloat> &wave, Matrix<
         }
 
         for (int32 i = 0; i < num_frames; i++) {
-            SubVector<BaseFloat> specs(*stft, c * num_channels + i);
+            SubVector<BaseFloat> specs(*stft, c * num_frames + i);
             ibeg = i * frame_shift_;
             iend = ibeg + frame_length_ <= num_samples ? ibeg + frame_length_: num_samples;  
             specs.Range(0, iend - ibeg).CopyFromVec(samples.Range(ibeg, iend - ibeg)); 
@@ -88,8 +87,6 @@ void ShortTimeFTComputer::ComputeArg(MatrixBase<BaseFloat> &stft, Matrix<BaseFlo
 
 void ShortTimeFTComputer::Compute(const MatrixBase<BaseFloat> &wave, Matrix<BaseFloat> *stft, 
                                   Matrix<BaseFloat> *spectrum, Matrix<BaseFloat> *arg) {
-    // support one channel
-    KALDI_ASSERT(wave.NumRows() == 1);
     KALDI_ASSERT(window_.Dim() == frame_length_);
     
     Matrix<BaseFloat> stft_cache;

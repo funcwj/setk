@@ -96,6 +96,8 @@ public:
 
     void Abs(VectorBase<Real> *p);
 
+    void Exp(const VectorBase<Real> &e);
+
 
 
 protected:

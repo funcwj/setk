@@ -3,9 +3,6 @@
 // wujian@2018
 //
 
-#include "base/kaldi-common.h"
-#include "util/common-utils.h"
-#include "feat/wave-reader.h"
 #include "include/stft.h"
 
 

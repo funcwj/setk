@@ -90,7 +90,7 @@ void CVectorBase<Real>::MulElements(const CVectorBase<Real> &v,
                 data_ + i * 2, data_ + i * 2 + 1);
         else {
             Real abs_mul = std::sqrt(v(i, kReal) * v(i, kReal) + v(i, kImag) * v(i, kImag));
-            ComplexMul(abs_mul, 0, data_ + i * 2, data_ + i * 2 + 1);
+            ComplexMul(abs_mul, static_cast<Real>(0), data_ + i * 2, data_ + i * 2 + 1);
         }
     }
 }
@@ -107,7 +107,7 @@ void CVectorBase<Real>::DivElements(const CVectorBase<Real> &v,
         else {
             Real abs_div = std::sqrt(v(i, kReal) * v(i, kReal) + 
                 v(i, kImag) * v(i, kImag)) + FLT_EPSILON;
-            ComplexDiv(abs_div, 0, data_ + i * 2, data_ + i * 2 + 1);
+            ComplexDiv(abs_div, static_cast<Real>(0), data_ + i * 2, data_ + i * 2 + 1);
         }
     }
 }
@@ -171,20 +171,29 @@ void CVectorBase<Real>::CopyFromRealfft(const VectorBase<Real> &v) {
 
 template<typename Real>
 void CVectorBase<Real>::Part(VectorBase<Real> *p, ComplexIndexType index) {
-    ASSERT(p->Dim() == dim_);
+    KALDI_ASSERT(p->Dim() == dim_);
     for (MatrixIndexT i = 0; i < dim_; i++)
-        P(i) = (index == kReal ? (*this)(i, kReal): (*this)(i, kImag));
+        (*p)(i) = (index == kReal ? (*this)(i, kReal): (*this)(i, kImag));
 }
 
 template<typename Real>
 void CVectorBase<Real>::Abs(VectorBase<Real> *p) {
-    ASSERT(p->Dim() == dim_);
+    KALDI_ASSERT(p->Dim() == dim_);
     for (MatrixIndexT i = 0; i < dim_; i++)
-        P(i) = (*this)(i, kReal) * (*this)(i, kReal) + 
+        (*p)(i) = (*this)(i, kReal) * (*this)(i, kReal) + 
                (*this)(i, kImag) * (*this)(i, kImag);
-    P->ApplyPow(0.5);
+    p->ApplyPow(0.5);
 }
 
+
+template<typename Real>
+void CVectorBase<Real>::Exp(const VectorBase<Real> &e) {
+    KALDI_ASSERT(dim_ == e.Dim());
+    for (MatrixIndexT i = 0; i < dim_; i++) {
+        (*this)(i, kReal) = std::cos(e(i));
+        (*this)(i, kImag) = std::sin(e(i));
+    }
+}
 
 // Implement of CVector
 

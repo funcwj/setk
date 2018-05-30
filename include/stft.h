@@ -1,6 +1,9 @@
 // stft.h
 // wujian@18.2.12
 
+#ifndef STFT_H_
+#define STFT_H_
+
 #include "matrix/matrix-lib.h"
 #include "base/kaldi-common.h"
 #include "feat/wave-reader.h"
@@ -32,8 +35,10 @@ struct ShortTimeFTOptions {
         opts->Register("window", &window, "Type of window(\"hamming\"|\"hanning\"|\"blackman\"|\"rectangular\")");
         opts->Register("normalize-input", &normalize_input, "Scale samples into range [-1, 1], like MATLAB or librosa");
         opts->Register("enable-scale", &enable_scale, "Let inf-norm of sample vector be one");
-        opts->Register("apply-pow", &apply_pow, "Using power spectrum instead of magnitude spectrum");
-        opts->Register("apply-log", &apply_log, "Apply log on computed spectrum");
+        opts->Register("apply-pow", &apply_pow, "Using power spectrum instead of magnitude spectrum. "
+                                                "This options only works when computing (Power/Magnitude) spectrum"
+                                                " and corresponding wave reconstruction(egs: wav-estimate).");
+        opts->Register("apply-log", &apply_log, "Apply log on computed spectrum if needed.");
     }
 };
 
@@ -107,3 +112,4 @@ private:
 
 }
 
+#endif
