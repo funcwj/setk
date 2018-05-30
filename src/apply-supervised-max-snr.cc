@@ -3,8 +3,6 @@
 // wujian@2018
 //
 
-#include "util/common-utils.h"
-#include "feat/wave-reader.h"
 #include "include/stft.h"
 #include "include/beamformer.h"
 
