@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
                 for (int32 i = 0; i < num_segments; i++) {
                     start_from = i * update_periods;
                     duration = (i == num_segments - 1 ? num_frames - start_from: update_periods); 
-                    ReshapeMultipleStft(num_bins, cur_ch, stft_reshape.RowRange(start_from, duration), &src_stft); 
+                    TrimStft(num_bins, cur_ch, stft_reshape.RowRange(start_from, duration), &src_stft); 
                     EstimatePsd(src_stft, target_mask.RowRange(start_from, duration), &target_psd, &noise_psd);
                     EstimateSteerVector(target_psd, &steer_vector);
                     ComputeMvdrBeamWeights(noise_psd, steer_vector, &beam_weights);
@@ -184,7 +184,7 @@ int main(int argc, char *argv[]) {
 
             } else {
                 KALDI_VLOG(1) << "Do mvdr beamforming offline";
-                ReshapeMultipleStft(num_bins, cur_ch, stft_reshape, &src_stft); 
+                TrimStft(num_bins, cur_ch, stft_reshape, &src_stft); 
                 EstimatePsd(src_stft, target_mask, &target_psd, &noise_psd);
                 EstimateSteerVector(target_psd, &steer_vector);
                 ComputeMvdrBeamWeights(noise_psd, steer_vector, &beam_weights);

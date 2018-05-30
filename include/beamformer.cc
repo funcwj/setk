@@ -28,9 +28,9 @@ void CastIntoRealfft(const CMatrixBase<BaseFloat> &cstft,
 // Shape multiple complex stft from shape num_frames x [num_bins * num_channels]
 // into [num_bins * num_frames] x num_channels
 // for convenience of psd estimate and beamforming
-void ReshapeMultipleStft(const int32 num_bins, const int32 num_channels, 
-                         const CMatrixBase<BaseFloat> &src_stft,
-                         CMatrix<BaseFloat> *dst_stft) {
+void TrimStft(const int32 num_bins, const int32 num_channels, 
+              const CMatrixBase<BaseFloat> &src_stft,
+              CMatrix<BaseFloat> *dst_stft) {
     KALDI_ASSERT(num_channels * num_bins == src_stft.NumCols());
     int32 num_frames = src_stft.NumRows();
     dst_stft->Resize(num_bins * num_frames, num_channels);

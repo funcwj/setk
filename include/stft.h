@@ -34,7 +34,7 @@ struct ShortTimeFTOptions {
         opts->Register("frame-length", &frame_length, "Frame length in number of samples");
         opts->Register("window", &window, "Type of window(\"hamming\"|\"hanning\"|\"blackman\"|\"rectangular\")");
         opts->Register("normalize-input", &normalize_input, "Scale samples into range [-1, 1], like MATLAB or librosa");
-        opts->Register("enable-scale", &enable_scale, "Let inf-norm of sample vector be one");
+        opts->Register("enable-scale", &enable_scale, "Let infinite norm of sample vector to be one");
         opts->Register("apply-pow", &apply_pow, "Using power spectrum instead of magnitude spectrum. "
                                                 "This options only works when computing (Power/Magnitude) spectrum"
                                                 " and corresponding wave reconstruction(egs: wav-estimate).");

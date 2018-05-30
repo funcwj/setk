@@ -187,6 +187,11 @@ public:
     void Hged(CMatrixBase<Real> *B, VectorBase<Real> *D,
               CMatrixBase<Real> *V);
 
+    // Now binary must be true
+    void Read(std::istream &in, bool binary);
+    
+    void Write(std::ostream &out, bool binary) const;
+
 protected:
 
 
@@ -267,6 +272,8 @@ public:
                 MatrixResizeType resize_type = kSetZero,
                 MatrixStrideType stride_type = kDefaultStride);
 
+    void Read(std::istream &in, bool binary);
+
 private:
     void Destroy();
 
@@ -296,21 +303,10 @@ private:
     SubCMatrix<Real> &operator = (const SubCMatrix<Real> &other);
 };
 
-// I do not implement Write/Read function cause I refused to write them into disk.
 // This function is only used for debug.
 template<typename Real>
 std::ostream & operator << (std::ostream &os, const CMatrixBase<Real> &cm) {
-    if (cm.NumCols() == 0) {
-        os << " [ ]\n";
-    } else {
-        os << " [";
-        for (MatrixIndexT i = 0; i < cm.NumRows(); i++) {
-            os << "\n  ";
-            for (MatrixIndexT j = 0; j < cm.NumCols(); j++)
-            os << cm(i, j, kReal) << (cm(i, j, kImag) >= 0 ? "+": "") << cm(i, j, kImag) << "i ";
-        }
-        os << "]\n";
-    }
+    cm.Write(os, false);
     return os;
 }
 

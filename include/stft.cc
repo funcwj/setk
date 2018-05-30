@@ -148,11 +148,13 @@ void ShortTimeFTComputer::InverseShortTimeFT(MatrixBase<BaseFloat> &stft, Matrix
     }
 
     BaseFloat samp_norm = samples.Norm(float_inf);
-    if (range == 0) 
+    if (range == 0)
         range = int16_max;
-
-    samples.Scale(range / samp_norm);
-    KALDI_VLOG(3) << "Rescale samples(" << range << "/" << samp_norm << ")";
+    // range < 0, do not normalize it.
+    if (range >= 0) {
+        samples.Scale(range / samp_norm);
+        KALDI_VLOG(3) << "Rescale samples(" << range << "/" << samp_norm << ")";
+    }
 }
 
 void ShortTimeFTComputer::CacheWindow(const ShortTimeFTOptions &opts) {

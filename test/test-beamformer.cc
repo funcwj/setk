@@ -91,7 +91,7 @@ void test_compute_mvdr_beamweights() {
     }
 }
 
-void test_reshape_multiple_stft() {
+void test_trim_stft() {
     for (int32 i = 0; i < 10; i++) {
         int32 f = Rand() % 6 + 4, t = Rand() % 6 + 4, c = Rand() % 4 + 2;
         CMatrix<BaseFloat> src_stft(t, f * c);
@@ -99,7 +99,7 @@ void test_reshape_multiple_stft() {
         for (int32 j = 0; j < c; j++)
             std::cout << "CH " << j << " :\n" << src_stft.ColRange(j * f, f);
         CMatrix<BaseFloat> dst_stft;
-        ReshapeMultipleStft(f, c, src_stft, &dst_stft);
+        TrimStft(f, c, src_stft, &dst_stft);
         std::cout << dst_stft;
     }
 }
@@ -110,7 +110,7 @@ int main() {
     // test_beamform();
     // test_estimate_steervector();
     // test_compute_mvdr_beamweights();
-    // test_reshape_multiple_stft();
+    // test_trim_stft();
     test_string_spliter();
     return 0;
 }

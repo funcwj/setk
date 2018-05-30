@@ -464,7 +464,104 @@ void CMatrixBase<Real>::Hged(CMatrixBase<Real> *B, VectorBase<Real> *D,
 }
 
 
+template<typename Real>
+void CMatrixBase<Real>::Write(std::ostream &out, bool binary) const {
+    if (!out.good()) {
+        KALDI_ERR << "Could not write complex matrix to stream cause it's not good";
+    }
+    if (binary) {
+        std::string token = (sizeof(Real) == 4 ? "FCM" : "DCM");
+        WriteToken(out, binary, token);
+        {
+            int32 rows = num_rows_;
+            int32 cols = num_cols_;
+            KALDI_ASSERT(num_rows_ == (MatrixIndexT) rows);
+            KALDI_ASSERT(num_cols_ == (MatrixIndexT) cols);
+            WriteBasicType(out, binary, rows);
+            WriteBasicType(out, binary, cols);
+        }
+        if (stride_ == num_cols_ * 2)
+            out.write(reinterpret_cast<const char*>(data_), 2 * sizeof(Real)
+                * static_cast<size_t>(num_rows_) * static_cast<size_t>(num_cols_));
+        else
+            for (MatrixIndexT i = 0; i < num_rows_; i++)
+                out.write(reinterpret_cast<const char*> (RowData(i)), 2 * sizeof(Real) * num_cols_);
+    
+        if (!out.good()) {
+            KALDI_ERR << "Failed to write complex matrix to stream";
+        }
+    } else {
+        if (num_cols_ == 0) {
+            out << " [ ]\n";
+        } else {
+            out << " [";
+            for (MatrixIndexT i = 0; i < num_rows_; i++) {
+                out << "\n  ";
+                for (MatrixIndexT j = 0; j < num_cols_; j++)
+                out << (*this)(i, j, kReal) << ((*this)(i, j, kImag) >= 0 ? "+": "") 
+                    << (*this)(i, j, kImag) << "i ";
+            }
+            out << "]\n";
+        }
+    }
+}
+
+template<typename Real>
+void CMatrixBase<Real>::Read(std::istream &in, bool binary) {
+    if (!binary) {
+        KALDI_ERR << "Could not read complex matrix in text model";
+    }
+    CMatrix<Real> cache;
+    cache.Read(in, binary);
+    if (cache.NumRows() != NumRows() || cache.NumCols() != NumCols()) {
+        KALDI_ERR << "CMatrixBase<Real>::Read, size mismatch "
+                  << NumRows() << " x " << NumCols() << " versus "
+                  << cache.NumRows() << " x " << cache.NumCols();
+    }
+    CopyFromMat(cache);
+}
+
+
 // Implement for CMatrix
+
+template<typename Real>
+void CMatrix<Real>::Read(std::istream &in, bool binary) {
+    if (!binary) {
+        KALDI_ERR << "Could not read complex matrix in text model";
+    }
+    const char *expect_token = (sizeof(Real) == 4 ? "FCM": "DCM");
+    std::string token;
+    ReadToken(in, binary, &token);
+    if (token != expect_token) {
+        if(token.length() > 20) 
+            token = token.substr(0, 17) + "...";
+        KALDI_ERR << "Expect token \'" << expect_token << "\', but got " << token;
+    }
+    int32 rows, cols;
+    ReadBasicType(in, binary, &rows);
+    ReadBasicType(in, binary, &cols);
+    if ((MatrixIndexT)rows != this->num_rows_ || 
+        (MatrixIndexT)cols != this->num_cols_)
+        this->Resize(rows, cols);
+
+    if (this->stride_ == this->num_cols_ && rows * cols != 0) {
+        in.read(reinterpret_cast<char*>(this->Data()), 2 * sizeof(Real)* rows * cols);
+        if (in.fail())
+            KALDI_ERR << "Failed to read complex matrix from stream";
+    } else {
+        for (MatrixIndexT i = 0; i < (MatrixIndexT)rows; i++) {
+            in.read(reinterpret_cast<char*>(this->RowData(i)), 2 * sizeof(Real) * cols);
+            if (in.fail())
+                KALDI_ERR << "Failed to read complex matrix from stream";
+        }
+    }
+    if (in.eof()) 
+        return;
+    if (in.fail()) 
+        KALDI_ERR << "Failed to read complex matrix from stream";
+    return;
+}
+
 
 template<typename Real>
 CMatrix<Real>::CMatrix(const CMatrixBase<Real> &M, 

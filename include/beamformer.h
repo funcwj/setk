@@ -20,9 +20,9 @@ void CastIntoRealfft(const CMatrixBase<BaseFloat> &cstft,
 // Shape multiple complex stft from shape num_frames x [num_bins * num_channels]
 // into [num_bins * num_frames] x num_channels
 // for convenience of psd estimate and beamforming
-void ReshapeMultipleStft(const int32 num_bins, const int32 num_channels, 
-                         const CMatrixBase<BaseFloat> &src_stft,
-                         CMatrix<BaseFloat> *dst_stft);
+void TrimStft(const int32 num_bins, const int32 num_channels, 
+              const CMatrixBase<BaseFloat> &src_stft,
+              CMatrix<BaseFloat> *dst_stft);
 
 //
 // src_stft:    (num_bins x num_frames, num_channels)
@@ -62,7 +62,7 @@ void ComputeGevdBeamWeights(const CMatrixBase<BaseFloat> &target_psd,
 
 
 // src_stft:    (num_bins x num_frames, num_channels)
-// weights:     (num_bins, num_channels), need to apply conjugate before calling this function
+// weights:     (num_bins, num_channels)
 // enh_stft:    (num_frames, num_bins)
 // note:
 // To avoid Transpose, using AddMatMat instead of:

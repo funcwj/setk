@@ -85,7 +85,7 @@ void CVectorBase<Real>::MulElements(const CVectorBase<Real> &v,
                                     ConjugateType conj, bool mul_abs) {
     KALDI_ASSERT(dim_ == v.Dim());
     for (int32 i = 0; i < dim_; i++) {
-        if (!abs)
+        if (!mul_abs)
             ComplexMul(v(i, kReal), (conj == kNoConj ? v(i, kImag): -v(i, kImag)), 
                 data_ + i * 2, data_ + i * 2 + 1);
         else {
@@ -101,7 +101,7 @@ void CVectorBase<Real>::DivElements(const CVectorBase<Real> &v,
                                     ConjugateType conj, bool div_abs) {
     KALDI_ASSERT(dim_ == v.Dim());
     for (int32 i = 0; i < dim_; i++) {
-        if (!abs)
+        if (!div_abs)
             ComplexDiv(v(i, kReal), (conj == kNoConj ? v(i, kImag): -v(i, kImag)), 
                 data_ + i * 2, data_ + i * 2 + 1);
         else {

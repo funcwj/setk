@@ -357,6 +357,19 @@ void test_copyfromfft() {
     }
 }
 
+#include "util/common-utils.h"
+
+void test_cmatrix_io() {
+    CMatrix<BaseFloat> cm1(10, 10), cm2;
+    cm1.SetRandn();
+    std::cout << cm1;
+    std::cout << cm1.Info();
+    WriteKaldiObject(cm1, "cm.mat", true);
+    ReadKaldiObject("cm.mat", &cm2);
+    std::cout << cm2;
+    std::cout << cm2.Info();
+}
+
 int main() {
     // test_cvector_init();
     // test_cvector_addvec();
@@ -372,10 +385,11 @@ int main() {
     // test_cvector_addmatvec();
     // test_cmatrix_mulelements();
     // test_cmatrix_invert();
-    test_cmatrix_hed();
+    // test_cmatrix_hed();
     // test_cmatrix_hermite();
     // test_copyfromfft();
     // test_cmatrix_scale();
     // test_cmatrix_hposdef();
+    test_cmatrix_io();
     return 0;
 }
