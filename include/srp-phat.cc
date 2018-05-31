@@ -13,9 +13,12 @@ void SrpPhatComputor::ComputeGccPhat(const CMatrixBase<BaseFloat> &L,
                                      CMatrixBase<BaseFloat> *gcc_phat) {
     KALDI_ASSERT(dist > 0);
     BaseFloat max_tdoa = dist / opts_.sound_speed;
-    BaseFloat inc_tdoa = max_tdoa * 2 / (opts_.doa_resolution - 1);
-    for (int32 i = 0; i < opts_.doa_resolution; i++)
-        delay_axis_(i) = (max_tdoa - inc_tdoa * i) * 2 * M_PI;
+    BaseFloat inc_tdoa = max_tdoa * 2 / (opts_.samp_rate - 1);
+    for (int32 i = 0; i < opts_.samp_rate; i++)
+        if (opts_.samp_tdoa)
+            delay_axis_(i) = (max_tdoa - inc_tdoa * i) * 2 * M_PI;
+        else
+            delay_axis_(i) = std::cos(i * M_PI / opts_.samp_rate) * max_tdoa * 2 * M_PI;
 
     idtft_coef_.SetZero();
     idtft_coef_.AddVecVec(1, frequency_axis_, delay_axis_);

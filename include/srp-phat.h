@@ -20,18 +20,22 @@ namespace kaldi {
 struct SrpPhatOptions {
 
     BaseFloat sound_speed;
-    int32 doa_resolution, smooth_context;
+    int32 samp_rate, smooth_context;
+    // For linear microphone arrays
     std::string topo_descriptor;
     std::vector<BaseFloat> array_topo;
+    bool samp_doa = false, samp_tdoa = true;
 
     SrpPhatOptions(): sound_speed(340.4), 
-        doa_resolution(180), smooth_context(0),
+        samp_rate(180), smooth_context(0),
         topo_descriptor("") {} 
 
     void Register(OptionsItf *opts) {
         opts->Register("sound-speed", &sound_speed, "Speed of sound(or other kinds of wave)");
-        opts->Register("doa-resolution", &doa_resolution, 
-                    "The sample rate of DoA, for linear microarray, we sampled from 0 to \\pi.");
+        opts->Register("samp-rate", &samp_rate, 
+                    "Sample rate of DoA/TDoA, depending on options --samp-doa and --samp-tdoa");
+        opts->Register("samp-doa", &samp_doa, "Sample doa instead of tdoa on y-axis");
+        opts->Register("samp-tdoa", &samp_tdoa, "Sample tdoa instead of doa on y-axis, by default using it");
         opts->Register("smooth-context", &smooth_context, "Context of frames used for spectra smoothing");
         opts->Register("topo-descriptor", &topo_descriptor, 
                     "Description of microarray's topology, now only support linear array."
@@ -39,10 +43,12 @@ struct SrpPhatOptions {
     }
 
     void ComputeDerived() {
+        if (samp_tdoa && samp_doa) 
+            KALDI_ERR << "Options --samp-tdoa conflicts with --samp-doa";
         KALDI_ASSERT(topo_descriptor != "");
         KALDI_ASSERT(SplitStringToFloats(topo_descriptor, ",", false, &array_topo));
         KALDI_ASSERT(array_topo.size() >= 2);
-        KALDI_ASSERT(doa_resolution);
+        KALDI_ASSERT(samp_rate);
         std::ostringstream oss;
         std::copy(array_topo.begin(), array_topo.end(), std::ostream_iterator<BaseFloat>(oss, " "));
         KALDI_VLOG(1) << "Parse topo_descriptor(" << topo_descriptor << ") to " << oss.str();
@@ -57,9 +63,9 @@ public:
         samp_frequency_(freq), opts_(opts) {
             opts_.ComputeDerived();
             frequency_axis_.Resize(num_bins);
-            delay_axis_.Resize(opts_.doa_resolution);
-            idtft_coef_.Resize(num_bins, opts_.doa_resolution);
-            exp_idtft_coef_j_.Resize(num_bins, opts_.doa_resolution);
+            delay_axis_.Resize(opts_.samp_rate);
+            idtft_coef_.Resize(num_bins, opts_.samp_rate);
+            exp_idtft_coef_j_.Resize(num_bins, opts_.samp_rate);
             for (int32 f = 0; f < num_bins; f++) 
                 frequency_axis_(f) = f * samp_frequency_ / ((num_bins - 1) * 2);
         }
