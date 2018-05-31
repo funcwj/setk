@@ -32,7 +32,7 @@ struct SrpPhatOptions {
         opts->Register("sound-speed", &sound_speed, "Speed of sound(or other kinds of wave)");
         opts->Register("doa-resolution", &doa_resolution, 
                     "The sample rate of DoA, for linear microarray, we sampled from 0 to \\pi.");
-        opts->Register("smooth-context", &smooth_context, "Context of frames used for spectrum smoothing");
+        opts->Register("smooth-context", &smooth_context, "Context of frames used for spectra smoothing");
         opts->Register("topo-descriptor", &topo_descriptor, 
                     "Description of microarray's topology, now only support linear array."
                     " egs: --topo-descriptor=0,0.3,0.6,0.9 described a ULA with element spacing equals 0.3");
@@ -65,7 +65,7 @@ public:
         }
 
     void Compute(const CMatrixBase<BaseFloat> &stft, 
-                 Matrix<BaseFloat> *spectrum);
+                 Matrix<BaseFloat> *spectra);
 
     int32 NumChannels() { return opts_.array_topo.size(); }
 
@@ -86,9 +86,9 @@ private:
     void ComputeGccPhat(const CMatrixBase<BaseFloat> &L,
                         const CMatrixBase<BaseFloat> &R,
                         BaseFloat dist,
-                        CMatrixBase<BaseFloat> *spectrum);
+                        CMatrixBase<BaseFloat> *spectra);
 
-    void Smooth(CMatrix<BaseFloat> *spectrum);
+    void Smooth(CMatrix<BaseFloat> *spectra);
 };
 
 
