@@ -1,6 +1,6 @@
-// apply-fix-beamformer.cc
+// apply-fixed-beamformer.cc
 // wujian@2018.5.29
-// waiting for test.
+// Test pass.
 
 #include "include/stft.h"
 #include "include/beamformer.h"
@@ -15,7 +15,7 @@ BaseFloat DoBeamforming(ShortTimeFTComputer &stft_computer,
     Matrix<BaseFloat> rstft;
     stft_computer.Compute(data, &rstft, NULL, NULL);
 
-    KALDI_ASSERT(rstft.NumCols() == num_bins);
+    KALDI_ASSERT(rstft.NumCols() == (num_bins - 1) * 2);
     int32 num_frames = rstft.NumRows() / num_chs;
 
     CMatrix<BaseFloat> stft_reshape(num_frames, num_bins * num_chs), 
@@ -37,12 +37,13 @@ BaseFloat DoBeamforming(ShortTimeFTComputer &stft_computer,
 int main(int argc, char *argv[]) {
     try {
         const char *usage = "Apply fixed beamformer on input wave files. To use this command, \n"
-                "you need to pre-design beam weights according to array's topology and other prior infomation, such as DoA\n"
+                "you need to pre-design/compute beam weights according to array's topology and other prior infomation, such as DoA\n"
+                "It's designed for DS(delay and sum) or superdirective beamformer\n"
                 "\n"
                 "Usage: apply-fixed-beamformer [options...] <wav-rspecifier> <complex-mat-rxfilename> <wav-wspecifier>\n"
                 "or   : apply-fixed-beamformer [options...] <wav-rxfilename> <complex-mat-rxfilename> <wav-wxfilename>\n"
                 "e.g:\n"
-                "   apply-fixed-beamformer scp:chs.scp weight.mat scp:enh.scp\n";
+                "   apply-fixed-beamformer 4ch.wav weight.cmat enhan.wav\n";
 
         ParseOptions po(usage);
         ShortTimeFTOptions stft_options;
@@ -60,6 +61,10 @@ int main(int argc, char *argv[]) {
             po.PrintUsage();
             exit(1);
         }
+
+        if (track_volumn && normalize_output)
+            KALDI_ERR << "Options --track-volumn conflict with --normalize-output, " 
+                      << "setting one of them true, or both false";
 
         std::string chs_in = po.GetArg(1), enhan_out = po.GetArg(3);
 

@@ -3,4 +3,5 @@ lib/
 build/
 egs/
 .vscode/
+scripts/__pycache__/
 path.sh
