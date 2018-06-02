@@ -18,16 +18,14 @@ BaseFloat DoBeamforming(ShortTimeFTComputer &stft_computer,
     KALDI_ASSERT(rstft.NumCols() == (num_bins - 1) * 2);
     int32 num_frames = rstft.NumRows() / num_chs;
 
-    CMatrix<BaseFloat> stft_reshape(num_frames, num_bins * num_chs), 
-                        src_stft, enh_cstft;
-    BaseFloat range = 0;
-    for (int32 c = 0; c < num_chs; c++) {
-        range += data.RowRange(c, 1).LargestAbsElem();
-        stft_reshape.ColRange(c * num_bins, num_bins).CopyFromRealfft(
-                        rstft.RowRange(c * num_frames, num_frames));
-    }
+    CMatrix<BaseFloat> cstft(num_frames * num_chs, num_bins), src_stft, enh_cstft;
+    cstft.CopyFromRealfft(rstft);
 
-    TrimStft(num_bins, num_chs, stft_reshape, &src_stft); 
+    BaseFloat range = 0;
+    for (int32 c = 0; c < num_chs; c++)
+        range += data.RowRange(c, 1).LargestAbsElem();
+
+    TrimStft(num_bins, num_chs, cstft, &src_stft); 
     Beamform(src_stft, weight, &enh_cstft);
     CastIntoRealfft(enh_cstft, enh_rstft);
     return range;

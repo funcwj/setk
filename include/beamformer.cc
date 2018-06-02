@@ -23,22 +23,37 @@ void CastIntoRealfft(const CMatrixBase<BaseFloat> &cstft,
     }
 }
 
-// src_stft:    (num_frames, num_bins x num_channels)
+// src_stft:    (num_frames, num_bins x num_channels) or
+//              (num_frames x num_channels, num_bins)
 // dst_stft:    (num_bins x num_frames, num_channels)
 // Shape multiple complex stft from shape num_frames x [num_bins * num_channels]
-// into [num_bins * num_frames] x num_channels
+// or [num_frames x num_channels] x num_bins into [num_bins * num_frames] x num_channels
 // for convenience of psd estimate and beamforming
 void TrimStft(const int32 num_bins, const int32 num_channels, 
               const CMatrixBase<BaseFloat> &src_stft,
               CMatrix<BaseFloat> *dst_stft) {
-    KALDI_ASSERT(num_channels * num_bins == src_stft.NumCols());
-    int32 num_frames = src_stft.NumRows();
+    if (num_channels * num_bins != src_stft.NumCols() && num_bins != src_stft.NumCols())
+        KALDI_ERR << "Check dimention of short-time fourier transform";
+
+    int32 num_frames = (num_bins == src_stft.NumCols() ? 
+                        src_stft.NumRows() / num_channels: 
+                        src_stft.NumRows());
     dst_stft->Resize(num_bins * num_frames, num_channels);
-    
-    for (int32 c = 0; c < num_channels; c++) {
-        for (int32 f = 0; f < num_bins; f++) {
-            dst_stft->Range(f * num_frames, num_frames, c, 1)
-                .CopyFromMat(src_stft.ColRange(num_bins * c + f, 1));
+
+    if (num_channels * num_bins == src_stft.NumCols()) {
+        for (int32 c = 0; c < num_channels; c++) {
+            for (int32 f = 0; f < num_bins; f++) {
+                // D[f * T: f * T + T, c: c + 1] = S[:, F * c + f: F * c + f + 1]
+                dst_stft->Range(f * num_frames, num_frames, c, 1)
+                    .CopyFromMat(src_stft.ColRange(num_bins * c + f, 1));
+            }
+        }
+    } else {
+        for (int32 c = 0; c < num_channels; c++) {
+            for (int32 f = 0; f < num_bins; f++) {
+                dst_stft->Range(f * num_frames, num_frames, c, 1)
+                    .CopyFromMat(src_stft.Range(num_frames * c, num_frames, f, 1));
+            }
         }
     }
 }

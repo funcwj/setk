@@ -15,10 +15,11 @@ namespace kaldi {
 void CastIntoRealfft(const CMatrixBase<BaseFloat> &cstft,
                      Matrix<BaseFloat> *rstft);
 
-// src_stft:    (num_frames, num_bins x num_channels)
+// src_stft:    (num_frames, num_bins x num_channels) or
+//              (num_frames x num_channels, num_bins)
 // dst_stft:    (num_bins x num_frames, num_channels)
 // Shape multiple complex stft from shape num_frames x [num_bins * num_channels]
-// into [num_bins * num_frames] x num_channels
+// or [num_frames x num_channels] x num_bins into [num_bins * num_frames] x num_channels
 // for convenience of psd estimate and beamforming
 void TrimStft(const int32 num_bins, const int32 num_channels, 
               const CMatrixBase<BaseFloat> &src_stft,
