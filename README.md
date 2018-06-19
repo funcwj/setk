@@ -16,7 +16,7 @@ Updating...
 * Compute angular spectrogram based on SRP-PHAT 
 
 ### Install
-Compile pass on Mac OSX, Ubuntu and RedHat. I haven't try them on Ubuntu yet.
+Compile pass on Mac OSX, Ubuntu and RedHat.
 
 Patch `matrix/matrix-common.h` in Kaldi
 ```c++
