@@ -216,12 +216,10 @@ std::string RirGenerator::Report() {
     oss << "-- Room Topology: (" << room_topo_.x << ", " << room_topo_.y << ", " 
         << room_topo_.z << ")" << std::endl;
     oss << "-- Angle: [ ";
-    std::copy(angle_.begin(), angle_.end(), 
-                std::ostream_iterator<float>(oss, " "));
+    std::copy(angle_.begin(), angle_.end(), std::ostream_iterator<float>(oss, " "));
     oss << "]" << std::endl;
     oss << "-- Beta Vector: [ ";
-    std::copy(beta_.begin(), beta_.end(), 
-                std::ostream_iterator<float>(oss, " "));
+    std::copy(beta_.begin(), beta_.end(), std::ostream_iterator<float>(oss, " "));
     oss << "]" << std::endl;
     oss << "-- Reciver Locations: ";
     for (int32 i = 0; i < receiver_location_.size(); i++) {
