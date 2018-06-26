@@ -20,12 +20,27 @@ typedef enum {
     kOmnidirectional
 } PolorPattern;
 
-// Plan to use this struct
-// struct Point3D {
-//     BaseFloat x, y, z;
-//     Point3D(): x(0), y(0), z(0) {}
-//     Point3D(BaseFloat x, BaseFloat y, BaseFloat z): x(x), y(y), z(z) {}
-// };
+struct Point3D {
+    BaseFloat x, y, z;
+    Point3D(): x(0), y(0), z(0) {}
+    Point3D(const Point3D &p): x(p.x), y(p.y), z(p.z) {}
+
+    Point3D(BaseFloat x, BaseFloat y, BaseFloat z): x(x), y(y), z(z) {}
+    BaseFloat L2Norm() const { return sqrt(x * x + y * y + z * z); }
+    BaseFloat V() { return x * y * z; }
+    BaseFloat S() { return 2 * (x * y + x * z + y * z); }
+    void Scale(BaseFloat s) {
+        x = x * s; y = y * s; z = z * s;
+    }
+    void Reset() { x = y = z = 0; }
+    void CopyFromVector(std::vector<BaseFloat> &v) {
+        KALDI_ASSERT(v.size() <= 3);
+        if (v.size() >= 1) x = v[0];
+        if (v.size() >= 2) y = v[1];
+        if (v.size() >= 3) z = v[2];
+    }
+
+};
 
 
 struct RirGeneratorOptions {
@@ -39,7 +54,7 @@ struct RirGeneratorOptions {
                     hp_filter(true), num_samples(-1), order(-1),
                     microphone_type("omnidirectional"), source_location(""),
                     receiver_location(""), room_topo(""), orientation(""), 
-                    beta("") {}
+                    beta("") { }
 
     void Register(OptionsItf *opts) {
         opts->Register("sound-velocity", &sound_velocity, "Sound velocity in m/s");
@@ -49,11 +64,11 @@ struct RirGeneratorOptions {
         opts->Register("order", &order, "Reflection order, default is -1, i.e. maximum order");
         opts->Register("microphone-type", &microphone_type, "Type of micrphone arrays("
                         "\"omnidirectional\"|\"subcardioid\"|\"cardioid\"|\"hypercardioid\"|\"bidirectional\")");
-        opts->Register("receiver-location", &receiver_location, "3D-Coordinates of receivers in .m. "
-                        "Each coordinate is separated by a single semicolon, egs: --receiver-location=2,1.5,2;1,1.5,2");
-        opts->Register("source-location", &source_location, "3D Coordinates of receivers in .m. "
-                        "egs: --source-location=2,3.5,2");
-        opts->Register("room-topo", &room_topo, "Room dimensions in .m. egs: --room-dim=5,4,6");
+        opts->Register("receiver-location", &receiver_location, "3D-Coordinates of receivers(in meters). "
+                        "Each coordinate is separated by a single semicolon, egs: --receiver-location=\"2,1.5,2;1,1.5,2\"");
+        opts->Register("source-location", &source_location, "3D Coordinates of receivers(in meters). "
+                        "egs: --source-location=\"2,3.5,2\"");
+        opts->Register("room-topo", &room_topo, "Room dimensions(in meters) egs: --room-dim=\"5,4,6\"");
         opts->Register("angle", &orientation, "Direction in which the microphones are pointed, "
                         "specified using azimuth and elevation angles(in radians)");
         opts->Register("beta", &beta, "6D vector specifying the reflection coefficients or reverberation time(T60) in seconds.");
@@ -84,8 +99,9 @@ private:
 
     RirGeneratorOptions opts_;
     
-    std::vector<std::vector<BaseFloat> > receiver_location_;
-    std::vector<BaseFloat> source_location_, room_topo_, angle_, beta_;
+    std::vector<Point3D> receiver_location_;
+    Point3D source_location_, room_topo_;
+    std::vector<BaseFloat> angle_, beta_;
 
     std::map<std::string, PolorPattern> str_to_pattern_ = {
         {"omnidirectional", kOmnidirectional},
@@ -97,7 +113,7 @@ private:
 
     void ComputeDerived();
 
-    BaseFloat MicrophoneSim(BaseFloat x, BaseFloat y, BaseFloat z);
+    BaseFloat MicrophoneSim(const Point3D &p);
 };
 
 
@@ -105,11 +121,11 @@ double Sinc(double x) {
     return x == 0 ? 1.0 : std::sin(x) / x;
 }
 
-BaseFloat Sabine(std::vector<BaseFloat> &room_topo, std::vector<BaseFloat> &beta, BaseFloat c) {
-    BaseFloat V = room_topo[0] * room_topo[1] * room_topo[2];
-    BaseFloat alpha = ((1 - pow(beta[0], 2)) + (1 - pow(beta[1], 2))) * room_topo[1] * room_topo[2] +
-                ((1 - pow(beta[2], 2)) + (1 - pow(beta[3], 2))) * room_topo[0] * room_topo[2] +
-                ((1 - pow(beta[4], 2)) + (1 - pow(beta[5], 2))) * room_topo[0] * room_topo[1];
+BaseFloat Sabine(Point3D &room_topo, std::vector<BaseFloat> &beta, BaseFloat c) {
+    BaseFloat V = room_topo.x * room_topo.y * room_topo.z;
+    BaseFloat alpha = ((1 - pow(beta[0], 2)) + (1 - pow(beta[1], 2))) * room_topo.y * room_topo.z +
+                ((1 - pow(beta[2], 2)) + (1 - pow(beta[3], 2))) * room_topo.x * room_topo.z +
+                ((1 - pow(beta[4], 2)) + (1 - pow(beta[5], 2))) * room_topo.x * room_topo.y;
     BaseFloat revb_time = 24 * Log(10.0) * V / (c * alpha);
     return std::max(0.128f, revb_time);
 }
