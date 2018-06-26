@@ -28,7 +28,7 @@ void EstimateSpeech(ShortTimeFTComputer &stft_computer,
 }
 
 int main(int argc, char *argv[]) {
-    try{
+    try {
         const char *usage = 
             "Estimate speech from magnitude spectrum and reference(noisy) wave\n"
             "Usage:  wav-estimate [options...] <spectrum-rspecifier> <refer-wav-rspecifier> <target-wav-wspecifier>\n"

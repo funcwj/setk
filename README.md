@@ -13,7 +13,8 @@ Updating...
 * Complex matrix/vector class
 * MVDR/max-SNR beamformer(depend on T-F mask)
 * Fixed beamformer
-* Compute angular spectrogram based on SRP-PHAT 
+* Compute angular spectrogram based on SRP-PHAT
+* RIR generator(reference from (RIR-Generator)[https://github.com/ehabets/RIR-Generator])
 
 ### Install
 Compile pass on Mac OSX, Ubuntu and RedHat.
