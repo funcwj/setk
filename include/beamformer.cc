@@ -67,6 +67,7 @@ void TrimStft(const int32 num_bins, const int32 num_channels,
 // which is equal to:
 //      covar = \sum_t m(t) * x(t)^H * x(t)  (2)
 // I implement as (2)
+// TODO: implement (1) instead, which is more efficient
 void EstimatePsd(const CMatrixBase<BaseFloat> &src_stft, 
                  const MatrixBase<BaseFloat> &target_mask,
                  CMatrix<BaseFloat> *target_psd,

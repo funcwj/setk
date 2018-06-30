@@ -30,6 +30,7 @@ int main(int argc, char const *argv[]) {
         generator_opts.Register(&po);
 
         po.Read(argc, argv);
+        
         if (po.NumArgs() != 1) {
             po.PrintUsage();
             exit(1);
@@ -51,8 +52,8 @@ int main(int argc, char const *argv[]) {
 
         std::string target_rir = po.GetArg(1);
         Output ko(target_rir, true, false);
-        WaveData target_data(generator.Frequency(), rir);
-        target_data.Write(ko.Stream());
+        WaveData rir_simu(generator.Frequency(), rir);
+        rir_simu.Write(ko.Stream());
 
     
     } catch(const std::exception& e) {

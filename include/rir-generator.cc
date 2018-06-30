@@ -101,7 +101,6 @@ void RirGenerator::GenerateRir(Matrix<BaseFloat> *rir) {
 
     BaseFloat dist, fdist, gain;
     int32 Tw = 2 * static_cast<int32>(0.004 * frequency_ + 0.5);
-    Vector<BaseFloat> Lpi(Tw);
     BaseFloat W = 2 * M_PI * 100 / frequency_;
     BaseFloat R1 = exp(-W), B1 = 2 * R1 * cos(W), B2 = -R1 * R1, A1 = -1 - R1;
 
@@ -139,16 +138,14 @@ void RirGenerator::GenerateRir(Matrix<BaseFloat> *rir) {
                                     fdist = floor(dist);
 
                                     if (fdist < num_samples_) {
-                                        gain = MicrophoneSim(Rp_plus_Rm) * Refl.V() / (4 * M_PI * dist * cts);
-                                        
-                                        for (int32 n = 0 ; n < Tw ; n++)
-                                            Lpi(n) =  0.5 * (1 - cos(2 * M_PI * ((n + 1 - (dist - fdist)) / Tw))) * 
-                                                Sinc(M_PI * (n + 1 - (dist - fdist) - (Tw / 2)));
-                                        
                                         int32 pos = static_cast<int32>(fdist - (Tw / 2) + 1);
-                                        for (int32 n = 0 ; n < Tw; n++)
+                                        gain = MicrophoneSim(Rp_plus_Rm) * Refl.V() / (4 * M_PI * dist * cts);
+
+                                        for (int32 n = 0 ; n < Tw ; n++) {
                                             if (pos + n >= 0 && pos + n < num_samples_)
-                                                (*rir)(m, pos + n) += gain * Lpi(n);
+                                                (*rir)(m, pos + n) += gain * (0.5 * (1 - cos(2 * M_PI * ((n + 1 - (dist - fdist)) / Tw))) * 
+                                                Sinc(M_PI * (n + 1 - (dist - fdist) - (Tw / 2))));
+                                        }
                                     }
                                 }
 

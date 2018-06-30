@@ -7,8 +7,7 @@ MESSAGE(STATUS "detected OS: ${CMAKE_SYSTEM}")
 
 set(KALDI_ROOT $ENV{KALDI_ROOT})
 if(NOT DEFINED KALDI_ROOT)
-    message(FATAL_ERROR "Can not find definition of KALDI_ROOT, 
-                         export KALDI_ROOT=/path/to/kaldi first")
+    message(FATAL_ERROR "Can not find definition of KALDI_ROOT, export KALDI_ROOT=/path/to/kaldi first")
 endif()
 
 message(STATUS "defined KALDI_ROOT=" $ENV{KALDI_ROOT})
@@ -29,8 +28,7 @@ elseif(UNIX)
     add_definitions(-DHAVE_OPENBLAS)
     set(OPENBLAS_ROOT $ENV{OPENBLAS_ROOT})
     if(NOT DEFINED OPENBLAS_ROOT)
-        message(FATAL_ERROR "Can not find definition of OPENBLAS_ROOT, 
-                             export OPENBLAS_ROOT=/path/to/openfst first")
+        message(FATAL_ERROR "Can not find definition of OPENBLAS_ROOT, export OPENBLAS_ROOT=/path/to/openfst first")
     endif()
     include_directories(${OPENBLAS_ROOT}/include)
     link_directories(${OPENBLAS_ROOT}/lib)
