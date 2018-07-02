@@ -54,7 +54,7 @@ public:
     ~ShortTimeFTComputer() { delete srfft_; }
 
     // Run STFT to transform int16 samples into stft results(complex)
-    // format of spectrum: [r0, r(n/2-1), r1, i1, ... r(n/2-2), i(n/2-2)]
+    // format of spectra: [r0, r(n/2-1), r1, i1, ... r(n/2-2), i(n/2-2)]
     // note that i0 == i(n/2-1) == 0, egs:
     // for 
     // array([ 0.99482657,  0.79233322,  0.22403132,  0.97833733,  0.18446946,
@@ -71,19 +71,19 @@ public:
     void InverseShortTimeFT(MatrixBase<BaseFloat> &stft, Matrix<BaseFloat> *wave, 
                             BaseFloat range = 0);
 
-    // compute spectrum from stft results, abs(i^2 + r^2) or i^2 + r^2...)
-    void ComputeSpectrum(MatrixBase<BaseFloat> &stft, Matrix<BaseFloat> *spectrum);
+    // compute spectrogram from stft results, abs(i^2 + r^2) or i^2 + r^2...)
+    void ComputeSpectrogram(MatrixBase<BaseFloat> &stft, Matrix<BaseFloat> *spectra);
 
-    // compute arg(phase angle) from stft results
-    void ComputeArg(MatrixBase<BaseFloat> &stft, Matrix<BaseFloat> *arg);
+    // compute phase angle from stft results
+    void ComputePhaseAngle(MatrixBase<BaseFloat> &stft, Matrix<BaseFloat> *angle);
 
-    // restore stft(complex) results using spectrum(magnitude) & arg(phase angle) 
-    void Polar(MatrixBase<BaseFloat> &spectrum, MatrixBase<BaseFloat> &arg, 
-                            Matrix<BaseFloat> *stft);
+    // restore stft(complex) results using spectrogram(magnitude) & angle(phase angle) 
+    void Polar(MatrixBase<BaseFloat> &spectra, MatrixBase<BaseFloat> &angle, 
+               Matrix<BaseFloat> *stft);
 
     // compute stft stats from raw waveform, calls above internal
     void Compute(const MatrixBase<BaseFloat> &wave, Matrix<BaseFloat> *stft, 
-                 Matrix<BaseFloat> *spectrum, Matrix<BaseFloat> *arg); 
+                 Matrix<BaseFloat> *spectra, Matrix<BaseFloat> *angle); 
 
 
 private:
@@ -102,7 +102,7 @@ private:
 
 
     int32 NumFrames(int32 num_samples) {
-        return static_cast<int32>((num_samples - opts_.frame_length) / opts_.frame_shift) + 1;
+        return static_cast<int32>(ceil((num_samples - opts_.frame_length) / opts_.frame_shift)) + 1;
     }
 
     int32 NumSamples(int32 num_frames) {

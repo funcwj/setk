@@ -34,69 +34,69 @@ void ShortTimeFTComputer::ShortTimeFT(const MatrixBase<BaseFloat> &wave, Matrix<
         }
 
         for (int32 i = 0; i < num_frames; i++) {
-            SubVector<BaseFloat> specs(*stft, c * num_frames + i);
+            SubVector<BaseFloat> spectra(*stft, c * num_frames + i);
             ibeg = i * frame_shift_;
             iend = ibeg + frame_length_ <= num_samples ? ibeg + frame_length_: num_samples;  
-            specs.Range(0, iend - ibeg).CopyFromVec(samples.Range(ibeg, iend - ibeg)); 
-            specs.Range(0, frame_length_).MulElements(window_);
-            srfft_->Compute(specs.Data(), true);
+            spectra.Range(0, iend - ibeg).CopyFromVec(samples.Range(ibeg, iend - ibeg)); 
+            spectra.Range(0, frame_length_).MulElements(window_);
+            srfft_->Compute(spectra.Data(), true);
         } 
     }
 }
     
-void ShortTimeFTComputer::ComputeSpectrum(MatrixBase<BaseFloat> &stft, 
-                                          Matrix<BaseFloat> *spectrum) {
+void ShortTimeFTComputer::ComputeSpectrogram(MatrixBase<BaseFloat> &stft, 
+                                             Matrix<BaseFloat> *spectra) {
     int32 window_size = stft.NumCols(), num_frames = stft.NumRows();
     // index range(0, num_bins - 1)
     int32 num_bins = (window_size >> 1) + 1;
 
-    spectrum->Resize(num_frames, num_bins);
+    spectra->Resize(num_frames, num_bins);
     for (int32 t = 0; t < num_frames; t++) {
-        (*spectrum)(t, 0) = stft(t, 0) * stft(t, 0);
-        (*spectrum)(t, num_bins - 1) = stft(t, 1) * stft(t, 1);
+        (*spectra)(t, 0) = stft(t, 0) * stft(t, 0);
+        (*spectra)(t, num_bins - 1) = stft(t, 1) * stft(t, 1);
         for (int32 f = 1; f < num_bins - 1; f++) {
             BaseFloat r = stft(t, f * 2), i = stft(t, f * 2 + 1);
-            (*spectrum)(t, f) = r * r + i * i;
+            (*spectra)(t, f) = r * r + i * i;
         }
     }
     if (!opts_.apply_pow)
-        spectrum->ApplyPow(0.5);
+        spectra->ApplyPow(0.5);
     if (opts_.apply_log) {
         // to avoid nan
-        spectrum->ApplyFloor(std::numeric_limits<BaseFloat>::epsilon());
-        spectrum->ApplyLog();
+        spectra->ApplyFloor(std::numeric_limits<BaseFloat>::epsilon());
+        spectra->ApplyLog();
     }   
 }
 
 
-void ShortTimeFTComputer::ComputeArg(MatrixBase<BaseFloat> &stft, Matrix<BaseFloat> *arg) {
+void ShortTimeFTComputer::ComputePhaseAngle(MatrixBase<BaseFloat> &stft, Matrix<BaseFloat> *angle) {
     int32 window_size = stft.NumCols(), num_frames = stft.NumRows();
     // index range(0, num_bins - 1)
     int32 num_bins = (window_size >> 1) + 1;
-    arg->Resize(num_frames, num_bins);
-    // processing arg(i, j)
+    angle->Resize(num_frames, num_bins);
+    // processing angle(i, j)
     for (int32 t = 0; t < num_frames; t++) {
-        (*arg)(t, 0) = atan2(0, stft(t, 0));
-        (*arg)(t, num_bins - 1) = atan2(0, stft(t, 1));
+        (*angle)(t, 0) = atan2(0, stft(t, 0));
+        (*angle)(t, num_bins - 1) = atan2(0, stft(t, 1));
         for (int32 f = 1; f < num_bins - 1; f++) {
             BaseFloat r = stft(t, f * 2), i = stft(t, f * 2 + 1);
-            (*arg)(t, f) = atan2(i, r);
+            (*angle)(t, f) = atan2(i, r);
         }
     }
 }
 
 void ShortTimeFTComputer::Compute(const MatrixBase<BaseFloat> &wave, Matrix<BaseFloat> *stft, 
-                                  Matrix<BaseFloat> *spectrum, Matrix<BaseFloat> *arg) {
+                                  Matrix<BaseFloat> *spectra, Matrix<BaseFloat> *angle) {
     KALDI_ASSERT(window_.Dim() == frame_length_);
     
     Matrix<BaseFloat> stft_cache;
     ShortTimeFT(wave, &stft_cache);
     
-    if (spectrum) {
-        ComputeSpectrum(stft_cache, spectrum); 
+    if (spectra) {
+        ComputeSpectrogram(stft_cache, spectra); 
     }
-    if (arg) {
-        ComputeArg(stft_cache, arg);
+    if (angle) {
+        ComputePhaseAngle(stft_cache, angle);
     }
     // copy back to stft
     if (stft) {
@@ -104,25 +104,26 @@ void ShortTimeFTComputer::Compute(const MatrixBase<BaseFloat> &wave, Matrix<Base
     }
 } 
 
-void ShortTimeFTComputer::Polar(MatrixBase<BaseFloat> &spectrum, MatrixBase<BaseFloat> &arg, 
-                                             Matrix<BaseFloat> *stft) {
-    KALDI_ASSERT(spectrum.NumCols() == arg.NumCols() && spectrum.NumRows() == arg.NumRows());
-    int32 num_frames = spectrum.NumRows(), num_bins = spectrum.NumCols();
+void ShortTimeFTComputer::Polar(MatrixBase<BaseFloat> &spectra, MatrixBase<BaseFloat> &angle, 
+                                Matrix<BaseFloat> *stft) {
+    KALDI_ASSERT(spectra.NumCols() == angle.NumCols() && spectra.NumRows() == angle.NumRows());
+    int32 num_frames = spectra.NumRows(), num_bins = spectra.NumCols();
     int32 window_size = (num_bins - 1) * 2;
     stft->Resize(num_frames, window_size);
     
     if (opts_.apply_log)
-        spectrum.ApplyExp();
+        spectra.ApplyExp();
     if (opts_.apply_pow)
-        spectrum.ApplyPow(0.5);
+        spectra.ApplyPow(0.5);
 
+    BaseFloat theta = 0;
     for (int32 t = 0; t < num_frames; t++) {
-        (*stft)(t, 0) = spectrum(t, 0);
-        (*stft)(t, 1) = -spectrum(t, num_bins - 1);
+        (*stft)(t, 0) = spectra(t, 0);
+        (*stft)(t, 1) = -spectra(t, num_bins - 1);
         for (int32 f = 1; f < num_bins - 1; f++) {
-           BaseFloat theta = arg(t, f);
-           (*stft)(t, f * 2) = cos(theta) * spectrum(t, f);
-           (*stft)(t, f * 2 + 1) = sin(theta) * spectrum(t, f);
+            theta = angle(t, f);
+            (*stft)(t, f * 2) = cos(theta) * spectra(t, f);
+            (*stft)(t, f * 2 + 1) = sin(theta) * spectra(t, f);
         }
     }
 }
@@ -130,6 +131,7 @@ void ShortTimeFTComputer::Polar(MatrixBase<BaseFloat> &spectrum, MatrixBase<Base
 void ShortTimeFTComputer::InverseShortTimeFT(MatrixBase<BaseFloat> &stft, Matrix<BaseFloat> *wave, 
                                              BaseFloat range) {
     int32 num_frames = stft.NumRows();
+    // should be longer than original
     int32 num_samples = NumSamples(num_frames); 
     wave->Resize(1, num_samples);
     
@@ -137,17 +139,21 @@ void ShortTimeFTComputer::InverseShortTimeFT(MatrixBase<BaseFloat> &stft, Matrix
     Vector<BaseFloat> seg(frame_length_);
 
     for (int32 i = 0; i < num_frames; i++) {
-        SubVector<BaseFloat> specs(stft, i);
+        SubVector<BaseFloat> spectra(stft, i);
         // iRealFFT
-        srfft_->Compute(specs.Data(), false);
-        specs.Scale(1.0 / frame_length_);
+        srfft_->Compute(spectra.Data(), false);
+        spectra.Scale(1.0 / frame_length_);
 
-        seg.CopyFromVec(specs.Range(0, frame_length_));
+        seg.CopyFromVec(spectra.Range(0, frame_length_));
+        // NOTE: synthetic window should be orthogonalized with analysis window
+        //       but I haven't implement orthogonalization algorithm, I use 
+        //       'range' to control synthetic energy
         seg.MulElements(window_);
         samples.Range(i * frame_shift_, frame_length_).AddVec(1, seg);
     }
 
     BaseFloat samp_norm = samples.Norm(float_inf);
+    // by default, normalize to int16 to avoid cutoff when writing wave to disk
     if (range == 0)
         range = int16_max;
     // range < 0, do not normalize it.
