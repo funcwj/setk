@@ -7,9 +7,9 @@ Updating...
 ### Finished
 
 * Compute kinds of masks(ibm, irm etc)
-* Compute (phase angle/power&magnitude spectrum/complex STFT results) of input wave
+* Compute (phase angle/power&magnitude spectrogram/complex STFT results) of input wave
 * Seperate target component from input wave according to input masks
-* Estimate wave from enhanced spectrum and reference wave
+* Estimate wave from enhanced spectrogram and reference wave
 * Complex matrix/vector class
 * MVDR/max-SNR beamformer(depend on T-F mask)
 * Fixed beamformer

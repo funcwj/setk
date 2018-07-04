@@ -14,16 +14,16 @@ void ComputeSTFTStats(ShortTimeFTComputer &stft_computer,
                       Matrix<BaseFloat> *feature) {
     if (output == "stft")
         stft_computer.Compute(wave_data, feature, NULL, NULL);
-    if (output == "spectrum")
+    if (output == "spectra")
         stft_computer.Compute(wave_data, NULL, feature, NULL);
-    if (output == "arg")
+    if (output == "angle")
         stft_computer.Compute(wave_data, NULL, NULL, feature);
 }
 
 int main(int argc, char *argv[]) {
     try{
         const char *usage = 
-            "Compute short-time fourier transform statictis(arg, spectrum, stft) of waveform"
+            "Compute short-time fourier transform statictis(angle, spectra, stft) of waveform"
             "(using for speech enhancement)\n"
             "Usage:  compute-stft-stats [options...] <wav-rspecifier> <feats-wspecifier>\n"
             "   or:  compute-stft-stats [options...] <wav-rxfilename> <feats-wxfilename>\n";
@@ -31,10 +31,11 @@ int main(int argc, char *argv[]) {
         ParseOptions po(usage);
         ShortTimeFTOptions stft_options;
 
-        std::string output = "spectrum";
+        std::string output = "spectra";
         bool wx_binary = false;
 
-        po.Register("output", &output, "Type(\"stft\"|\"arg\"|\"spectrum\") of stft for output");
+        po.Register("output", &output, 
+                    "Type(\"stft\"|\"angle\"|\"spectra\") of output derived from short-time fourier transform.");
         po.Register("binary", &wx_binary, "Write in binary mode (only relevant if output is a wxfilename)");
 
         stft_options.Register(&po);
@@ -46,7 +47,7 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
 
-        if (output != "spectrum" && output != "arg" && output != "stft")
+        if (output != "spectra" && output != "angle" && output != "stft")
             KALDI_ERR << "Unknown arguments for --output: " << output;
 
         std::string wave_in = po.GetArg(1), stft_out = po.GetArg(2);

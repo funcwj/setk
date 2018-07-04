@@ -100,9 +100,9 @@ private:
     BaseFloat int16_max = static_cast<BaseFloat>(std::numeric_limits<int16>::max());
     BaseFloat float_inf = static_cast<BaseFloat>(std::numeric_limits<BaseFloat>::infinity());
 
-
+    // keep same as Kaldi's
     int32 NumFrames(int32 num_samples) {
-        return static_cast<int32>(ceil((num_samples - opts_.frame_length) / opts_.frame_shift)) + 1;
+        return static_cast<int32>((num_samples - opts_.frame_length) / opts_.frame_shift) + 1;
     }
 
     int32 NumSamples(int32 num_frames) {

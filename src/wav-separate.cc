@@ -7,19 +7,19 @@
 
 using namespace kaldi;
 
-void SeperateSpeech(ShortTimeFTComputer &stft_computer,
+void SeparateSpeech(ShortTimeFTComputer &stft_computer,
                     const MatrixBase<BaseFloat> &noisy_data, 
                     const MatrixBase<BaseFloat> &target_mask, 
                     Matrix<BaseFloat>  *target_speech, 
                     bool track_volumn) {
-    Matrix<BaseFloat> specs, args;
-    stft_computer.Compute(noisy_data, NULL, &specs, &args);
-    KALDI_ASSERT(SameDim(specs, target_mask));
+    Matrix<BaseFloat> spectra, angle;
+    stft_computer.Compute(noisy_data, NULL, &spectra, &angle);
+    KALDI_ASSERT(SameDim(spectra, target_mask));
     // here need raw spectrum(means no power & log) to make sure mask work properly
-    specs.MulElements(target_mask);
+    spectra.MulElements(target_mask);
     
     Matrix<BaseFloat> target_stft; 
-    stft_computer.Polar(specs, args, &target_stft);   
+    stft_computer.Polar(spectra, angle, &target_stft);   
     if (track_volumn) {
         BaseFloat range = noisy_data.LargestAbsElem();
         stft_computer.InverseShortTimeFT(target_stft, target_speech, range);
@@ -32,8 +32,8 @@ int main(int argc, char *argv[]) {
     try{
         const char *usage = 
             "Seperate target component of wave file based on TF mask approach\n"
-            "Usage:  wav-seperate [options...] <wav-rspecifier> <mask-rspecifier> <target-wav-wspecifier>\n"
-            "   or:  wav-seperate [options...] <wav-rxfilename> <mask-rxfilename> <target-wav-wxfilename>\n";
+            "Usage:  wav-separate [options...] <wav-rspecifier> <mask-rspecifier> <target-wav-wspecifier>\n"
+            "   or:  wav-separate [options...] <wav-rxfilename> <mask-rxfilename> <target-wav-wxfilename>\n";
 
         ParseOptions po(usage);
         ShortTimeFTOptions stft_options;
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
 
                 const Matrix<BaseFloat> &target_mask = mask_reader.Value(utt_key);
                 Matrix<BaseFloat> target_speech;
-                SeperateSpeech(stft_computer, noisy_data.Data(), target_mask, &target_speech, track_volumn);
+                SeparateSpeech(stft_computer, noisy_data.Data(), target_mask, &target_speech, track_volumn);
 
                 WaveData target_data(target_freq, target_speech);
                 wav_writer.Write(utt_key, target_data);
@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
             KALDI_ASSERT(noisy_data.Data().NumRows() == 1);
 
             Matrix<BaseFloat> target_speech;
-            SeperateSpeech(stft_computer, noisy_data.Data(), target_mask, &target_speech, track_volumn);
+            SeparateSpeech(stft_computer, noisy_data.Data(), target_mask, &target_speech, track_volumn);
 
             Output ko(target_out, binary, false);
             WaveData target_data(target_freq, target_speech);

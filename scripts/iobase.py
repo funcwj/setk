@@ -7,18 +7,20 @@
 """
 
 import struct
-import logging
 import numpy as np
 
 debug = False
+
 
 def print_info(info):
     if debug:
         print(info)
 
+
 def throw_on_error(ok, info=''):
     if not ok:
-        raise SystemExit(info)
+        raise RuntimeError(info)
+
 
 def peek_char(fd):
     """ read a char and seek the point back
@@ -27,7 +29,8 @@ def peek_char(fd):
     fd.seek(-1, 1)
     if type(peek_c) == bytes:
         peek_c = bytes.decode(peek_c)
-    return peek_c 
+    return peek_c
+
 
 def expect_space(fd):
     """ generally, there is a space following the string token
@@ -47,11 +50,9 @@ def expect_binary(fd):
     if type(flags) == bytes:
         flags = bytes.decode(flags)
     # throw_on_error(flags == '\0B', 'Expect binary flags \'B\', but gets {}'.format(flags))
-    throw_on_error(flags == '\0B', 'Expect binary flags \'\\0B\', but gets {}'.format(flags))
+    throw_on_error(flags == '\0B',
+                   'Expect binary flags \'\\0B\', but gets {}'.format(flags))
 
-def write_binary_symbol(fd):
-    fd.write(str.encode('\0B'))
-    # fd.write(b'\x00B')
 
 def read_token(fd):
     """ read {token + ' '} from the file
@@ -67,31 +68,37 @@ def read_token(fd):
         key += c
     return None if key == '' else key.strip()
 
+
 def write_token(fd, token):
     if type(token) == str:
         token = str.encode(token)
     fd.write(token)
     fd.write(str.encode(' '))
 
+
 def expect_token(fd, ref):
     """ check weather the token read equals to the reference
     """
     token = read_token(fd)
-    throw_on_error(token == ref, 'Expect token \'{}\', but gets {}'.format(ref, token))
+    throw_on_error(token == ref, 'Expect token \'{}\', but gets {}'.format(
+        ref, token))
+
 
 def read_key(fd):
     """ read the binary flags following the key
         key might be None
     """
     key = read_token(fd)
-    if key: 
+    if key:
         expect_binary(fd)
     return key
 
-def write_key(fd, key):
-    write_token(fd, key)
-    write_binary_symbol(fd)
-    
+
+def write_binary_symbol(fd):
+    """ write a binary symbol
+    """
+    fd.write(str.encode('\0B'))
+
 
 def read_int32(fd):
     """ read a value in type 'int32' in kaldi setup
@@ -99,15 +106,18 @@ def read_int32(fd):
     int_size = fd.read(1)
     if type(int_size) == bytes:
         int_size = bytes.decode(int_size)
-    throw_on_error(int_size == '\04', 'Expect \'\\04\', but gets {}'.format(int_size))
+    throw_on_error(int_size == '\04',
+                   'Expect \'\\04\', but gets {}'.format(int_size))
     int_str = fd.read(4)
     int_val = struct.unpack('i', int_str)
     return int_val[0]
+
 
 def write_int32(fd, int32):
     fd.write(str.encode('\04'))
     int_pack = struct.pack('i', int32)
     fd.write(int_pack)
+
 
 def read_float32(fd):
     """ read a value in type 'BaseFloat' in kaldi setup
@@ -116,7 +126,8 @@ def read_float32(fd):
     # throw_on_error(float_size == '\04')
     if type(float_size) == bytes:
         float_size = bytes.decode(float_size)
-    throw_on_error(float_size == '\04', 'Expect \'\\04\', but gets {}'.format(float_size))
+    throw_on_error(float_size == '\04',
+                   'Expect \'\\04\', but gets {}'.format(float_size))
     float_str = fd.read(4)
     float_val = struct.unpack('f', float_str)
     return float_val
@@ -134,10 +145,12 @@ def read_common_mat(fd):
     float_type = np.float32 if mat_type == 'FM' else np.float64
     num_rows = read_int32(fd)
     num_cols = read_int32(fd)
-    print_info('\tSize of the common matrix: {} x {}'.format(num_rows, num_cols))
+    print_info('\tSize of the common matrix: {} x {}'.format(
+        num_rows, num_cols))
     mat_data = fd.read(float_size * num_cols * num_rows)
     mat = np.fromstring(mat_data, dtype=float_type)
     return mat.reshape(num_rows, num_cols)
+
 
 def write_common_mat(fd, mat):
     assert mat.dtype == np.float32 or mat.dtype == np.float64
@@ -160,6 +173,7 @@ def read_common_int_vec(fd, direct_access=False):
         vec[i] = value
     return vec
 
+
 def read_sparse_vec(fd):
     """ reference to function Read in SparseVector
         return a list of key-value pair:
@@ -168,13 +182,15 @@ def read_sparse_vec(fd):
     expect_token(fd, 'SV')
     dim = read_int32(fd)
     num_elems = read_int32(fd)
-    print_info('\tRead sparse vector(dim = {}, row = {})'.format(dim, num_elems))
+    print_info('\tRead sparse vector(dim = {}, row = {})'.format(
+        dim, num_elems))
     sparse_vec = []
-    for i in range(num_elems):
+    for _ in range(num_elems):
         index = read_int32(fd)
         value = read_float32(fd)
         sparse_vec.append((index, value))
-    return sparse_vec 
+    return sparse_vec
+
 
 def read_sparse_mat(fd):
     """ reference to function Read in SparseMatrix
@@ -186,7 +202,8 @@ def read_sparse_mat(fd):
     sparse_mat = []
     for i in range(num_rows):
         sparse_mat.append(read_sparse_vec(fd))
-    return sparse_mat 
+    return sparse_mat
+
 
 def uint16_to_floats(min_value, prange, pchead):
     """ uncompress type unsigned int16
@@ -199,6 +216,7 @@ def uint16_to_floats(min_value, prange, pchead):
         p.append(float(min_value + prange * 1.52590218966964e-05 * value))
     return p
 
+
 def uint8_to_float(char, pchead):
     """ uncompress unsigned int8
     see matrix/compressed-matrix.cc
@@ -208,9 +226,12 @@ def uint8_to_float(char, pchead):
     if char <= 64:
         return float(pchead[0] + (pchead[1] - pchead[0]) * char * (1 / 64.0))
     elif char <= 192:
-        return float(pchead[1] + (pchead[2] - pchead[1]) * (char - 64) * (1 / 128.0))
+        return float(pchead[1] +
+                     (pchead[2] - pchead[1]) * (char - 64) * (1 / 128.0))
     else:
-        return float(pchead[2] + (pchead[3] - pchead[2]) * (char - 192) * (1 / 63.0))
+        return float(pchead[2] +
+                     (pchead[3] - pchead[2]) * (char - 192) * (1 / 63.0))
+
 
 def uncompress(compress_data, cps_type, head):
     """ In format CM(kOneByteWithColHeaders):
@@ -230,27 +251,35 @@ def uncompress(compress_data, cps_type, head):
         # checking compressed data size, 8 is the sizeof PerColHeader
         assert len(compress_data) == num_cols * (8 + num_rows)
         # type uint16
-        phead_seq = struct.unpack('{}H'.format(4 * num_cols), compress_data[: 8 * num_cols])
+        phead_seq = struct.unpack('{}H'.format(4 * num_cols),
+                                  compress_data[:8 * num_cols])
         # type uint8
-        uint8_seq = struct.unpack('{}B'.format(num_rows * num_cols), compress_data[8 * num_cols: ])
+        uint8_seq = struct.unpack('{}B'.format(num_rows * num_cols),
+                                  compress_data[8 * num_cols:])
         for i in range(num_cols):
-            pchead = uint16_to_floats(min_value, prange, phead_seq[i * 4: i * 4 + 4])
+            pchead = uint16_to_floats(min_value, prange,
+                                      phead_seq[i * 4:i * 4 + 4])
             for j in range(num_rows):
                 mat[j, i] = uint8_to_float(uint8_seq[i * num_rows + j], pchead)
     elif cps_type == 'CM2':
         inc = float(prange * (1.0 / 65535.0))
-        uint16_seq = struct.unpack('{}H'.format(num_rows * num_cols), compress_data)
+        uint16_seq = struct.unpack('{}H'.format(num_rows * num_cols),
+                                   compress_data)
         for i in range(num_rows):
             for j in range(num_cols):
-                mat[i, j] = float(min_value + uint16_seq[i * num_rows + j] * inc)
+                mat[i, j] = float(min_value +
+                                  uint16_seq[i * num_rows + j] * inc)
     else:
         inc = float(prange * (1.0 / 255.0))
-        uint8_seq = struct.unpack('{}B'.format(num_rows * num_cols), compress_data)
+        uint8_seq = struct.unpack('{}B'.format(num_rows * num_cols),
+                                  compress_data)
         for i in range(num_rows):
             for j in range(num_cols):
-                mat[i, j] = float(min_value + uint8_seq[i * num_rows + j] * inc)
+                mat[i, j] = float(min_value +
+                                  uint8_seq[i * num_rows + j] * inc)
 
     return mat
+
 
 def read_compress_mat(fd):
     """ reference to function Read in CompressMatrix
@@ -269,8 +298,9 @@ def read_compress_mat(fd):
         remain_size = 2 * num_rows * num_cols
     elif cps_type == 'CM3':
         remain_size = num_rows * num_cols
-    else: 
-        throw_on_error(false, 'Unknown matrix compressing type: {}'.format(cps_type))
+    else:
+        throw_on_error(False,
+                       'Unknown matrix compressing type: {}'.format(cps_type))
     # now uncompress it
     compress_data = fd.read(remain_size)
     mat = uncompress(compress_data, cps_type, head)
@@ -291,6 +321,7 @@ def read_general_mat(fd, direct_access=False):
     else:
         return read_common_mat(fd)
 
+
 def read_ark(fd):
     """ usage:
     for key, mat in read_ark(ark):
@@ -304,6 +335,7 @@ def read_ark(fd):
         mat = read_general_mat(fd)
         yield key, mat
 
+
 def read_ali(fd):
     while True:
         key = read_key(fd)
@@ -312,23 +344,28 @@ def read_ali(fd):
         ali = read_common_int_vec(fd)
         yield key, ali
 
+
 # -----------------test part-------------------
 def _test_ali():
     with open('pdf/pdf.1.ark', 'rb') as fd:
-        for key, vec in read_ali(fd):
+        for key, _ in read_ali(fd):
             print(key)
 
 
 def _test_write_ark():
     with open('10.ark', 'rb') as ark, open('10.ark.new', 'wb') as dst:
         for key, mat in read_ark(ark):
-            write_key(dst, key)
+            write_token(dst, key)
+            # in binary mode
+            write_binary_symbol(dst)
             write_common_mat(dst, mat)
+
 
 def _test_read_ark():
     with open('10.ark.new', 'rb') as ark:
-        for key, mat in read_ark(ark):
+        for _, mat in read_ark(ark):
             print(mat.shape)
+
 
 if __name__ == '__main__':
     _test_write_ark()

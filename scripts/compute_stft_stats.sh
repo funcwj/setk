@@ -10,7 +10,7 @@
 nj=4
 cmd=run.pl
 stft_config=conf/stft.conf
-stats_type=spectrum
+stats_type=spectra
 compress=true
 write_utt2num_frames=false  # if true writes utt2num_frames
 # End configuration section.
