@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
 # wujian@2018
-
-
 """
 Copy MATLAB's .mat into (C)Matrix binary format
 """
@@ -13,6 +11,7 @@ import scipy.io as sio
 
 from iobase import write_common_mat, write_token, write_int32, write_binary_symbol
 
+
 def write_complex_mat(fd, cmat):
     assert cmat.dtype == np.complex64 or cmat.dtype == np.complex128
     mat_type = 'FCM' if cmat.dtype == np.complex64 else 'DCM'
@@ -22,9 +21,10 @@ def write_complex_mat(fd, cmat):
     write_int32(fd, num_cols)
     fd.write(cmat.tobytes())
 
+
 def run(args):
     mdict = sio.loadmat(args.mmat)
-    mmat  = mdict[args.key]
+    mmat = mdict[args.key]
     assert mmat.dtype in [np.float32, np.float64, np.complex64, np.complex128]
     print('Detect input dtype={}'.format(mmat.dtype))
     if args.transpose:
@@ -49,19 +49,30 @@ def run(args):
             write_complex_mat(f, mmat)
     print("Copy from {} to {} in {}".format(args.mmat, args.kmat, mmat.dtype))
 
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Command to copy MATLAB's matrix into (C)Matrix type.")
-    parser.add_argument("mmat", type=str,
-                        help="Original matrix in matlab's format")
-    parser.add_argument("kmat", type=str,
-                        help="Object matrix in kaldi's format")
-    parser.add_argument("key", type=str,
-                        help="Key values to index matrix in mmat")
-    parser.add_argument("--double", action="store_true", default=False,
-                        help="If true, then write matrix in float64/complex128")
-    parser.add_argument("--float", action="store_true", default=False,
-                        help="If true, then write matrix in float32/complex64")
-    parser.add_argument("--transpose", action="store_true", default=False,
-                        help="If true, write transpose of original matrix instead")
+    parser = argparse.ArgumentParser(
+        description="Command to copy MATLAB's matrix into (C)Matrix type.")
+    parser.add_argument(
+        "mmat", type=str, help="Original matrix in matlab's format")
+    parser.add_argument(
+        "kmat", type=str, help="Object matrix in kaldi's format")
+    parser.add_argument(
+        "key", type=str, help="Key values to index matrix in mmat")
+    parser.add_argument(
+        "--double",
+        action="store_true",
+        default=False,
+        help="If true, then write matrix in float64/complex128")
+    parser.add_argument(
+        "--float",
+        action="store_true",
+        default=False,
+        help="If true, then write matrix in float32/complex64")
+    parser.add_argument(
+        "--transpose",
+        action="store_true",
+        default=False,
+        help="If true, write transpose of original matrix instead")
     args = parser.parse_args()
     run(args)
