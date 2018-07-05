@@ -2,6 +2,10 @@ bin/
 lib/
 build/
 egs/
+figure/
 .vscode/
 scripts/__pycache__/
+scripts/*.pyc
 path.sh
+scripts/sptk/__pycache__/
+scripts/sptk/*.pyc

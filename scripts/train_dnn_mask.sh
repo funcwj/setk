@@ -63,7 +63,7 @@ relu-batchnorm-layer name=dnn3 dim=2048
 relu-batchnorm-layer name=dnn4 dim=2048
 # a version of modified output-layer config in steps/libs/nnet3/xconfig/basic_layers.py
 # add include-sigmoid & include-relu same as include-log-softmax
-output-layer name=output input=dnn4 dim=$stft_dim include-log-softmax=false include-sigmoid=true objective-type=quadratic
+output-layer name=output input=dnn4 dim=$stft_dim include-log-softmax=false include-activation=sigmoid objective-type=quadratic
 EOF
         ;;
         tdnn)
@@ -77,7 +77,7 @@ relu-renorm-layer name=tdnn4 dim=512 input=Append(-3,0,3)
 relu-renorm-layer name=tdnn5 dim=512 input=Append(-3,0,3)
 relu-renorm-layer name=tdnn6 dim=512 input=Append(-6,-3,0)
 # a version of modified output-layer config in steps/libs/nnet3/xconfig/basic_layers.py
-output-layer name=output input=tdnn6 dim=$stft_dim include-log-softmax=false include-sigmoid=true objective-type=quadratic
+output-layer name=output input=tdnn6 dim=$stft_dim include-log-softmax=false include-activation=sigmoid objective-type=quadratic
 EOF
         ;;
         cnn)
@@ -92,7 +92,7 @@ conv-relu-batchnorm-layer name=cnn5 height-in=20 height-out=20 time-offsets=-3,0
 relu-renorm-layer name=tdnn6 dim=512 input=Append(-3,0,3)
 relu-renorm-layer name=tdnn7 dim=512 input=Append(-6,-3,0)
 # a version of modified output-layer config in steps/libs/nnet3/xconfig/basic_layers.py
-output-layer name=output input=tdnn7 dim=$stft_dim include-log-softmax=false include-sigmoid=true objective-type=quadratic
+output-layer name=output input=tdnn7 dim=$stft_dim include-log-softmax=false include-activation=sigmoid objective-type=quadratic
 EOF
         ;;
         *)
