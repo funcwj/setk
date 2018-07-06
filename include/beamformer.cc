@@ -1,5 +1,23 @@
-// beamformer.cc
+// include/beamformer.cc
 // wujian@2018
+
+// Copyright 2018 Jian Wu
+
+// See ../../COPYING for clarification regarding multiple authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+// THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+// WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+// MERCHANTABLITY OR NON-INFRINGEMENT.
+// See the Apache 2 License for the specific language governing permissions and
+// limitations under the License.
+
 
 #include "include/beamformer.h"
 
@@ -123,7 +141,7 @@ void EstimateSteerVector(const CMatrixBase<BaseFloat> &target_psd,
 // target_psd:  (num_bins x num_channels, num_channels)
 // steer_vector:(num_bins, num_channels)
 // beam_weights:(num_bins, num_channels)
-// note mvdr beam weights computation:
+// NOTE mvdr beam weights computation:
 //      w = \frac{R^{-1} * d}{d^H * R^{-1} * d}
 void ComputeMvdrBeamWeights(const CMatrixBase<BaseFloat> &noise_psd,
                             const CMatrixBase<BaseFloat> &steer_vector,

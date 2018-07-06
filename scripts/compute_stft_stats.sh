@@ -3,8 +3,6 @@
 # Copyright 2012-2016  Karel Vesely  Johns Hopkins University (Author: Daniel Povey)
 #           2018 Jian Wu
 # Apache 2.0
-# To be run from .. (one directory up from here)
-# see ../run.sh for example
 
 # Begin configuration section.
 nj=4
@@ -21,16 +19,16 @@ if [ -f path.sh ]; then . ./path.sh; fi
 . parse_options.sh || exit 1;
 
 if [ $# -lt 1 ] || [ $# -gt 3 ]; then
-   echo "Usage: $0 [options] <data-dir> [<log-dir> [<stft-dir>] ]";
-   echo "e.g.: $0 data/train exp/make_stft/train mfcc"
-   echo "Note: <log-dir> defaults to <data-dir>/log, and <stft-dir> defaults to <data-dir>/data"
-   echo "Options: "
-   echo "  --stft-config <config-file>                      # config passed to compute-stft-stats "
-   echo "  --nj <nj>                                        # number of parallel jobs"
-   echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
-   echo "  --write-utt2num-frames <true|false>              # if true, write utt2num_frames file."
-   echo "  --stats-type <spectrum|arg|stft>                 # --output options for compute-stft-stats."
-   exit 1;
+    echo "Usage: $0 [options] <data-dir> [<log-dir> [<stft-dir>] ]";
+    echo "e.g.: $0 data/train exp/make_stft/train mfcc"
+    echo "Note: <log-dir> defaults to <data-dir>/log, and <stft-dir> defaults to <data-dir>/data"
+    echo "Options: "
+    echo "  --stft-config <config-file>                      # config passed to compute-stft-stats "
+    echo "  --nj <nj>                                        # number of parallel jobs"
+    echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
+    echo "  --write-utt2num-frames <true|false>              # if true, write utt2num_frames file."
+    echo "  --stats-type <spectrum|arg|stft>                 # --output options for compute-stft-stats."
+    exit 1;
 fi
 
 data=$1
@@ -100,8 +98,8 @@ if [ -f $data/segments ]; then
     extract-segments scp,p:$scp $logdir/segments.JOB ark:- \| \
     compute-stft-stats --output=\"$stats_type\" --verbose=2 --config=$stft_config ark:- ark:- \| \
     copy-feats --compress=$compress $write_num_frames_opt ark:- \
-     ark,scp:$stftdir/raw_${stats_type}_$name.JOB.ark,$stftdir/raw_${stats_type}_$name.JOB.scp \
-     || exit 1;
+      ark,scp:$stftdir/raw_${stats_type}_$name.JOB.ark,$stftdir/raw_${stats_type}_$name.JOB.scp \
+      || exit 1;
 
 else
   echo "$0: [info]: no segments file exists: assuming wav.scp indexed by utterance."
@@ -115,8 +113,8 @@ else
   $cmd JOB=1:$nj $logdir/make_${stats_type}_${name}.JOB.log \
     compute-stft-stats --output=\"$stats_type\" --verbose=2 --config=$stft_config scp,p:$logdir/wav.JOB.scp ark:- \| \
     copy-feats --compress=$compress $write_num_frames_opt ark:- \
-     ark,scp:$stftdir/raw_${stats_type}_$name.JOB.ark,$stftdir/raw_${stats_type}_$name.JOB.scp \
-     || exit 1;
+      ark,scp:$stftdir/raw_${stats_type}_$name.JOB.ark,$stftdir/raw_${stats_type}_$name.JOB.scp \
+      || exit 1;
 
 fi
 

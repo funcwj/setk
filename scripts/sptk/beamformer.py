@@ -252,3 +252,5 @@ class GevdBeamformer(SupervisedBeamformer):
             1 - speech_mask if noise_mask is None else noise_mask, spectrogram)
         weight = self.weight(speech_covar, noise_covar)
         return self.beamform(weight, spectrogram)
+
+

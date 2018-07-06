@@ -1,11 +1,14 @@
 #!/bin/bash
+# wujian@2018
+# Logging loss for train/dev dataset
+
+set -eu
 
 [ $# -ne 1 ] && echo "format error: $0 <nn-log-dir>" && exit 1
 
-log_dir=$1
+for x in train valid; do
+  find $1 -name "compute_prob_${x}.*.log" | sed 's:\(.*\)\.\(.*\)\.\(.*\):\2\t\0:' | sort -k1 -n | \
+    awk '{print $2}' | xargs -n1 -I F grep objective F | awk '{print $8;}' > $1/${x}.logprob
+done
 
-valid_list=`find $log_dir -name "compute_prob_valid.*.log" | \
-    awk -F "/" '{split($NF, a, "."); print a[2]"\t"$0}' \
-    | sort -k1 -n | awk '{print $2}'`
-
-for x in $valid_list; do cat $x | grep object $x | awk '{print $8}'; done | awk '{print NR"\t"$0}'
+paste $1/train.logprob $1/valid.logprob | awk '{printf("%s\t%f\t%f\n", NR, $1, $2);}' && rm -f $1/*.logprob

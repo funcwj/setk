@@ -168,3 +168,4 @@ def test_archieve_reader(egs):
 if __name__ == "__main__":
     test_archieve_writer("egs.ark", "egs.scp")
     test_archieve_reader("egs.scp")
+

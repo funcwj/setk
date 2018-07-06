@@ -77,3 +77,4 @@ if __name__ == '__main__':
         help="If true, write transpose of original matrix instead")
     args = parser.parse_args()
     run(args)
+

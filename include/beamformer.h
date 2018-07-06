@@ -1,5 +1,23 @@
-// beamformer.h
+// include/beamformer.h
 // wujian@2018
+
+// Copyright 2018 Jian Wu
+
+// See ../../COPYING for clarification regarding multiple authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+// THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+// WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+// MERCHANTABLITY OR NON-INFRINGEMENT.
+// See the Apache 2 License for the specific language governing permissions and
+// limitations under the License.
+
 
 #ifndef BEAMFORMER_H
 #define BEAMFORMER_H
@@ -45,7 +63,7 @@ void EstimateSteerVector(const CMatrixBase<BaseFloat> &target_psd,
 // target_psd:  (num_bins x num_channels, num_channels)
 // steer_vector:(num_bins, num_channels)
 // beam_weights:(num_bins, num_channels)
-// note mvdr:
+// NOTE mvdr:
 // numerator = psd_inv * steer_vector
 // denumerator = numerator * steer_vector^H
 // weight    = numerator / denumerator
@@ -65,7 +83,7 @@ void ComputeGevdBeamWeights(const CMatrixBase<BaseFloat> &target_psd,
 // src_stft:    (num_bins x num_frames, num_channels)
 // weights:     (num_bins, num_channels)
 // enh_stft:    (num_frames, num_bins)
-// note:
+// NOTE:
 // To avoid Transpose, using AddMatMat instead of:
 // enh_stft->Resize(num_bins, num_frames);
 // for (int32 f = 0; f < num_bins; f++)

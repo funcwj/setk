@@ -1,0 +1,10 @@
+what I want to do:
+
+1. More efficient PSD matrix computation
+2. Window normalization in ShortTimeFTComputer::InverseShortTimeFT()
+3. Phase sensitive mask computation in compute-masks.cc
+4. FastICA/SNMF(Sparse Non-negative Matrix Factor) algorithm
+5. Beamformer debug and pipeline
+6. Generalized localization algorithm
+7. Using multi-channel input in apply-supervised-{mvdr,max-snr}.cc like apply-fixed-beamformer.cc
+8. ...

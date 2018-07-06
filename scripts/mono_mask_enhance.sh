@@ -1,20 +1,17 @@
 #!/usr/bin/env bash
 # wujian@2018
 
-# Mask based single channel speech enhancement
-# X_{enhan} = ISTFT(STFT(X_{noisy}) \dot M)
-# M is mask estimated from nnet, could be IBM, IAM, IRM, PSM .etc
-
 set -eu
 
 nj=10
 stage=1
+iter=final
 cmd=run.pl
 keep_mask=true
 # using for wav-separate
 mask_conf=conf/mask.conf
 online_ivector_dir=
-chunk_width=150
+chunk_width=64
 extra_left_context=0
 extra_right_context=0
 extra_left_context_initial=-1
@@ -43,7 +40,7 @@ if [ $stage -le 1 ]; then
     --extra-left-context $extra_left_context --extra-right-context $extra_right_context \
     --extra-left-context-initial $extra_left_context_initial \
     --extra-right-context-final $extra_right_context_final \
-    --online-ivector-dir "$online_ivector_dir" \
+    --online-ivector-dir "$online_ivector_dir" --iter $iter \
     $src_dir $mdl_dir $dst_dir/mask
 fi
 
@@ -64,3 +61,7 @@ if [ $stage -le 2 ]; then
 fi
 
 echo "$0: done!"
+
+
+
+
