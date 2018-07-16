@@ -8,6 +8,7 @@ stage=1
 iter=final
 cmd=run.pl
 keep_mask=true
+mask_only=false
 # using for wav-separate
 mask_conf=conf/mask.conf
 online_ivector_dir=
@@ -43,6 +44,8 @@ if [ $stage -le 1 ]; then
     --online-ivector-dir "$online_ivector_dir" --iter $iter \
     $src_dir $mdl_dir $dst_dir/mask
 fi
+
+[ $mask_only ] && exit 0
 
 sdata=$src_dir/split$nj 
 

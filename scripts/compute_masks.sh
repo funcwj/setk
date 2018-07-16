@@ -18,7 +18,7 @@ noise=false
 
 data_dir=$1
 logg_dir=$2
-mask_dir=`perl -e '($dir,$pwd)= @ARGV; if($dir!~m:^/:) { $dir = "$pwd/$dir"; } print $dir; ' $3 $PWD`
+mask_dir=$(cd $3; pwd)
 
 name=$(basename $data_dir)
 
