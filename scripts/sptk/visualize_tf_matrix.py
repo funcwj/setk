@@ -9,7 +9,7 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from iobase import read_ark
+from data_handler import ArchiveReader
 
 
 def save_figure(key, mat, dest, frame_shift=10, frequency=16000):
@@ -32,16 +32,16 @@ def save_figure(key, mat, dest, frame_shift=10, frequency=16000):
 def run(args):
     if not os.path.exists(args.cache_dir):
         os.makedirs(args.cache_dir)
-    with open(args.feature_ark, 'rb') as ark:
-        for key, mat in read_ark(ark):
-            if args.apply_log:
-                mat = np.log10(mat)
-            save_figure(
-                key,
-                mat,
-                os.path.join(args.cache_dir, key.replace('.', '-')),
-                frame_shift=args.frame_shift * 1e-3,
-                frequency=16000)
+    ark_reader = ArchiveReader(args.feature_ark)
+    for key, mat in ark_reader:
+        if args.apply_log:
+            mat = np.log10(mat)
+        save_figure(
+            key,
+            mat,
+            os.path.join(args.cache_dir, key.replace('.', '-')),
+            frame_shift=args.frame_shift * 1e-3,
+            frequency=16000)
 
 
 if __name__ == '__main__':

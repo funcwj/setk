@@ -2,8 +2,8 @@
 # wujian@2018
 
 import os
+import sys
 import glob
-import random
 import warnings
 import librosa as audio_lib
 import numpy as np
@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 
 class Reader(object):
     """
-        Base class, to be implemented
+        Base class for sequential/random accessing, to be implemented
     """
 
     def __init__(self, scp_path, addr_processor=lambda x: x):
@@ -46,7 +46,8 @@ class Reader(object):
         if type(index) == int:
             num_utts = len(self.index_keys)
             if index >= num_utts or index < 0:
-                raise KeyError("Interger index out of range, {} vs {}".format(index, num_utts))
+                raise KeyError("Interger index out of range, {} vs {}".format(
+                    index, num_utts))
             key = self.index_keys[index]
             return self._load(key)
         elif type(index) is str:
@@ -55,6 +56,51 @@ class Reader(object):
             return self._load(index)
         else:
             raise IndexError("Unsupported index type: {}".format(type(index)))
+
+
+class Writer(object):
+    """
+        Base Writer class to be implemented
+    """
+
+    def __init__(self, ark_path, scp_path=None):
+        if scp_path == '-':
+            raise ValueError("Could not write .scp to stdout")
+        self.scp_path = scp_path
+        self.ark_path = ark_path
+        if self.ark_path == '-' and self.scp_path:
+            self.scp_path = None
+            warnings.warn("Ignore .scp output discriptor")
+
+    def __enter__(self):
+        self.scp_file = None if self.scp_path is None else open(
+            self.scp_path, "w")
+        self.ark_file = sys.stdout if self.ark_path == '-' else open(
+            self.ark_path, "wb")
+        return self
+
+    def __exit__(self, *args):
+        if self.scp_file:
+            self.scp_file.close()
+        if self.ark_path != '-':
+            self.ark_file.close()
+
+    def write(self, key, data):
+        raise NotImplementedError
+
+class ArchiveReader(object):
+    """
+        Sequential Reader for .ark object
+    """
+    def __init__(self, ark_path):
+        if not os.path.exists(ark_path):
+            raise FileNotFoundError("Could not find {}".format(ark_path))
+        self.ark_path = ark_path
+    
+    def __iter__(self):
+        with open(self.ark_path, "rb") as fd:
+            for key, mat in io.read_ark(fd):
+                yield key, mat
 
 
 class WaveReader(Reader):
@@ -80,21 +126,34 @@ class SpectrogramReader(Reader):
             kwargs["return_samps"] = False
         self.stft_kwargs = kwargs
 
-    # stft, single or multi-channal
-    def _load(self, key):
+    def _query_flist(self, key):
         flist = glob.glob(self.index_dict[key])
         if not len(flist):
             raise RuntimeError(
                 "Could not find file matches template \'{}\'".format(
                     self.index_dict[key]))
+        return flist
+
+    # stft, single or multi-channal
+    def _load(self, key):
+        flist = self._query_flist(key)
         if len(flist) == 1:
             return stft(flist[0], **self.stft_kwargs)
         else:
             return np.array(
                 [stft(f, **self.stft_kwargs) for f in sorted(flist)])
 
+    def samp_norm(self, key):
+        flist = self._query_flist(key)
+        if len(flist) == 1:
+            samps = audio_lib.load(flist[0], sr=None)[0]
+            return np.linalg.norm(samps, np.inf)
+        else:
+            samps_list = [audio_lib.load(f, sr=None)[0] for f in flist]
+            return sum([np.linalg.norm(samps, np.inf)
+                        for samps in samps_list]) / len(flist)
 
-class ArchieveReader(Reader):
+class ScriptReader(Reader):
     """
         Reader for kaldi's scripts(for BaseFloat matrix)
     """
@@ -107,7 +166,7 @@ class ArchieveReader(Reader):
             path, offset = ":".join(addr_token[0:-1]), int(addr_token[-1])
             return (path, offset)
 
-        super(ArchieveReader, self).__init__(
+        super(ScriptReader, self).__init__(
             ark_scp, addr_processor=addr_processor)
 
     def _load(self, key):
@@ -119,53 +178,39 @@ class ArchieveReader(Reader):
         return ark
 
 
-class ArchieveWriter(object):
+class ArchiveWriter(Writer):
     """
-        Writer for kaldi's scripts && archieve(for BaseFloat matrix)
+        Writer for kaldi's scripts && archive(for BaseFloat matrix)
     """
 
     def __init__(self, ark_path, scp_path=None):
-        self.scp_path = scp_path
-        self.ark_path = ark_path
-
-    def __enter__(self):
-        self.scp_file = None if self.scp_path is None else open(
-            self.scp_path, "w")
-        self.ark_file = open(self.ark_path, "wb")
-        return self
-
-    def __exit__(self, type, value, trace):
-        if self.scp_file:
-            self.scp_file.close()
-        self.ark_file.close()
+        super(ArchiveWriter, self).__init__(ark_path, scp_path)
 
     def write(self, key, matrix):
         io.write_token(self.ark_file, key)
         offset = self.ark_file.tell()
-        # binary symbol
         io.write_binary_symbol(self.ark_file)
         io.write_common_mat(self.ark_file, matrix)
+        abs_path = os.path.abspath(self.ark_path)
         if self.scp_file:
-            self.scp_file.write("{}\t{}:{:d}\n".format(
-                key, os.path.abspath(self.ark_path), offset))
+            self.scp_file.write("{}\t{}:{:d}\n".format(key, abs_path, offset))
 
 
-def test_archieve_writer(ark, scp):
-    with ArchieveWriter(ark, scp) as writer:
+def test_archive_writer(ark, scp):
+    with ArchiveWriter(ark, scp) as writer:
         for i in range(10):
             mat = np.random.rand(100, 20)
             writer.write("mat-{:d}".format(i), mat)
-    print("TEST *test_archieve_writer* DONE!")
+    print("TEST *test_archive_writer* DONE!")
 
 
-def test_archieve_reader(egs):
-    ark_reader = ArchieveReader(egs)
-    for key, mat in ark_reader:
+def test_script_reader(egs):
+    scp_reader = ScriptReader(egs)
+    for key, mat in scp_reader:
         print("{}: {}".format(key, mat.shape))
-    print("TEST *test_archieve_reader* DONE!")
+    print("TEST *test_script_reader* DONE!")
 
 
 if __name__ == "__main__":
-    test_archieve_writer("egs.ark", "egs.scp")
-    test_archieve_reader("egs.scp")
-
+    test_archive_writer("egs.ark", "egs.scp")
+    test_script_reader("egs.scp")
