@@ -16,6 +16,16 @@ EPSILON = np.finfo(np.float32).eps
 def nfft(window_size):
     return int(2**np.ceil(int(np.log2(window_size))))
 
+def write_wav(fname, samps, fs=16000):
+    # same as MATLAB and kaldi
+    samps_int16 = (samps * MAX_INT16).astype(np.int16)
+    fdir = os.path.dirname(fname)
+    if not os.path.exists(fdir):
+        os.makedirs(fdir)
+    # NOTE: librosa 0.6.0 seems could not write non-float narray
+    #       so use scipy.io.wavfile instead
+    wf.write(fname, fs, samps_int16)
+
 
 # return F x T or T x F
 def stft(file,
@@ -77,14 +87,7 @@ def istft(file,
     if norm:
         samps_norm = np.linalg.norm(samps, np.inf)
         samps = samps * norm / samps_norm
-    # same as MATLAB and kaldi
-    samps_int16 = (samps * MAX_INT16).astype(np.int16)
-    fdir = os.path.dirname(file)
-    if fdir and not os.path.exists(fdir):
-        os.makedirs(fdir)
-    # NOTE: librosa 0.6.0 seems could not write non-float narray
-    #       so use scipy.io.wavfile instead
-    wf.write(file, fs, samps_int16)
+    write_wav(file, samps, fs=fs)
     
 
 def parse_scps(scp_path, addr_processor=lambda x: x):
@@ -116,12 +119,13 @@ def filekey(path):
 
 def get_logger(
         name,
-        format_str="%(asctime)s [%(pathname)s:%(lineno)s - %(levelname)s ] %(message)s"):
+        format_str="%(asctime)s [%(pathname)s:%(lineno)s - %(levelname)s ] %(message)s",
+        date_format="%Y-%m-%d %H:%M:%S"):
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     handler.setLevel(logging.INFO)
-    formatter = logging.Formatter(format_str)
+    formatter = logging.Formatter(fmt=format_str, datefmt=date_format)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     return logger

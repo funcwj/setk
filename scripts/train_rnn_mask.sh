@@ -25,7 +25,6 @@ momentum=0.8
 stage=2
 egs_nj=16
 egs_dev_subset=500
-egs_opts="--nj $egs_nj --num-utts-subset $egs_dev_subset"
 cmvn_opts="--norm-vars=true --norm-means=true"
 # default 400000
 samples_per_iter=50000
@@ -44,6 +43,8 @@ mdl=lstm
 exp_dir=exp/mask/$mdl
 
 . parse_options.sh || exit 1
+
+egs_opts="--nj $egs_nj --num-utts-subset $egs_dev_subset"
 
 # it's a RNN model
 if [ $stage -eq 1 ]; then

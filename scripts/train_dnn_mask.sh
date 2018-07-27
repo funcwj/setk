@@ -33,15 +33,18 @@ stage=1
 stft_dim=513
 egs_nj=16
 egs_dev_subset=300
-egs_opts="--nj $egs_nj --num-utts-subset $egs_dev_subset"
 egs_dir=
 nj=40
+preserve_model_interval=10
+
 
 rewrite=false
 mdl=dnn
 exp_dir=exp/mask/$mdl
 
 . parse_options.sh || exit 1
+
+egs_opts="--nj $egs_nj --num-utts-subset $egs_dev_subset"
 
 # generate same feed forward network configs
 if [ $stage -eq 1 ]; then
@@ -120,6 +123,7 @@ if [ $stage -eq 2 ]; then
         --trainer.optimization.backstitch-training-scale $backstitch_training_scale \
         --trainer.samples-per-iter $samples_per_iter \
         --cleanup.remove-egs $remove_egs \
+        --cleanup.preserve-model-interval $preserve_model_interval \
         --targets-scp $train_dir/masks.scp \
         --feat-dir $train_dir \
         --use-gpu $use_gpu \

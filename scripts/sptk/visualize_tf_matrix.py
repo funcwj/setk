@@ -4,12 +4,14 @@
 
 import argparse
 import os
-import logging
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from data_handler import ArchiveReader
+from utils import get_logger
+
+logger = get_logger(__name__)
 
 
 def save_figure(key, mat, dest, frame_shift=10, frequency=16000):
@@ -25,8 +27,8 @@ def save_figure(key, mat, dest, frame_shift=10, frequency=16000):
         ["{:.1f}".format(t) for t in np.linspace(0, frequency / 2, 6) / 1000])
     plt.xlabel('Time(s)')
     plt.ylabel('Frequency(kHz)')
-    logging.info('Dump utterance {} to {}'.format(key, dest))
     plt.savefig(dest)
+    logger.info('Dump utterance {} to {}'.format(key, dest))
 
 
 def run(args):
@@ -45,8 +47,11 @@ def run(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser('Command to visualize kaldi\'s features on T-F domain. egs: log-spectrum or T-F mask\n' \
-                                    'egs: ./visualize_tf_matrix.py  predict_mask.10.ark --cache-dir predict_mask\n')
+    parser = argparse.ArgumentParser(
+        description=
+        "Command to visualize kaldi\'s features on T-F domain. egs: log-spectrum or T-F mask\n"
+        "egs: ./visualize_tf_matrix.py  predict_mask.10.ark --cache-dir predict_mask\n"
+    )
     parser.add_argument(
         'feature_ark', type=str, help="Location of kaldi\'s feature archives")
     parser.add_argument(
