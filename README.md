@@ -15,6 +15,7 @@ Updating...
 * Fixed beamformer
 * Compute angular spectrogram based on SRP-PHAT
 * RIR generator(reference from [RIR-Generator](https://github.com/ehabets/RIR-Generator))
+* Some useful scripts in python/shell [scripts](scripts)
 
 ### Install
 Compile pass on Mac OSX, Ubuntu and RedHat.

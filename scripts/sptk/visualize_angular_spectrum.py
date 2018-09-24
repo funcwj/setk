@@ -9,7 +9,7 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from iobase import read_general_mat
+from libs.iobase import read_general_mat
 
 
 def save_figure(key, mat, dest, frame_shift):

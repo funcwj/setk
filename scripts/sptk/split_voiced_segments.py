@@ -5,8 +5,8 @@ import os
 import argparse
 import numpy as np
 
-from data_handler import WaveReader
-from utils import write_wav, get_logger, EPSILON
+from libs.data_handler import WaveReader
+from libs.utils import write_wav, get_logger, EPSILON
 
 logger = get_logger(__name__)
 

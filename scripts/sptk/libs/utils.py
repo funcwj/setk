@@ -12,20 +12,34 @@ import numpy as np
 MAX_INT16 = np.iinfo(np.int16).max
 EPSILON = np.finfo(np.float32).eps
 
+__all__ = ["stft", "istft", "get_logger"]
+
 
 def nfft(window_size):
     return int(2**np.ceil(int(np.log2(window_size))))
+
 
 def write_wav(fname, samps, fs=16000):
     # same as MATLAB and kaldi
     samps_int16 = (samps * MAX_INT16).astype(np.int16)
     fdir = os.path.dirname(fname)
-    if not os.path.exists(fdir):
+    if fdir and not os.path.exists(fdir):
         os.makedirs(fdir)
     # NOTE: librosa 0.6.0 seems could not write non-float narray
     #       so use scipy.io.wavfile instead
     wf.write(fname, fs, samps_int16)
 
+
+def read_wav(fname, normalize=True):
+    _, samps_int16 = wf.read(fname)
+    if samps_int16.ndim != 1:
+        raise ValueError(
+            "Input file contains {:d} channels, now support mono only".format(
+                samps_int16.ndim))
+    samps = samps_int16.astype(np.float)
+    if normalize:
+        samps = samps / MAX_INT16
+    return samps
 
 # return F x T or T x F
 def stft(file,
@@ -37,7 +51,8 @@ def stft(file,
          apply_abs=False,
          apply_log=False,
          apply_pow=False,
-         transpose=True):
+         transpose=True,
+         normalize=True):
     if not os.path.exists(file):
         raise FileNotFoundError("Input file {} do not exists!".format(file))
     if apply_log and not apply_abs:
@@ -45,7 +60,8 @@ def stft(file,
         warnings.warn(
             "Ignore apply_abs=False cause function return real values")
     # sr=None, using default sample frequency
-    samps, _ = audio_lib.load(file, sr=None)
+    # samps, _ = audio_lib.load(file, sr=None)
+    samps = read_wav(file, normalize=normalize)
     stft_mat = audio_lib.stft(
         samps,
         nfft(frame_length),
@@ -88,7 +104,7 @@ def istft(file,
         samps_norm = np.linalg.norm(samps, np.inf)
         samps = samps * norm / samps_norm
     write_wav(file, samps, fs=fs)
-    
+
 
 def parse_scps(scp_path, addr_processor=lambda x: x):
     assert os.path.exists(scp_path)

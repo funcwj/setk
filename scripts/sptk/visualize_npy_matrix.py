@@ -4,12 +4,12 @@
 
 import argparse
 import os
+import glob
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-from libs.data_handler import ArchiveReader
-from libs.utils import get_logger
+from libs.utils import get_logger, filekey
 
 logger = get_logger(__name__)
 
@@ -38,8 +38,10 @@ def save_figure(key, mat, dest, gray=False, frame_shift=10, frequency=16000):
 def run(args):
     if not os.path.exists(args.cache_dir):
         os.makedirs(args.cache_dir)
-    ark_reader = ArchiveReader(args.feature_ark)
-    for key, mat in ark_reader:
+
+    for f in glob.glob("{}/*.npy".format(args.npy_dir)):
+        mat = np.load(f)
+        key = filekey(f)
         if args.apply_log:
             mat = np.log10(mat)
         if args.transpose:
@@ -56,16 +58,15 @@ def run(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description=
-        "Command to visualize kaldi\'s features on T-F domain. egs: log-spectrum or T-F mask\n"
-        "egs: ./visualize_tf_matrix.py  predict_mask.10.ark --cache-dir predict_mask\n"
-    )
+        "Command to visualize Numpy\'s .npy matrix on T-F domain. egs: log-spectrum or T-F mask\n"
+        "egs: ./visualize_npy_matrix.py  masks_dir --cache-dir figure\n")
     parser.add_argument(
-        'feature_ark', type=str, help="Location of kaldi\'s feature archives")
+        'npy_dir', type=str, help="Directory of Numpy\'s 2D-arrays")
     parser.add_argument(
         '--frame-shift',
         dest='frame_shift',
         type=int,
-        default=10,
+        default=16,
         help="Frame shift in ms")
     parser.add_argument(
         '--frequency',

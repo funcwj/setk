@@ -7,12 +7,15 @@ import glob
 import warnings
 import librosa as audio_lib
 import numpy as np
-import iobase as io
 
-from utils import stft, parse_scps, get_logger
+import libs.iobase as io
+from libs.utils import stft, parse_scps, get_logger
 
 logger = get_logger(__name__)
 
+__all__ = [
+    "ArchiveReader", "ArchiveWriter", "SpectrogramReader", "ScriptReader", "WaveReader"
+]
 
 class Reader(object):
     """
@@ -113,6 +116,12 @@ class WaveReader(Reader):
         samps, _ = audio_lib.load(wav_addr, sr=self.sample_rate)
         return samps
 
+class NumpyReader(Reader):
+    def __init__(self, scp_path):
+        super(NumpyReader, self).__init__(scp_path)
+
+    def _load(self, key):
+        return np.load(self.index_dict[key])
 
 class SpectrogramReader(Reader):
     """

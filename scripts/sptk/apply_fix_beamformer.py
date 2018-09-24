@@ -8,9 +8,9 @@ import os
 import numpy as np
 from scipy.io import loadmat
 
-from utils import istft, get_logger
-from data_handler import SpectrogramReader
-from beamformer import FixedBeamformer
+from libs.utils import istft, get_logger
+from libs.data_handler import SpectrogramReader
+from libs.beamformer import FixedBeamformer
 
 logger = get_logger(__name__)
 
