@@ -25,11 +25,11 @@ mul_scp=$2
 nnet_dir=$3
 enhan_dir=$4
 
-./scripts/prepare_feats.sh \
+./local/prepare_feats.sh \
   --nj $nj \
   --feature $feature $data_dir
 
-./scripts/mono_mask_enhance.sh \
+./steps/mono_mask_enhance.sh \
   --iter $iter \
   --nj $nj \
   --chunk-width $chunk_width \
@@ -46,7 +46,7 @@ enhan_dir=$4
   $mul_scp $enhan_dir/mask/wav.{1..40}.scp
 
 $cmd JOB=1:40 ./exp/adaptbeam/run_${beamformer}.JOB.log \
-./sptk/apply_adaptive_beamformer.py \
+./scripts/sptk/run_adapt_beamformer.py \
   --beamformer $beamformer \
   --frame-length 1024 --frame-shift 256 \
   $enhan_dir/mask/wav.JOB.scp \

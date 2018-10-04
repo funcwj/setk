@@ -4,14 +4,31 @@
 
 import numpy as np
 import scipy as sp
-
 """
 Implement for some classic beamformer
 """
 
 __all__ = [
-    "FixedBeamformer", "DSBeamformer", "SupperDirectiveBeamformer", "MvdrBeamformer", "GevdBeamformer"
+    "FixedBeamformer", "DSBeamformer", "SupperDirectiveBeamformer",
+    "MvdrBeamformer", "GevdBeamformer"
 ]
+
+
+def do_ban(weight, noise_covar):
+    """
+    Arguments: (for N: num_mics, F: num_bins)
+        weight: shape as F x N
+        noise_covar: shape as F x N x N
+    Return:
+        ban_weight: shape as F x N
+    """
+    nominator = np.einsum("...a,...ab,...bc,...c->...", np.conj(weight),
+                          noise_covar, noise_covar, weight)
+    denominator = np.einsum("...a,...ab,...b->...", np.conj(weight),
+                            noise_covar, weight)
+    filters = np.abs(np.sqrt(nominator)) / (denominator)
+    return filters[:, None] * weight
+
 
 class Beamformer(object):
     def __init__(self):
@@ -26,7 +43,8 @@ class Beamformer(object):
             stft_enhan: shape as F x T
         """
         # N x F x T => F x N x T
-        if weight.shape[0] != spectrogram.shape[1] or weight.shape[1] != spectrogram.shape[0]:
+        if weight.shape[0] != spectrogram.shape[1] or weight.shape[
+                1] != spectrogram.shape[0]:
             raise ValueError(
                 "Input spectrogram do not match with weight, {} vs "
                 "{}".format(weight.shape, spectrogram.shape))
@@ -49,6 +67,7 @@ class SupervisedBeamformer(Beamformer):
     BaseClass for mask based beamformer
     TODO: Low-rank constraint for covariance matrix estimation if there is only one-speaker
     """
+
     def __init__(self, num_bins):
         super(SupervisedBeamformer, self).__init__()
         self.num_bins = num_bins
@@ -63,12 +82,13 @@ class SupervisedBeamformer(Beamformer):
         """
         if target_mask.shape[1] != self.num_bins or target_mask.ndim != 2:
             raise ValueError(
-                "Input mask matrix should be shape as [num_frames x num_bins], now is {}".
-                format(target_mask.shape))
-        if spectrogram.shape[1] != target_mask.shape[1] or spectrogram.shape[2] != target_mask.shape[0]:
+                "Input mask matrix should be shape as [num_frames x num_bins], now is {}"
+                .format(target_mask.shape))
+        if spectrogram.shape[1] != target_mask.shape[1] or spectrogram.shape[
+                2] != target_mask.shape[0]:
             raise ValueError(
-                "Shape of input spectrogram do not match with mask matrix, {} vs {}".
-                format(spectrogram.shape, target_mask.shape))
+                "Shape of input spectrogram do not match with mask matrix, {} vs {}"
+                .format(spectrogram.shape, target_mask.shape))
         # num_bins x num_mics x num_frames
         spectrogram = np.transpose(spectrogram, (1, 0, 2))
         # num_bins x 1 x num_frames
@@ -128,8 +148,8 @@ class DSBeamformer(Beamformer):
         """
         if spectrogram.shape[0] != self.num_mics:
             raise ValueError(
-                "Shape of spectrogram do not match with number of microphones, {} vs {}".
-                format(self.num_mics, spectrogram.shape[0]))
+                "Shape of spectrogram do not match with number of microphones, {} vs {}"
+                .format(self.num_mics, spectrogram.shape[0]))
         num_bins = spectrogram.shape[1]
         weight = self.weight(doa, num_bins, c=c, sample_rate=sample_rate)
         return self.beamform(weight, spectrogram)
@@ -174,6 +194,7 @@ class MvdrBeamformer(SupervisedBeamformer):
     """
     MVDR(Minimum Variance Distortionless Response) Beamformer
     """
+
     def __init__(self, num_bins):
         super(MvdrBeamformer, self).__init__(num_bins)
 
@@ -197,14 +218,19 @@ class MvdrBeamformer(SupervisedBeamformer):
         Returns:
             steer_vector: shape as F x N
         """
-        num_mics = speech_covar.shape[1]
-        steer_vector = np.zeros((self.num_bins, num_mics), dtype=np.complex)
-        for f in range(self.num_bins):
-            eigenvals, eigenvecs = np.linalg.eigh(speech_covar[f])
-            steer_vector[f] = eigenvecs[:, np.argmax(eigenvals)]
+        # faster version
+        # eigenvals: F x N, ascending order
+        # eigenvecs: F x N x N
+        _, eigenvecs = np.linalg.eigh(speech_covar)
+        steer_vector = eigenvecs[:, :, -1]
+        # num_mics = speech_covar.shape[1]
+        # steer_vector = np.zeros((self.num_bins, num_mics), dtype=np.complex)
+        # for f in range(self.num_bins):
+        #     eigenvals, eigenvecs = np.linalg.eigh(speech_covar[f])
+        #     steer_vector[f] = eigenvecs[:, np.argmax(eigenvals)]
         return steer_vector
 
-    def run(self, speech_mask, spectrogram, noise_mask=None):
+    def run(self, speech_mask, spectrogram, noise_mask=None, normalize=False):
         """
         Arguments: (for N: num_mics, F: num_bins, T: num_frames)
             speech_mask: shape as T x F, same shape as network output
@@ -217,13 +243,15 @@ class MvdrBeamformer(SupervisedBeamformer):
         noise_covar = self.compute_covar_mat(
             1 - speech_mask if noise_mask is None else noise_mask, spectrogram)
         weight = self.weight(steer_vector, noise_covar)
-        return self.beamform(weight, spectrogram)
+        return self.beamform(
+            do_ban(weight, noise_covar) if normalize else weight, spectrogram)
 
 
 class GevdBeamformer(SupervisedBeamformer):
     """
     Max-SNR/GEV(Generalized Eigenvalue Decomposition,) Beamformer
     """
+
     def __init__(self, num_bins):
         super(GevdBeamformer, self).__init__(num_bins)
 
@@ -238,12 +266,15 @@ class GevdBeamformer(SupervisedBeamformer):
         num_mics = speech_covar.shape[1]
         weight = np.zeros((self.num_bins, num_mics), dtype=np.complex)
         for f in range(self.num_bins):
-            eigenvals, eigenvecs = sp.linalg.eigh(speech_covar[f],
-                                                  noise_covar[f])
-            weight[f] = eigenvecs[:, np.argmax(eigenvals)]
+            try:
+                _, eigenvecs = sp.linalg.eigh(speech_covar[f], noise_covar[f])
+                weight[f] = eigenvecs[:, -1]
+            except np.linalg.LinAlgError:
+                weight[f] = num_mics * np.ones(num_mics) / np.trace(
+                    noise_covar[f])
         return weight
 
-    def run(self, speech_mask, spectrogram, noise_mask=None):
+    def run(self, speech_mask, spectrogram, noise_mask=None, normalize=False):
         """
         Arguments: (for N: num_mics, F: num_bins, T: num_frames)
             speech_mask: shape as T x F, same shape as network output
@@ -255,6 +286,5 @@ class GevdBeamformer(SupervisedBeamformer):
         noise_covar = self.compute_covar_mat(
             1 - speech_mask if noise_mask is None else noise_mask, spectrogram)
         weight = self.weight(speech_covar, noise_covar)
-        return self.beamform(weight, spectrogram)
-
-
+        return self.beamform(
+            do_ban(weight, noise_covar) if normalize else weight, spectrogram)

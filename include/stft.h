@@ -30,8 +30,8 @@
 namespace kaldi {
 
 struct ShortTimeFTOptions {
-    BaseFloat frame_shift;
     BaseFloat frame_length;
+    BaseFloat frame_shift;
     std::string window;
 
     bool normalize_input, enable_scale;
@@ -39,17 +39,17 @@ struct ShortTimeFTOptions {
     bool apply_pow;
     bool apply_log;
 
-    ShortTimeFTOptions(): frame_shift(256), frame_length(1024), 
+    ShortTimeFTOptions(): frame_length(1024), frame_shift(frame_length / 4),
         window("hamming"), normalize_input(false), enable_scale(false),
-        apply_log(false), apply_pow(false) {}
+        apply_log(false), apply_pow(false) { }
 
     int32 PaddingLength() {
         return RoundUpToNearestPowerOfTwo(frame_length);
     }
 
     void Register(OptionsItf *opts) {
-        opts->Register("frame-shift", &frame_shift, "Frame shift in number of samples");
         opts->Register("frame-length", &frame_length, "Frame length in number of samples");
+        opts->Register("frame-shift", &frame_shift, "Frame shift in number of samples");
         opts->Register("window", &window, "Type of window(\"hamming\"|\"hanning\"|\"blackman\"|\"rectangular\")");
         opts->Register("normalize-input", &normalize_input, "Scale samples into range [-1, 1], like MATLAB or librosa");
         opts->Register("enable-scale", &enable_scale, "Let infinite norm of sample vector to be one");

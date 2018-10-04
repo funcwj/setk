@@ -14,8 +14,10 @@ from libs.utils import stft, parse_scps, get_logger
 logger = get_logger(__name__)
 
 __all__ = [
-    "ArchiveReader", "ArchiveWriter", "SpectrogramReader", "ScriptReader", "WaveReader"
+    "ArchiveReader", "ArchiveWriter", "SpectrogramReader", "ScriptReader",
+    "WaveReader"
 ]
+
 
 class Reader(object):
     """
@@ -73,13 +75,14 @@ class Writer(object):
         self.ark_path = ark_path
         if self.ark_path == '-' and self.scp_path:
             self.scp_path = None
-            warnings.warn("Ignore .scp output discriptor")
+            warnings.warn(
+                "Ignore .scp output discriptor cause dump archives to stdout")
 
     def __enter__(self):
-        self.scp_file = None if self.scp_path is None else open(
-            self.scp_path, "w")
-        self.ark_file = sys.stdout if self.ark_path == '-' else open(
+        self.ark_file = sys.stdout.buffer if self.ark_path == '-' else open(
             self.ark_path, "wb")
+        # scp_path = "" or None
+        self.scp_file = None if not self.scp_path else open(self.scp_path, "w")
         return self
 
     def __exit__(self, *args):
@@ -91,15 +94,17 @@ class Writer(object):
     def write(self, key, data):
         raise NotImplementedError
 
+
 class ArchiveReader(object):
     """
         Sequential Reader for .ark object
     """
+
     def __init__(self, ark_path):
         if not os.path.exists(ark_path):
             raise FileNotFoundError("Could not find {}".format(ark_path))
         self.ark_path = ark_path
-    
+
     def __iter__(self):
         with open(self.ark_path, "rb") as fd:
             for key, mat in io.read_ark(fd):
@@ -116,12 +121,14 @@ class WaveReader(Reader):
         samps, _ = audio_lib.load(wav_addr, sr=self.sample_rate)
         return samps
 
+
 class NumpyReader(Reader):
     def __init__(self, scp_path):
         super(NumpyReader, self).__init__(scp_path)
 
     def _load(self, key):
         return np.load(self.index_dict[key])
+
 
 class SpectrogramReader(Reader):
     """
@@ -162,6 +169,7 @@ class SpectrogramReader(Reader):
             return sum([np.linalg.norm(samps, np.inf)
                         for samps in samps_list]) / len(flist)
 
+
 class ScriptReader(Reader):
     """
         Reader for kaldi's scripts(for BaseFloat matrix)
@@ -197,12 +205,12 @@ class ArchiveWriter(Writer):
 
     def write(self, key, matrix):
         io.write_token(self.ark_file, key)
-        offset = self.ark_file.tell()
         io.write_binary_symbol(self.ark_file)
         io.write_common_mat(self.ark_file, matrix)
         abs_path = os.path.abspath(self.ark_path)
         if self.scp_file:
-            self.scp_file.write("{}\t{}:{:d}\n".format(key, abs_path, offset))
+            self.scp_file.write("{}\t{}:{:d}\n".format(key, abs_path,
+                                                       self.ark_file.tell()))
 
 
 def test_archive_writer(ark, scp):

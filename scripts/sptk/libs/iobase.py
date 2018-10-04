@@ -24,8 +24,10 @@ def peek_char(fd):
     """ 
         Read a char and seek the point back
     """
-    peek_c = fd.read(1)
-    fd.seek(-1, 1)
+    # peek_c = fd.read(1)
+    # fd.seek(-1, 1)
+    # see https://stackoverflow.com/questions/25070952/python-why-does-peek1-return-8k-bytes-instead-of-1-byte
+    peek_c = fd.peek(1)[: 1]
     if type(peek_c) == bytes:
         peek_c = bytes.decode(peek_c)
     return peek_c

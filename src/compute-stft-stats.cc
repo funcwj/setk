@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
             WaveData wave_input;
             wave_input.Read(ki.Stream());
             if (wave_input.Data().NumRows() != 1) 
-                    KALDI_WARN << "MULTI-CHANNEL input!";
+                KALDI_WARN << "MULTI-CHANNEL input!";
             Matrix<BaseFloat> feature;
             ComputeSTFTStats(stft_computer, wave_input.Data(), output, &feature);
             WriteKaldiObject(feature, stft_out, wx_binary);
