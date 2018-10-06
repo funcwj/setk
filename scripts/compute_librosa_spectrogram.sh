@@ -45,7 +45,7 @@ $apply_pow && name="log_pow_spectrogram"
 
 dir=$(basename $src_dir)
 
-$cmd JOB=1:$nj $exp_dir/compute_spectrogram_$dir.JOB.log \
+$cmd JOB=1:$nj $exp_dir/log/compute_spectrogram_$dir.JOB.log \
   ./scripts/sptk/compute_spectrogram.py \
   $spectrogram_opts $exp_dir/wav.JOB.scp - \| \
   copy-feats --compress=$compress ark:- \

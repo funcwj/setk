@@ -28,6 +28,7 @@ if $numpy; then
     sed 's:\.npy::' | sort -k1 > $exp_dir/masks.scp
   echo "$0: Got $(cat $exp_dir/masks.scp | wc -l) numpy's masks"
 else
+  [ -d $2 ] && echo "$0: $2 is a directory, expected .scp" && exit 1
   cp $2 $exp_dir/masks.scp
 fi
 
@@ -43,7 +44,7 @@ mono_enhan_opts=$(cat $stft_conf | xargs)
 $numpy && mono_enhan_opts="$mono_enhan_opts --numpy"
 $transpose && mono_enhan_opts="$mono_enhan_opts --transpose-mask"
 
-$cmd JOB=1:$nj $exp_dir/wav_separate.JOB.scp \
+$cmd JOB=1:$nj $exp_dir/log/wav_separate.JOB.scp \
   ./scripts/sptk/separate_wav.py \
   $mono_enhan_opts \
   $exp_dir/wav.JOB.scp \

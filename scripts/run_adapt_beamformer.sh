@@ -16,12 +16,12 @@ normalize=false
 . ./path.sh
 . ./utils/parse_options.sh || exit 1
 
-[ $# -ne 3 ] && echo "format error: $0 <wav-scp> <mask-dir/mask-scp> <enhan-dir>" && exit 1
+[ $# -ne 3 ] && echo "Script format error: $0 <wav-scp> <mask-dir/mask-scp> <enhan-dir>" && exit 1
 
 wav_scp=$1
 enhan_dir=$3
 
-exp_dir=./exp/beamformer && mkdir -p $exp_dir
+exp_dir=./exp/run_$beamformer && mkdir -p $exp_dir
 
 if $numpy; then
   [ ! -d $2 ] && echo "$0: $2 is expected to be directory" && exit 1
@@ -29,6 +29,7 @@ if $numpy; then
     sed 's:\.npy::' | sort -k1 > $exp_dir/masks.scp
   echo "$0: Got $(cat $exp_dir/masks.scp | wc -l) numpy's masks"
 else
+  [ -d $2 ] && echo "$0: $2 is a directory, expected .scp" && exit 1
   cp $2 $exp_dir/masks.scp
 fi
 
@@ -39,7 +40,8 @@ wav_split_scp="" && for n in $(seq $nj); do wav_split_scp="$wav_split_scp $exp_d
 ./utils/split_scp.pl $exp_dir/wav.scp $wav_split_scp
 
 stft_opts=$(cat $stft_conf | xargs)
-beamformer_opts="$stft_opts --beamformer $beamformer --numpy"
+beamformer_opts="$stft_opts --beamformer $beamformer"
+$numpy && beamformer_opts="$beamformer_opts --numpy"
 $transpose && beamformer_opts="$beamformer_opts --transpose-mask"
 $normalize && beamformer_opts="$beamformer_opts --post-filter"
 

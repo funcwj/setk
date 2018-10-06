@@ -1,0 +1,107 @@
+#!/usr/bin/env python
+
+# wujian@2018
+
+import argparse
+import os
+
+import numpy as np
+
+from libs.utils import stft, istft, get_logger, EPSILON
+from libs.data_handler import SpectrogramReader
+
+logger = get_logger(__name__)
+
+
+def auxiva(X, epochs=20):
+    """
+    Arguments:
+        X: shape in N x T x F
+    Return
+        Y: same shape as X
+    """
+    N, T, F = X.shape
+    # X: F x T x N
+    X = X.transpose([2, 1, 0])
+    # F x N x N
+    W = np.array([np.eye(N, dtype=np.complex) for f in range(F)])
+    I = np.eye(N)
+    # Y: F x T x N
+    Y = np.einsum("...tn,...nx->...tx", X, np.conj(W))
+
+    for _ in range(epochs):
+        # T x N
+        R = np.sqrt(np.sum(np.abs(Y)**2, axis=0))
+        # N x T
+        Gr = 1 / (R.T + EPSILON)
+        for f in range(F):
+            for n in range(N):
+                # compute V
+                V = (np.dot(np.expand_dims(Gr[n], 0) * X[f].T, np.conj(
+                    X[f]))) / T
+                # update W
+                w = np.linalg.solve(np.conj(W[f].T) @ V, I[n])
+                W[f, :, n] = w / np.inner(np.conj(w), V @ w)
+
+        Y = np.einsum("...tn,...nx->...tx", X, np.conj(W))
+    # F x T x N => N x T x F
+    Y = np.transpose(Y, [2, 1, 0])
+    return Y
+
+
+def run(args):
+    stft_kwargs = {
+        "frame_length": args.frame_length,
+        "frame_shift": args.frame_shift,
+        "window": args.window,
+        "center": True,
+        "transpose": False  # F x T instead of T x F
+    }
+
+    spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
+
+    for key, spectrogram in spectrogram_reader:
+        logger.info("Processing utterance {}...".format(key))
+        separated = auxiva(spectrogram, args.epochs)
+        for idx in range(separated.shape[0]):
+            istft(
+                os.path.join(args.dst_dir, "{}.SRC{:d}.wav".format(key, idx + 1)),
+                separated[idx],
+                **stft_kwargs,
+                norm=spectrogram_reader.samp_norm(key))
+    logger.info("Processed {:d} utterances".format(len(spectrogram_reader)))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Command to do AuxIVA bss algorithm")
+    parser.add_argument(
+        'wav_scp', type=str, help="Multi-channel wave scripts in kaldi format")
+    parser.add_argument(
+        'dst_dir', type=str, help="Location to dump separated source files")
+    parser.add_argument(
+        "--frame-length",
+        type=int,
+        default=1024,
+        dest="frame_length",
+        help="Frame length in number of samples")
+    parser.add_argument(
+        "--frame-shift",
+        type=int,
+        default=256,
+        dest="frame_shift",
+        help="Frame shift in number of samples")
+    parser.add_argument(
+        "--window",
+        type=str,
+        default="hann",
+        dest="window",
+        help="Type of window function, see scipy.signal.get_window")
+    parser.add_argument(
+        "--num-epochs",
+        default=20,
+        type=int,
+        dest="epochs",
+        help="Number of epochs to run AuxIVA algorithm")
+    args = parser.parse_args()
+    run(args)
