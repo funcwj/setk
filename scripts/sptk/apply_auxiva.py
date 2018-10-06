@@ -2,6 +2,14 @@
 
 # wujian@2018
 
+"""
+AuxIVA: 
+    Ono N. Stable and fast update rules for independent vector analysis 
+    based on auxiliary function technique[C]//Applications of Signal 
+    Processing to Audio and Acoustics (WASPAA), 2011 IEEE Workshop on. IEEE, 2011: 189-192.
+Reference: https://github.com/LCAV/pyroomacoustics/blob/master/pyroomacoustics/bss/auxiva.py
+"""
+
 import argparse
 import os
 
@@ -55,7 +63,7 @@ def run(args):
         "frame_shift": args.frame_shift,
         "window": args.window,
         "center": True,
-        "transpose": False  # F x T instead of T x F
+        "transpose": True  # F x T instead of T x F
     }
 
     spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)

@@ -6,6 +6,11 @@ set -eu
 
 nj=40
 epochs=20
+# stft.conf example:
+# --frame-length 1024
+# --frame-shift 256
+# --window hann
+# --center
 stft_conf=conf/stft.conf
 
 . ./utils/parse_options.sh || exit 1 
