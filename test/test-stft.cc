@@ -5,8 +5,6 @@
 
 using namespace kaldi;
     
-BaseFloat float_inf = static_cast<BaseFloat>(std::numeric_limits<BaseFloat>::infinity());
-
 void test_stft() {
 
     bool binary;
@@ -17,16 +15,18 @@ void test_stft() {
     // configs
     ShortTimeFTOptions opts;
     opts.frame_length = 1024;
+    opts.center = true;
     opts.normalize_input = false;
 
 
+    // BaseFloat range = wave_orig.Data().LargestAbsElem();
     ShortTimeFTComputer stft_computer(opts);
 
     Matrix<BaseFloat> specs;
     stft_computer.ShortTimeFT(wave_orig.Data(), &specs);
 
     Matrix<BaseFloat> recon;
-    stft_computer.InverseShortTimeFT(specs, &recon);
+    stft_computer.InverseShortTimeFT(specs, &recon, -1);
 
     Output ko("copy.wav", binary, false);
     WaveData wave_copy(16000, recon);
@@ -90,7 +90,7 @@ void test_istft() {
 }
 
 int main() {
-    test_istft();
+    test_stft();
     // test_stft();
     return 0;
 }

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 # wujian@2018
-
 """
 AuxIVA: 
     Ono N. Stable and fast update rules for independent vector analysis 
@@ -73,7 +72,8 @@ def run(args):
         separated = auxiva(spectrogram, args.epochs)
         for idx in range(separated.shape[0]):
             istft(
-                os.path.join(args.dst_dir, "{}.SRC{:d}.wav".format(key, idx + 1)),
+                os.path.join(args.dst_dir, "{}.SRC{:d}.wav".format(
+                    key, idx + 1)),
                 separated[idx],
                 **stft_kwargs,
                 norm=spectrogram_reader.samp_norm(key))

@@ -34,14 +34,12 @@ struct ShortTimeFTOptions {
     BaseFloat frame_shift;
     std::string window;
 
-    bool normalize_input, enable_scale;
-    bool volumn;
-    bool apply_pow;
-    bool apply_log;
+    bool normalize_input, enable_scale, center;
+    bool apply_pow, apply_log;
 
     ShortTimeFTOptions(): frame_length(1024), frame_shift(frame_length / 4),
-        window("hamming"), normalize_input(false), enable_scale(false),
-        apply_log(false), apply_pow(false) { }
+        window("hanning"), normalize_input(false), enable_scale(false),
+        center(false), apply_log(false), apply_pow(false) { }
 
     int32 PaddingLength() {
         return RoundUpToNearestPowerOfTwo(frame_length);
@@ -51,8 +49,9 @@ struct ShortTimeFTOptions {
         opts->Register("frame-length", &frame_length, "Frame length in number of samples");
         opts->Register("frame-shift", &frame_shift, "Frame shift in number of samples");
         opts->Register("window", &window, "Type of window(\"hamming\"|\"hanning\"|\"blackman\"|\"rectangular\")");
+        opts->Register("center", &center, "If true, padding zeros on start/end of waveform");
         opts->Register("normalize-input", &normalize_input, "Scale samples into range [-1, 1], like MATLAB or librosa");
-        opts->Register("enable-scale", &enable_scale, "Let infinite norm of sample vector to be one");
+        opts->Register("enable-scale", &enable_scale, "Let infinite norm of input samples to be one");
         opts->Register("apply-pow", &apply_pow, "Using power spectrum instead of magnitude spectrum. "
                                                 "This options only works when computing (Power/Magnitude) spectrum"
                                                 " and corresponding wave reconstruction(egs: wav-estimate).");
@@ -65,7 +64,8 @@ class ShortTimeFTComputer {
 public:
     ShortTimeFTComputer(const ShortTimeFTOptions &opts): 
         opts_(opts), frame_shift_(opts.frame_shift), frame_length_(opts.frame_length) {
-        CacheWindow(opts_); 
+        CacheAnalysisWindow(opts_); 
+        CacheSynthesisWindow(opts_);
         srfft_ = new SplitRadixRealFft<BaseFloat>(opts_.PaddingLength());
     }
 
@@ -105,12 +105,15 @@ public:
 
 
 private:
-    void CacheWindow(const ShortTimeFTOptions &opts);
+    void CacheAnalysisWindow(const ShortTimeFTOptions &opts);
+    // Reference: _biorthogonal_window_brute_force in 
+    //      https://github.com/fgnt/nara_wpe/blob/master/nara_wpe/utils.py
+    void CacheSynthesisWindow(const ShortTimeFTOptions &opts);
 
     ShortTimeFTOptions opts_;
     SplitRadixRealFft<BaseFloat> *srfft_;
 
-    Vector<BaseFloat> window_;
+    Vector<BaseFloat> analysis_window_, synthesis_window_;
 
     BaseFloat frame_shift_;
     BaseFloat frame_length_;
@@ -120,6 +123,8 @@ private:
 
     // keep same as Kaldi's
     int32 NumFrames(int32 num_samples) {
+        if (opts_.center)
+            num_samples += opts_.PaddingLength();
         return static_cast<int32>((num_samples - opts_.frame_length) / opts_.frame_shift) + 1;
     }
 

@@ -27,15 +27,18 @@ namespace kaldi {
 // wave:    (num_channels, num_samples)
 // stft:    (num_channels x num_frames, num_bins)
 void ShortTimeFTComputer::ShortTimeFT(const MatrixBase<BaseFloat> &wave, Matrix<BaseFloat> *stft) {
-    KALDI_ASSERT(window_.Dim() == frame_length_);
+    KALDI_ASSERT(analysis_window_.Dim() == frame_length_);
 
     int32 num_samples = wave.NumCols(), num_channels = wave.NumRows();
+    // affected by center
     int32 num_frames  = NumFrames(num_samples);
     
     stft->Resize(num_frames * num_channels, opts_.PaddingLength(), kSetZero);
     
-    // new copy of wave, cause my modify origin matrix
-    Matrix<BaseFloat> copy_mat(wave);
+    // new copy of wave, cause may modify origin matrix
+    int32 pad_samples = opts_.center ? opts_.PaddingLength() >> 1: 0;
+    Matrix<BaseFloat> copy_mat(num_channels, num_samples + pad_samples * 2);
+    copy_mat.ColRange(pad_samples, num_samples).CopyFromMat(wave);
 
     if (opts_.normalize_input)
         copy_mat.Scale(1.0 / int16_max);
@@ -55,9 +58,9 @@ void ShortTimeFTComputer::ShortTimeFT(const MatrixBase<BaseFloat> &wave, Matrix<
             ibeg = i * frame_shift_;
             iend = ibeg + frame_length_ <= num_samples ? ibeg + frame_length_: num_samples;  
             spectra.Range(0, iend - ibeg).CopyFromVec(samples.Range(ibeg, iend - ibeg)); 
-            spectra.Range(0, frame_length_).MulElements(window_);
+            spectra.Range(0, frame_length_).MulElements(analysis_window_);
             srfft_->Compute(spectra.Data(), true);
-        } 
+        }
     }
 }
     
@@ -104,7 +107,7 @@ void ShortTimeFTComputer::ComputePhaseAngle(MatrixBase<BaseFloat> &stft, Matrix<
 
 void ShortTimeFTComputer::Compute(const MatrixBase<BaseFloat> &wave, Matrix<BaseFloat> *stft, 
                                   Matrix<BaseFloat> *spectra, Matrix<BaseFloat> *angle) {
-    KALDI_ASSERT(window_.Dim() == frame_length_);
+    KALDI_ASSERT(analysis_window_.Dim() == frame_length_);
     
     Matrix<BaseFloat> stft_cache;
     ShortTimeFT(wave, &stft_cache);
@@ -163,43 +166,79 @@ void ShortTimeFTComputer::InverseShortTimeFT(MatrixBase<BaseFloat> &stft, Matrix
 
         seg.CopyFromVec(spectra.Range(0, frame_length_));
         // NOTE: synthetic window should be orthogonalized with analysis window
-        //       but I haven't implement orthogonalization algorithm, I use 
-        //       'range' to control synthetic energy
-        seg.MulElements(window_);
+        seg.MulElements(synthesis_window_);
         samples.Range(i * frame_shift_, frame_length_).AddVec(1, seg);
     }
 
-    BaseFloat samp_norm = samples.Norm(float_inf);
-    // by default, normalize to int16 to avoid cutoff when writing wave to disk
-    if (range == 0)
-        range = int16_max;
-    // range < 0, do not normalize it.
-    if (range >= 0) {
-        samples.Scale(range / samp_norm);
-        KALDI_VLOG(3) << "Rescale samples(" << range << "/" << samp_norm << ")";
+    // cutoff padding zeros
+    if (opts_.center) {
+        int32 pad_samples = opts_.PaddingLength() >> 1;
+        Matrix<BaseFloat> cutoff(1, num_samples - pad_samples * 2);
+        cutoff.CopyFromMat(wave->ColRange(pad_samples, num_samples - pad_samples * 2));
+        wave->Swap(&cutoff);
     }
+
+    SubVector<BaseFloat> cutoff_samples(*wave, 0);
+    // If range < 0, left what it is
+    if (range >= 0) {
+        BaseFloat samp_norm = cutoff_samples.Norm(float_inf);
+        // by default, normalize to int16 to avoid cutoff when writing wave to disk
+        if (range == 0)
+            range = int16_max;
+        // range < 0, do not normalize it.
+        if (range >= 0) {
+            cutoff_samples.Scale(range / samp_norm);
+            KALDI_VLOG(3) << "Rescale samples(" << range << "/" << samp_norm << ")";
+        }
+    }        
 }
 
-void ShortTimeFTComputer::CacheWindow(const ShortTimeFTOptions &opts) {
-    int32 frame_length = opts.frame_length;
-    window_.Resize(frame_length);
-    double a = M_2PI / (frame_length - 1);
-    for (int32 i = 0; i < frame_length; i++) {
+void ShortTimeFTComputer::CacheAnalysisWindow(const ShortTimeFTOptions &opts) {
+    int32 window_size = opts.frame_length;
+    analysis_window_.Resize(window_size);
+    double a = M_2PI / (window_size - 1);
+    for (int32 i = 0; i < window_size; i++) {
         double d = static_cast<double>(i);
         // numpy's coeff is 0.42
         if (opts.window == "blackman") {
-            window_(i) = 0.42 - 0.5 * cos(a * d) + 0.08 * cos(2 * a * d);
+            analysis_window_(i) = 0.42 - 0.5 * cos(a * d) + 0.08 * cos(2 * a * d);
         } else if (opts.window == "hamming") {
-            window_(i) = 0.54 - 0.46 * cos(a * d);
+            analysis_window_(i) = 0.54 - 0.46 * cos(a * d);
         } else if (opts.window == "hanning") {
-            window_(i) = 0.50 - 0.50 * cos(a * d);          
+            analysis_window_(i) = 0.50 - 0.50 * cos(a * d);          
         } else if (opts.window == "rectangular") {
-            window_(i) = 1.0;
+            analysis_window_(i) = 1.0;
         } else {
-            KALDI_ERR << "Unknown window type " << opts.window;
+            KALDI_ERR << "Unknown analysis window type " << opts.window;
         }
     }
+    synthesis_window_.Resize(window_size);
+    synthesis_window_.CopyFromVec(analysis_window_);
 }
+
+void ShortTimeFTComputer::CacheSynthesisWindow(const ShortTimeFTOptions &opts) {
+    int32 window_size = opts_.frame_length;
+
+    Vector<BaseFloat> analysis_window_square(analysis_window_), denominator(window_size);
+    analysis_window_square.ApplyPow(2);
+
+    int32 width = static_cast<int32>((window_size - 1) / opts_.frame_shift), s;
+
+    for (int32 i = -width; i <= width; i++) {
+        s = i * opts_.frame_shift;
+        if (s < 0) {
+            // [0: end - s] += [-s: end]
+            denominator.Range(0, window_size + s).AddVec(1, analysis_window_square.Range(-s, window_size + s));
+        } else{
+            // [s: end] += [0: end - s]
+            denominator.Range(s, window_size - s).AddVec(1, analysis_window_square.Range(0, window_size - s));
+        }
+    }
+    // synthesis_window_.Resize(window_size);
+    // synthesis_window_.CopyFromVec(analysis_window_);
+    synthesis_window_.DivElements(denominator);
+}
+
 
 }
 

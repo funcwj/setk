@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 
 # wujian@2018
+"""
+Faster CGMM Trainer
+Reference:
+    Higuchi T, Ito N, Yoshioka T, et al. Robust MVDR beamforming using time-frequency masks
+    for online/offline ASR in noise[C]//Acoustics, Speech and Signal Processing (ICASSP),
+    2016 IEEE International Conference on. IEEE, 2016: 5210-5214.
+"""
 
 import numpy as np
 from libs.utils import get_logger, EPSILON
@@ -192,5 +199,3 @@ class CgmmTrainer(object):
                 e + 1, Qn, Qs, Qn + Qs))
 
         return ms
-
-
