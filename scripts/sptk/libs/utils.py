@@ -16,12 +16,15 @@ __all__ = ["stft", "istft", "get_logger"]
 
 
 def nfft(window_size):
+    # nextpow2
     return int(2**np.ceil(int(np.log2(window_size))))
 
 
-def write_wav(fname, samps, fs=16000):
+def write_wav(fname, samps, fs=16000, normalize=True):
+    if normalize:
+        samps = samps * MAX_INT16
     # same as MATLAB and kaldi
-    samps_int16 = (samps * MAX_INT16).astype(np.int16)
+    samps_int16 = samps.astype(np.int16)
     fdir = os.path.dirname(fname)
     if fdir and not os.path.exists(fdir):
         os.makedirs(fdir)
@@ -87,6 +90,7 @@ def istft(file,
           center=False,
           window="hann",
           transpose=True,
+          normalize=True,
           norm=None,
           fs=16000,
           nsamps=None):
@@ -103,7 +107,7 @@ def istft(file,
     if norm:
         samps_norm = np.linalg.norm(samps, np.inf)
         samps = samps * norm / samps_norm
-    write_wav(file, samps, fs=fs)
+    write_wav(file, samps, fs=fs, normalize=normalize)
 
 
 def parse_scps(scp_path, addr_processor=lambda x: x):

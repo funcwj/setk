@@ -9,6 +9,8 @@ cmd="run.pl"
 stft_conf=conf/stft.conf
 weight_key="weights"
 
+echo "$0 $@"
+
 . ./path.sh
 . ./utils/parse_options.sh || exit 1
 
@@ -26,6 +28,7 @@ wav_split_scp="" && for n in $(seq $nj); do wav_split_scp="$wav_split_scp $exp_d
 stft_opts=$(cat $stft_conf | xargs)
 beamformer_opts="$stft_opts --weight-key $weight_key"
 
+mkdir -p $enhan_dir
 $cmd JOB=1:$nj $exp_dir/log/run_beamformer.JOB.log \
   ./scripts/sptk/apply_fix_beamformer.py \
   $beamformer_opts \

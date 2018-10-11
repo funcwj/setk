@@ -9,6 +9,7 @@ compress=true
 cmd="run.pl"
 nj=40
 
+echo "$0 $@"
 
 . ./path.sh
 . ./utils/parse_options.sh || exit 1
@@ -41,6 +42,6 @@ $cmd JOB=1:$nj $exp_dir/log/compute_mask_$name.JOB.log \
 
 cat $mask_dir/$name.$mask.*.scp | sort -k1 > $data_dir/mask.scp
 
-echo "$0: compute $mask done"
+echo "$0: Compute $mask done"
 
 

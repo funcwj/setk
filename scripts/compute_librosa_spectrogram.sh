@@ -14,6 +14,8 @@ stft_conf=conf/stft.conf
 
 compress=true
 
+echo "$0 $@"
+
 . ./path.sh
 
 . ./utils/parse_options.sh || exit 1
@@ -53,5 +55,5 @@ $cmd JOB=1:$nj $exp_dir/log/compute_spectrogram_$dir.JOB.log \
 
 cat $dst_dir/$dir.$name.*.scp | sort -k1 > $src_dir/feats.scp
 
-echo "$0: compute spectrogram using librosa done"
+echo "$0: Compute spectrogram using librosa done"
 

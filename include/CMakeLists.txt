@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.0)
 
 set(SETK_SRC ${CMAKE_SOURCE_DIR}/include/complex-matrix.cc
              ${CMAKE_SOURCE_DIR}/include/complex-vector.cc

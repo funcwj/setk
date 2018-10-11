@@ -129,7 +129,6 @@ class NumpyReader(Reader):
     def _load(self, key):
         return np.load(self.index_dict[key])
 
-
 class SpectrogramReader(Reader):
     """
         Wrapper for short-time fourier transform of wave scripts

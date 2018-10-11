@@ -13,6 +13,8 @@ epochs=20
 # --center
 stft_conf=conf/stft.conf
 
+echo "$0 $@"
+
 . ./utils/parse_options.sh || exit 1 
 
 [ $# -ne 2 ] && echo "Script format error: $0 <wav-scp> <dst-dir>" && exit 1
@@ -26,10 +28,11 @@ split_wav_scp="" && for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_d
 
 ./utils/split_scp.pl $wav_scp $split_wav_scp
 
+mkdir -p $dst_dir
 ./utils/run.pl JOB=1:$nj $exp_dir/log/run_cgmm.JOB.log \
   ./scripts/sptk/estimate_cgmm_masks.py \
   $stft_opts --num-epochs $epochs \
   $exp_dir/wav.JOB.scp \
   $dst_dir
 
-echo "$0: Done"
+echo "$0: Estimate mask using CGMM methods done"

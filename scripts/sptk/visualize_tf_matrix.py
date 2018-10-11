@@ -65,7 +65,7 @@ if __name__ == '__main__':
         '--frame-shift',
         dest='frame_shift',
         type=int,
-        default=10,
+        default=16,
         help="Frame shift in ms")
     parser.add_argument(
         '--frequency',

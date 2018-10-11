@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.0)
 
 add_executable(compute-stft-stats compute-stft-stats.cc)
 add_executable(compute-masks compute-masks.cc)

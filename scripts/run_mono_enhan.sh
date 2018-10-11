@@ -11,6 +11,8 @@ numpy=false
 transpose=false
 stft_conf=conf/stft.conf
 
+echo "$0 $@"
+
 . ./path.sh
 . ./utils/parse_options.sh || exit 1
 
@@ -44,6 +46,7 @@ mono_enhan_opts=$(cat $stft_conf | xargs)
 $numpy && mono_enhan_opts="$mono_enhan_opts --numpy"
 $transpose && mono_enhan_opts="$mono_enhan_opts --transpose-mask"
 
+mkdir -p $enhan_dir
 $cmd JOB=1:$nj $exp_dir/log/wav_separate.JOB.scp \
   ./scripts/sptk/separate_wav.py \
   $mono_enhan_opts \
@@ -51,4 +54,4 @@ $cmd JOB=1:$nj $exp_dir/log/wav_separate.JOB.scp \
   $exp_dir/masks.scp \
   $enhan_dir 
 
-echo "$0: done"
+echo "$0: Run mono-masking done"

@@ -9,7 +9,11 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from libs.iobase import read_general_mat
+from libs.data_handler import ArchiveReader
+from libs.utils import get_logger
+
+logger = get_logger(__name__)
+
 
 
 def save_figure(key, mat, dest, frame_shift):
@@ -27,42 +31,38 @@ def save_figure(key, mat, dest, frame_shift):
     plt.yticks(yp, ["%d" % d for d in yp])
     plt.xlabel('Time(s)')
     plt.ylabel('DoA')
-    plt.colorbar()
     plt.savefig(dest)
 
 
 def run(args):
-    if not os.path.exists(os.path.dirname(args.save_to)):
-        os.makedirs(os.path.dirname(args.save_to))
-    with open(args.feature_mat, 'rb') as f:
-        mat = read_general_mat(f, direct_access=True)
-        save_figure(args.title, mat, args.save_to, args.frame_shift * 1e-3)
+    if not os.path.exists(args.cache_dir):
+        os.makedirs(args.cache_dir)
+
+    ark_reader = ArchiveReader(args.srp_ark)
+    for key, mat in ark_reader:
+        dst = os.path.join(args.cache_dir, key.replace('.', '-'))
+        save_figure(key, mat, dst, args.frame_shift * 1e-3)
+        logger.info('Save utterance {} to {}.png'.format(key, dst))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Command to visualize augular spectrum\n' \
-                                    'egs: ./visualize_angular_spectrum.py a.mat --save-to demo\n')
+                                    'egs: ./visualize_angular_spectrum.py a.ark --cache-dir demo\n')
     parser.add_argument(
-        'feature_mat',
+        'srp_ark',
         type=str,
-        help="path of augular spectrum in kaldi\'s matrix format")
+        help="Path of augular spectrum in kaldi\'s archive format")
     parser.add_argument(
         '--frame-shift',
         dest='frame_shift',
         type=int,
-        default=10,
-        help="frame shift in ms")
+        default=16,
+        help="Frame shift in ms")
     parser.add_argument(
-        '--save-to',
+        '--cache-dir',
         type=str,
         default="figure.png",
-        dest="save_to",
-        help="location to save pictures")
-    parser.add_argument(
-        '--title',
-        type=str,
-        default="",
-        dest="title",
-        help="title of figures to plot in")
+        dest="cache_dir",
+        help="Location to dump pictures")
     args = parser.parse_args()
     run(args)

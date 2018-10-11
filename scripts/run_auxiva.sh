@@ -12,6 +12,8 @@ window="hann"
 frame_length=1024
 frame_shift=256
 
+echo "$0 $@"
+
 . ./path.sh || exit 1
 . ./utils/parse_options.sh || exit 1
 
@@ -29,6 +31,7 @@ for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_dir/wav.$n.scp"; done
 
 ./utils/split_scp.pl $wav_scp $split_wav_scp || exit 1
 
+mkdir -p $dst_dir
 $cmd JOB=1:$nj $exp_dir/log/run_auxiva.JOB.log \
   ./scripts/sptk/apply_auxiva.py \
   --num-epochs $epochs \
@@ -39,4 +42,4 @@ $cmd JOB=1:$nj $exp_dir/log/run_auxiva.JOB.log \
   $dst_dir
 
 
-echo "$0: do auxiva for $wav_scp done"
+echo "$0: Do auxiva for $wav_scp done"
