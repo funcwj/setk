@@ -1,4 +1,4 @@
-Some useful scripts for speech enhancement integrated with kaldi.
+Some useful scripts(work on python 3.6.5+) for speech enhancement integrated with kaldi.
 
 1. Supervised beamformer based on mask prediction(kaldi's archive or numpy format)
 2. Data convertion among MATLAB, Numpy and kaldi

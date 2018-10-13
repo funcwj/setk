@@ -6,7 +6,16 @@ set -eu
 
 cmd="run.pl"
 nj=40
-
+# egs:
+# --frame-length 1024
+# --frame-shift 256
+# --window hann
+# --num-bins 40
+# --sample-frequency 16000
+# --min-freq 0
+# --max-freq 8000
+# --center
+# --apply-log
 fbank_conf=conf/fbank_librosa.conf
 
 compress=true

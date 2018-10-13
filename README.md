@@ -38,6 +38,6 @@ export KALDI_ROOT=/kaldi/root/dir
 # if on UNIX, need compile kaldi with openblas
 export OPENBLAS_ROOT=/openblas/root/dir
 cmake ..
-make
+make -j
 ```
 
