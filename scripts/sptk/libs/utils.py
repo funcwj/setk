@@ -53,7 +53,7 @@ def read_wav(fname, normalize=True, return_rate=False):
     return samps
 
 
-# return F x T or T x F
+# return F x T or T x F(tranpose=True)
 def stft(samps,
          frame_length=1024,
          frame_shift=256,
@@ -86,7 +86,7 @@ def stft(samps,
         stft_mat = np.transpose(stft_mat)
     return stft_mat
 
-
+# accept F x T or T x F(tranpose=True)
 def istft(file,
           stft_mat,
           frame_length=1024,
@@ -159,13 +159,13 @@ def get_stft_parser():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
         "--frame-length",
-        type=float,
+        type=int,
         default=1024,
         dest="frame_length",
         help="Frame length in number of samples(related to sample frequency)")
     parser.add_argument(
         "--frame-shift",
-        type=float,
+        type=int,
         default=256,
         dest="frame_shift",
         help="Frame shift in number of samples(related to sample frequency)")

@@ -6,6 +6,8 @@ Generate scripts for RIR simulation.
 """
 import argparse
 import random
+import os
+
 import numpy as np
 
 
@@ -75,6 +77,8 @@ def run(args):
     conf = parse_config(args)
     print("#!/usr/bin/env bash")
     print("set -eu")
+    print("[ -d {dir} ] && rm -rf {dir}/*.wav".format(dir=args.dump_dir))
+    print("[ ! -d {dir} ] && mkdir -p {dir}".format(dir=args.dump_dir))
 
     def random_value(conf, key):
         return random.uniform(conf["{}_min".format(key)],
@@ -118,15 +122,17 @@ def run(args):
         ]
 
         print(
-            "rir-simulate --sound-velocity=340 --samp-frequency=16000 --hp-filter=true "
-            "--number-samples=2048 --beta={t60} --room-topo={room_size} "
+            "rir-simulate --sound-velocity=340 --samp-frequency={sample_rate} --hp-filter=true "
+            "--number-samples={rir_samples} --beta={t60} --room-topo={room_size} "
             "--receiver-location=\"{receiver_location}\" --source-location={source_location} "
             "{dir}/T60-{t60}-DoA-{doa}-Dst{dst}.wav".format(
+                sample_rate=args.sample_rate,
+                rir_samples=args.rir_samples,
                 room_size=room_size,
                 t60="{:.3f}".format(random_value(conf, "t60")),
                 receiver_location=";".join(loc_for_each_channel),
                 source_location=source_location,
-                dir=args.dst_dir,
+                dir=args.dump_dir,
                 doa=int(doa * 180 / np.pi),
                 dst="{:.2f}".format(dst)))
 
@@ -134,12 +140,28 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=
-        "Command to generate scripts for single/multi-channel RIRs simulation. (Note: print to stdout)",
+        "Command to generate scripts for single/multi-channel RIRs simulation.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "num_rirs", type=int, help="Total number of rirs to generate")
     parser.add_argument(
-        "dst_dir", type=str, help="Location to dump simulated rirs")
+        "--rir-samples",
+        type=int,
+        default=4096,
+        dest="rir_samples",
+        help="Number samples of simulated rir")
+    parser.add_argument(
+        "--sample-rate",
+        type=int,
+        default=16000,
+        dest="sample_rate",
+        help="Sample rate of simulated signal")
+    parser.add_argument(
+        "--dump-dir",
+        type=str,
+        dest="dump_dir",
+        default="",
+        help="Directory to dump generated rirs")
     parser.add_argument(
         "--room-dim",
         type=str,

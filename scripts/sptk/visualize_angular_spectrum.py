@@ -34,6 +34,8 @@ def save_figure(key, mat, dest, shift=16, samp_tdoa=False):
     plt.xlabel("Time(s)")
     plt.ylabel("DoA" if not samp_tdoa else "TDoA Index")
     plt.savefig(dest)
+    plt.close()
+    logger.info('Save utterance {} to {}.png'.format(key, dest))
 
 
 def run(args):
@@ -49,8 +51,6 @@ def run(args):
             dst,
             shift=args.frame_shift * 1e-3,
             samp_tdoa=args.samp_tdoa)
-        logger.info('Save utterance {} to {}.png'.format(key, dst))
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

@@ -86,9 +86,9 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[get_stft_parser()])
     parser.add_argument(
-        'wav_scp', type=str, help="Multi-channel wave scripts in kaldi format")
+        "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
     parser.add_argument(
-        'dst_dir', type=str, help="Location to dump separated source files")
+        "dst_dir", type=str, help="Location to dump separated source files")
     parser.add_argument(
         "--num-epochs",
         default=20,
