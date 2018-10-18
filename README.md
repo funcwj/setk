@@ -2,8 +2,6 @@
 
 This is some speech enhancement tools implemented integrated with kaldi. I use them for quick experiment.
 
-Updating...
-
 ### Finished
 
 * Compute kinds of masks(ibm, irm etc)
@@ -15,7 +13,7 @@ Updating...
 * Fixed beamformer
 * Compute angular spectrogram based on SRP-PHAT
 * RIR generator(reference from [RIR-Generator](https://github.com/ehabets/RIR-Generator))
-* Some useful scripts in python/shell [scripts](scripts)
+* Some useful scripts in python/shell [scripts](scripts), now I mainly work on it
 
 ### Install
 Compile pass on Mac OSX, Ubuntu and RedHat.

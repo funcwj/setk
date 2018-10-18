@@ -9,13 +9,17 @@ import librosa as audio_lib
 import numpy as np
 
 import libs.iobase as io
-from libs.utils import stft, parse_scps, get_logger
+from libs.utils import stft, read_wav, parse_scps, get_logger
 
 logger = get_logger(__name__)
 
 __all__ = [
-    "ArchiveReader", "ArchiveWriter", "SpectrogramReader", "ScriptReader",
-    "WaveReader"
+    "ArchiveReader",
+    "ArchiveWriter",
+    "SpectrogramReader",
+    "ScriptReader",
+    "WaveReader",
+    "NumpyReader",
 ]
 
 
@@ -69,17 +73,17 @@ class Writer(object):
     """
 
     def __init__(self, ark_path, scp_path=None):
-        if scp_path == '-':
+        if scp_path == "-":
             raise ValueError("Could not write .scp to stdout")
         self.scp_path = scp_path
         self.ark_path = ark_path
-        if self.ark_path == '-' and self.scp_path:
+        if self.ark_path == "-" and self.scp_path:
             self.scp_path = None
             warnings.warn(
                 "Ignore .scp output discriptor cause dump archives to stdout")
 
     def __enter__(self):
-        self.ark_file = sys.stdout.buffer if self.ark_path == '-' else open(
+        self.ark_file = sys.stdout.buffer if self.ark_path == "-" else open(
             self.ark_path, "wb")
         # scp_path = "" or None
         self.scp_file = None if not self.scp_path else open(self.scp_path, "w")
@@ -88,7 +92,7 @@ class Writer(object):
     def __exit__(self, *args):
         if self.scp_file:
             self.scp_file.close()
-        if self.ark_path != '-':
+        if self.ark_path != "-":
             self.ark_file.close()
 
     def write(self, key, data):
@@ -97,7 +101,7 @@ class Writer(object):
 
 class ArchiveReader(object):
     """
-        Sequential Reader for .ark object
+        Sequential Reader for Kalid's archive(.ark) object
     """
 
     def __init__(self, ark_path):
@@ -112,34 +116,21 @@ class ArchiveReader(object):
 
 
 class WaveReader(Reader):
-    def __init__(self, scp_path, sample_rate=None):
-        super(WaveReader, self).__init__(scp_path)
-        self.sample_rate = sample_rate
-
-    def _load(self, key):
-        wav_addr = self.index_dict[key]
-        samps, _ = audio_lib.load(wav_addr, sr=self.sample_rate)
-        return samps
-
-
-class NumpyReader(Reader):
-    def __init__(self, scp_path):
-        super(NumpyReader, self).__init__(scp_path)
-
-    def _load(self, key):
-        return np.load(self.index_dict[key])
-
-class SpectrogramReader(Reader):
     """
-        Wrapper for short-time fourier transform of wave scripts
+        Sequential/Random Reader for single/multiple channel wave
+        Format of wav.scp follows Kaldi's definition:
+            key1 /path/to/wav
+            ...
+
+        And /path/to/wav allowed to be a pattern, for example:
+            key1 /home/data/key1.CH*.wav
+        /home/data/key1.CH*.wav matches file /home/data/key1.CH{1,2,3..}.wav 
     """
 
-    def __init__(self, wave_scp, **kwargs):
-        super(SpectrogramReader, self).__init__(wave_scp)
-        if "return_samps" in kwargs and kwargs["return_samps"]:
-            warnings.warn("Argument --return_samps is True here, ignore it")
-            kwargs["return_samps"] = False
-        self.stft_kwargs = kwargs
+    def __init__(self, wav_scp, sample_rate=None, normalize=True):
+        super(WaveReader, self).__init__(wav_scp)
+        self.samp_rate = sample_rate
+        self.normalize = normalize
 
     def _query_flist(self, key):
         flist = glob.glob(self.index_dict[key])
@@ -149,24 +140,66 @@ class SpectrogramReader(Reader):
                     self.index_dict[key]))
         return flist
 
-    # stft, single or multi-channal
+    def _read(self, addr):
+        # return C x N or N
+        samp_rate, samps = read_wav(
+            addr, normalize=self.normalize, return_rate=True)
+        # if given samp_rate, check it
+        if self.samp_rate is not None and samp_rate != self.samp_rate:
+            raise RuntimeError("SampleRate mismatch: {:d} vs {:d}".format(
+                samp_rate, self.samp_rate))
+        return samps
+
     def _load(self, key):
-        flist = self._query_flist(key)
-        if len(flist) == 1:
-            return stft(flist[0], **self.stft_kwargs)
+        # return C x N matrix or N vector
+        wav_list = self._query_flist(key)
+        if len(wav_list) == 1:
+            return self._read(wav_list[0])
         else:
-            return np.array(
-                [stft(f, **self.stft_kwargs) for f in sorted(flist)])
+            # in sorted order, sentitive to beamforming
+            return np.vstack([self._read(addr) for addr in sorted(wav_list)])
 
     def samp_norm(self, key):
-        flist = self._query_flist(key)
-        if len(flist) == 1:
-            samps = audio_lib.load(flist[0], sr=None)[0]
-            return np.linalg.norm(samps, np.inf)
+        samps = self._load(key)
+        return np.max(np.abs(samps))
+
+
+class NumpyReader(Reader):
+    """
+        Sequential/Random Reader for numpy's ndarray(*.npy) file
+    """
+
+    def __init__(self, npy_scp):
+        super(NumpyReader, self).__init__(npy_scp)
+
+    def _load(self, key):
+        return np.load(self.index_dict[key])
+
+
+class SpectrogramReader(Reader):
+    """
+        Sequential/Random Reader for single/multiple channel STFT
+    """
+
+    def __init__(self, wav_scp, normalize=True, **kwargs):
+        super(SpectrogramReader, self).__init__(wav_scp)
+        self.stft_kwargs = kwargs
+        self.wave_reader = WaveReader(wav_scp, normalize=normalize)
+
+    def _load(self, key):
+        samps = self.wave_reader[key]
+        if samps.ndim == 1:
+            return stft(samps, **self.stft_kwargs)
         else:
-            samps_list = [audio_lib.load(f, sr=None)[0] for f in flist]
-            return sum([np.linalg.norm(samps, np.inf)
-                        for samps in samps_list]) / len(flist)
+            N, _ = samps.shape
+            # stft need input to be contiguous in memory
+            # make samps.flags['C_CONTIGUOUS'] = True
+            samps = np.ascontiguousarray(samps)
+            return np.stack(
+                [stft(samps[c], **self.stft_kwargs) for c in range(N)])
+
+    def samp_norm(self, key):
+        return self.wave_reader.samp_norm(key)
 
 
 class ScriptReader(Reader):
@@ -208,8 +241,8 @@ class ArchiveWriter(Writer):
         io.write_common_mat(self.ark_file, matrix)
         abs_path = os.path.abspath(self.ark_path)
         if self.scp_file:
-            self.scp_file.write("{}\t{}:{:d}\n".format(key, abs_path,
-                                                       self.ark_file.tell()))
+            offset = self.ark_file.tell()
+            self.scp_file.write("{}\t{}:{:d}\n".format(key, abs_path, offset))
 
 
 def test_archive_writer(ark, scp):

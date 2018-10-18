@@ -80,10 +80,12 @@ def run(args):
         return random.uniform(conf["{}_min".format(key)],
                               conf["{}_max".format(key)])
 
-    for _ in range(args.num_rirs):
-        room_size = "{:.3f},{:.3f},{:.3f}".format(
-            random_value(conf, "Rx"), random_value(conf, "Ry"),
-            random_value(conf, "Rz"))
+    num_done = 0
+    while True:
+        if num_done == args.num_rirs:
+            break
+        Rx, Ry, Rz = random_value(conf, "Rx"), random_value(
+            conf, "Ry"), random_value(conf, "Rz")
         # microphone location
         Mx, My = random_value(conf, "Mx"), random_value(conf, "My")
         # speaker location
@@ -91,14 +93,25 @@ def run(args):
         doa = random.uniform(0, np.pi)
         Sx = Mx + np.cos(doa) * dst
         Sy = My + np.sin(doa) * dst
-        source_location = "{:.3f},{:.3f},{:.3f}".format(
-            Sx, Sy, random_value(conf, "Sz"))
-        print(
-            "# Location(M): ({:.2f}, {:.2f}), Location(S): ({:.2f}, {:.2f}), DoA: {:d}"
-            .format(Mx, My, Sx, Sy, int(doa * 180 / np.pi)))
 
-        Mc = (conf["topo"][-1] - conf["topo"][0]) / 2
+        # check speaker location
+        if 0 > Sx or Sx > Rx or 0 > Sy or Sy > Ry:
+            continue
+        # speaker and microphone height
+        Sz = random_value(conf, "Sz")
         Mz = random_value(conf, "Mz")
+        # check peaker and microphone height
+        if Sz > Rz or Mz > Rz:
+            continue
+
+        num_done += 1
+        source_location = "{:.3f},{:.3f},{:.3f}".format(Sx, Sy, Sz)
+        room_size = "{:.3f},{:.3f},{:.3f}".format(Rx, Ry, Rz)
+        print("# Room: {:.2f} x {:.2f}, Location(M): ({:.2f}, {:.2f}), "
+              "Location(S): ({:.2f}, {:.2f}), DoA: {:d}".format(
+                  Rx, Ry, Mx, My, Sx, Sy, int(doa * 180 / np.pi)))
+        # center position
+        Mc = (conf["topo"][-1] - conf["topo"][0]) / 2
         loc_for_each_channel = [
             "{:.3f},{:.3f},{:.3f}".format(Mx - Mc + x, My, Mz)
             for x in conf["topo"]
@@ -115,7 +128,7 @@ def run(args):
                 source_location=source_location,
                 dir=args.dst_dir,
                 doa=int(doa * 180 / np.pi),
-                dst=dst))
+                dst="{:.2f}".format(dst)))
 
 
 if __name__ == "__main__":
@@ -131,7 +144,7 @@ if __name__ == "__main__":
         "--room-dim",
         type=str,
         dest="room_dim",
-        default="5,10;5,10;3,4",
+        default="7,10;7,10;3,4",
         help="Constraint for room length/width/height, separated by semicolon")
     parser.add_argument(
         "--array-height",
@@ -149,10 +162,9 @@ if __name__ == "__main__":
         "--array-area",
         type=str,
         dest="array_area",
-        default="0.4,0.6;0.4,0.6",
-        help=
-        "Range of room to place microphone arrays(relative to room's length and width)"
-    )
+        default="0.4,0.6;0,0.1",
+        help="Area of room to place microphone arrays randomly"
+        "(relative values to room's length and width)")
     parser.add_argument(
         "--array-topo",
         type=str,
@@ -169,7 +181,7 @@ if __name__ == "__main__":
         "--source-distance",
         type=str,
         dest="src_dist",
-        default="0.75,2",
+        default="2,3",
         help="Range of distance between microphone arrays and speakers")
     args = parser.parse_args()
     run(args)

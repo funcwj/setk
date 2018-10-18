@@ -34,39 +34,40 @@ def write_wav(fname, samps, fs=16000, normalize=True):
     wf.write(fname, fs, samps_int16)
 
 
-def read_wav(fname, normalize=True):
-    _, samps_int16 = wf.read(fname)
-    if samps_int16.ndim != 1:
-        raise ValueError(
-            "Input file contains {:d} channels, now support mono only".format(
-                samps_int16.ndim))
+def read_wav(fname, normalize=True, return_rate=False):
+    """
+    Read wave files using scipy.io.wavfile(support multi-channel)
+    """
+    # samps_int16: N x C or N
+    #   N: number of samples
+    #   C: number of channels
+    samp_rate, samps_int16 = wf.read(fname)
+    # N x C => C x N
     samps = samps_int16.astype(np.float)
+    if samps.ndim != 1:
+        samps = np.transpose(samps)
     if normalize:
         samps = samps / MAX_INT16
+    if return_rate:
+        return samp_rate, samps
     return samps
 
 
 # return F x T or T x F
-def stft(file,
+def stft(samps,
          frame_length=1024,
          frame_shift=256,
          center=False,
          window="hann",
-         return_samps=False,
          apply_abs=False,
          apply_log=False,
          apply_pow=False,
-         transpose=True,
-         normalize=True):
-    if not os.path.exists(file):
-        raise FileNotFoundError("Input file {} do not exists!".format(file))
+         transpose=True):
     if apply_log and not apply_abs:
+        warnings.warn("Ignore apply_abs=False because apply_log=True")
         apply_abs = True
-        warnings.warn(
-            "Ignore apply_abs=False cause function return real values")
-    # sr=None, using default sample frequency
-    # samps, _ = audio_lib.load(file, sr=None)
-    samps = read_wav(file, normalize=normalize)
+    if samps.ndim != 1:
+        raise RuntimeError("Invalid shape, librosa.stft accepts mono input")
     stft_mat = audio_lib.stft(
         samps,
         nfft(frame_length),
@@ -74,6 +75,7 @@ def stft(file,
         frame_length,
         window=window,
         center=center)
+    # stft_mat: F x T or N x F x T
     if apply_abs:
         stft_mat = np.abs(stft_mat)
     if apply_pow:
@@ -82,7 +84,7 @@ def stft(file,
         stft_mat = np.log(np.maximum(stft_mat, EPSILON))
     if transpose:
         stft_mat = np.transpose(stft_mat)
-    return stft_mat if not return_samps else (samps, stft_mat)
+    return stft_mat
 
 
 def istft(file,

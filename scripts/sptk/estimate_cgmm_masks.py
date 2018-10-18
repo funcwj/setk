@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
     parser.add_argument(
-        'dst_dir', type=str, help="Location to dump enhanced wave files")
+        'dst_dir', type=str, help="Location to dump estimated speech masks")
     parser.add_argument(
         "--num-epochs",
         type=int,
