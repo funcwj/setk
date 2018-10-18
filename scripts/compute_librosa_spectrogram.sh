@@ -10,6 +10,11 @@ nj=40
 sample_normalize=true
 apply_log=true
 apply_pow=false
+# egs:
+# --frame-shift 256
+# --frame-length 1024
+# --center
+# --window hann
 stft_conf=conf/stft.conf
 
 compress=true

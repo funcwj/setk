@@ -67,7 +67,43 @@ fast-lstmp-batchnorm-layer name=b-blstm3 input=Append(f-blstm2, b-blstm2) cell-d
 output-layer name=output input=Append(f-blstm3, b-blstm3) output-delay=$0 dim=513 include-activation=sigmoid include-log-softmax=false objective-type=quadratic
 EOF
       ;;
+    tdnn_blstmp )
+    echo "$0: config tdnn && fast-bi-lstmp-batchnorm networks..."
+    lstm_opts="dropout-proportion=0.2 decay-time=20 l2-regularize=0.0"
+    tdnn_opts="l2-regularize=0.01"
+    cat <<EOF > $exp_dir/configs/network.xconfig
+input dim=$input_dim name=input
+relu-batchnorm-layer name=tdnn1 $tdnn_opts dim=512 input=Append(-2,-1,0,1,2)
+relu-batchnorm-layer name=tdnn2 $tdnn_opts dim=512 input=Append(-1,0,1)
+fast-lstmp-batchnorm-layer name=f-blstm1 cell-dim=512 recurrent-projection-dim=256 non-recurrent-projection-dim=256 delay=-3 $lstm_opts
+fast-lstmp-batchnorm-layer name=b-blstm1 cell-dim=512 recurrent-projection-dim=256 non-recurrent-projection-dim=256 delay=3 $lstm_opts
+fast-lstmp-batchnorm-layer name=f-blstm2 input=Append(f-blstm1, b-blstm1) cell-dim=512 recurrent-projection-dim=256 non-recurrent-projection-dim=256 delay=-3 $lstm_opts
+fast-lstmp-batchnorm-layer name=b-blstm2 input=Append(f-blstm1, b-blstm1) cell-dim=512 recurrent-projection-dim=256 non-recurrent-projection-dim=256 delay=3 $lstm_opts
+fast-lstmp-batchnorm-layer name=f-blstm3 input=Append(f-blstm2, b-blstm2) cell-dim=512 recurrent-projection-dim=256 non-recurrent-projection-dim=256 delay=-3 $lstm_opts
+fast-lstmp-batchnorm-layer name=b-blstm3 input=Append(f-blstm2, b-blstm2) cell-dim=512 recurrent-projection-dim=256 non-recurrent-projection-dim=256 delay=3 $lstm_opts
+output-layer name=output input=Append(f-blstm3, b-blstm3) output-delay=0 dim=513 include-activation=sigmoid include-log-softmax=false objective-type=quadratic 
+EOF
+      ;;
+    cnn_blstmp )
+    lstm_opts="dropout-proportion=0.2 decay-time=20 l2-regularize=0.0001"
+    cnn_opts="l2-regularize=0.001"
+    # for fbank feature only
+    cat <<EOF > $exp_dir/configs/network.xconfig
+input dim=$input_dim name=input
 
+conv-relu-batchnorm-layer name=cnn1 height-in=$input_dim height-out=40 time-offsets=-1,0,1 height-offsets=-1,0,1 num-filters-out=32 $cnn_opts
+conv-relu-batchnorm-layer name=cnn2 height-in=40 height-out=40 time-offsets=-1,0,1 height-offsets=-1,0,1 num-filters-out=32 $cnn_opts
+conv-relu-batchnorm-layer name=cnn3 height-in=40 height-out=20 height-subsample-out=2 time-offsets=-1,0,1 height-offsets=-1,0,1 num-filters-out=128 $cnn_opts
+conv-relu-batchnorm-layer name=cnn4 height-in=20 height-out=20 time-offsets=-1,0,1 height-offsets=-1,0,1 num-filters-out=64 $cnn_opts
+conv-relu-batchnorm-layer name=cnn5 height-in=20 height-out=20 time-offsets=-3,0,3 height-offsets=-1,0,1 num-filters-out=32 $cnn_opts
+
+fast-lstmp-batchnorm-layer name=f-blstm1 cell-dim=512 recurrent-projection-dim=256 non-recurrent-projection-dim=256 delay=-3 $lstm_opts
+fast-lstmp-batchnorm-layer name=b-blstm1 cell-dim=512 recurrent-projection-dim=256 non-recurrent-projection-dim=256 delay=3 $lstm_opts
+fast-lstmp-batchnorm-layer name=f-blstm2 input=Append(f-blstm1, b-blstm1) cell-dim=512 recurrent-projection-dim=256 non-recurrent-projection-dim=256 delay=-3 $lstm_opts
+fast-lstmp-batchnorm-layer name=b-blstm2 input=Append(f-blstm1, b-blstm1) cell-dim=512 recurrent-projection-dim=256 non-recurrent-projection-dim=256 delay=3 $lstm_opts
+output-layer name=output input=Append(f-blstm2, b-blstm2) output-delay=0 dim=513 include-activation=sigmoid include-log-softmax=false objective-type=quadratic 
+EOF
+      ;;
     lstm )
       echo "$0: config fast-lstm-batchnorm networks..."
       cat <<EOF > $exp_dir/configs/network.xconfig

@@ -43,7 +43,8 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=
-        "Command to copy a set of MATLAB's .mat or Python's .npy (real)matrix to kaldi's .scp & .ark files"
+        "Command to copy a set of MATLAB's .mat or Python's .npy (real)matrix to kaldi's .scp & .ark files",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
         "src_dir",

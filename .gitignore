@@ -4,6 +4,7 @@ build/
 egs/
 figure/
 .vscode/
+*.scp
 path.sh
 scripts/sptk/__pycache__/
 scripts/sptk/*.pyc

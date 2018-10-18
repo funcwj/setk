@@ -14,18 +14,19 @@ from libs.utils import get_logger, filekey
 logger = get_logger(__name__)
 
 
-def save_figure(key, mat, dest, gray=False, frame_shift=10, frequency=16000):
+def save_figure(key, mat, dest, binary=False, shift=10, frequency=16000):
     num_frames, num_bins = mat.shape
+    plt.figure()
     plt.imshow(
         mat.T,
         origin="lower",
-        cmap="jet" if not gray else "gray",
+        cmap="jet" if not binary else "binary",
         aspect="auto",
         interpolation="none")
     plt.title(key)
     xp = np.linspace(0, num_frames - 1, 5)
     yp = np.linspace(0, num_bins - 1, 6)
-    plt.xticks(xp, ["{:.2f}".format(t) for t in (xp * frame_shift)])
+    plt.xticks(xp, ["{:.2f}".format(t) for t in (xp * shift)])
     plt.yticks(
         yp,
         ["{:.1f}".format(t) for t in np.linspace(0, frequency / 2, 6) / 1000])
@@ -50,8 +51,8 @@ def run(args):
             key,
             mat,
             os.path.join(args.cache_dir, key.replace('.', '-')),
-            gray=args.gray,
-            frame_shift=args.frame_shift * 1e-3,
+            binary=args.binary,
+            shift=args.frame_shift * 1e-3,
             frequency=16000)
 
 
@@ -59,7 +60,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description=
         "Command to visualize Numpy\'s .npy matrix on T-F domain. egs: log-spectrum or T-F mask\n"
-        "egs: ./visualize_npy_matrix.py  masks_dir --cache-dir figure\n")
+        "egs: ./visualize_npy_matrix.py  masks_dir --cache-dir figure",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
         'npy_dir', type=str, help="Directory of Numpy\'s 2D-arrays")
     parser.add_argument(
@@ -91,9 +94,9 @@ if __name__ == '__main__':
         dest="transpose",
         help="Apply matrix transpose on input features")
     parser.add_argument(
-        '--gray',
+        '--binary',
         action="store_true",
-        dest="gray",
-        help="Using gray colormap instead of jet")
+        dest="binary",
+        help="Using binary(black->bigger) colormap instead of jet")
     args = parser.parse_args()
     run(args)

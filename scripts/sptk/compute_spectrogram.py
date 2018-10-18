@@ -7,7 +7,7 @@ Compute spectrogram features(using librosa kernels) and write in kaldi format
 
 import argparse
 
-from libs.utils import stft, get_logger
+from libs.utils import stft, get_logger, get_stft_parser
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 
 logger = get_logger(__name__)
@@ -38,37 +38,21 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=
-        "Command to extract spectrogram features(using sptk's librosa kernels) and write as kaldi's archives"
+        "Command to extract spectrogram features(using sptk's librosa kernels) and write as kaldi's archives",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[get_stft_parser()]
     )
     parser.add_argument(
         "wav_scp",
         type=str,
         help="Source location of wave scripts in kaldi format")
     parser.add_argument(
-        "dup_ark", type=str, help="Location to dump spectrogram's features")
+        "dup_ark", type=str, help="Location to dump spectrogram features")
     parser.add_argument(
         "--scp",
         type=str,
         default="",
         help="If assigned, generate corresponding scripts for archives")
-    parser.add_argument(
-        "--frame-length",
-        type=int,
-        default=1024,
-        dest="frame_length",
-        help="Frame length in number of samples")
-    parser.add_argument(
-        "--frame-shift",
-        type=int,
-        default=256,
-        dest="frame_shift",
-        help="Frame shift in number of samples")
-    parser.add_argument(
-        "--center",
-        action="store_true",
-        default=False,
-        dest="center",
-        help="Parameter \'center\' in librosa.stft functions")
     parser.add_argument(
         "--apply-log",
         action="store_true",
@@ -87,10 +71,5 @@ if __name__ == "__main__":
         default=False,
         dest="normalize",
         help="If true, normalize sample values between [-1, 1]")
-    parser.add_argument(
-        "--window",
-        default="hann",
-        dest="window",
-        help="Type of window function, see scipy.signal.get_window")
     args = parser.parse_args()
     run(args)

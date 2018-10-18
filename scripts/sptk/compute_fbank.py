@@ -9,7 +9,7 @@ import argparse
 import librosa as audio_lib
 import numpy as np
 
-from libs.utils import stft, get_logger, nfft, EPSILON
+from libs.utils import stft, get_logger, get_stft_parser, nfft, EPSILON
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 
 logger = get_logger(__name__)
@@ -55,7 +55,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=
         "Command to extract melspectrogram/fbank features(using sptk's librosa kernels) "
-        "and write as kaldi's archives")
+        "and write as kaldi's archives",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[get_stft_parser()])
     parser.add_argument(
         "wav_scp",
         type=str,
@@ -73,24 +75,6 @@ if __name__ == "__main__":
         default=16000,
         dest="samp_freq",
         help="Waveform data sample frequency, default = 16000")
-    parser.add_argument(
-        "--frame-length",
-        type=int,
-        default=1024,
-        dest="frame_length",
-        help="Frame length in number of samples, default = 1024(16kHz)")
-    parser.add_argument(
-        "--frame-shift",
-        type=int,
-        default=256,
-        dest="frame_shift",
-        help="Frame shift in number of samples, default = 256(16kHz)")
-    parser.add_argument(
-        "--center",
-        action="store_true",
-        default=False,
-        dest="center",
-        help="Parameter \'center\' in librosa.stft functions")
     parser.add_argument(
         "--apply-log",
         action="store_true",
@@ -110,13 +94,6 @@ if __name__ == "__main__":
         default=False,
         dest="normalize",
         help="If true, normalize sample values between [-1, 1]")
-    parser.add_argument(
-        "--window",
-        type=str,
-        default="hann",
-        dest="window",
-        help=
-        "Type of window function, see scipy.signal.get_window, default = hann")
     parser.add_argument(
         "--num-bins",
         default=40,

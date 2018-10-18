@@ -4,6 +4,7 @@
 import os
 import warnings
 import logging
+import argparse
 
 import librosa as audio_lib
 import scipy.io.wavfile as wf
@@ -43,6 +44,7 @@ def read_wav(fname, normalize=True):
     if normalize:
         samps = samps / MAX_INT16
     return samps
+
 
 # return F x T or T x F
 def stft(file,
@@ -149,3 +151,31 @@ def get_logger(
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     return logger
+
+
+def get_stft_parser():
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        "--frame-length",
+        type=float,
+        default=1024,
+        dest="frame_length",
+        help="Frame length in number of samples(related to sample frequency)")
+    parser.add_argument(
+        "--frame-shift",
+        type=float,
+        default=256,
+        dest="frame_shift",
+        help="Frame shift in number of samples(related to sample frequency)")
+    parser.add_argument(
+        "--center",
+        action="store_true",
+        default=False,
+        dest="center",
+        help="Value of parameter \'center\' in librosa.stft functions")
+    parser.add_argument(
+        "--window",
+        default="hann",
+        dest="window",
+        help="Type of window function, see scipy.signal.get_window")
+    return parser

@@ -34,9 +34,12 @@ for n in $(seq $nj); do split_speech_wav="$split_speech_wav $exp_dir/clean.$n.sc
 mask_opts=$(cat $stft_conf | xargs)
 name=$(basename $data_dir)
 
+denominator_scp=noise.scp
+[ $mask == 'iam' ] && denominator_scp=wav.scp
+
 $cmd JOB=1:$nj $exp_dir/log/compute_mask_$name.JOB.log \
   ./scripts/sptk/compute_mask.py $mask_opts \
-  $exp_dir/clean.JOB.scp $data_dir/noise.scp - \| \
+  $exp_dir/clean.JOB.scp $data_dir/$denominator_scp - \| \
   copy-feats --compress=$compress ark:- \
   ark,scp:$mask_dir/$name.$mask.JOB.ark,$mask_dir/$name.$mask.JOB.scp
 

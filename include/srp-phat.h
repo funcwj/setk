@@ -45,8 +45,8 @@ struct SrpPhatOptions {
     bool samp_doa = false, samp_tdoa = true;
 
     SrpPhatOptions(): sound_speed(340.4), 
-        samp_rate(180), smooth_context(0),
-        topo_descriptor("") {} 
+        samp_rate(181), smooth_context(0),
+        topo_descriptor("") { } 
 
     void Register(OptionsItf *opts) {
         opts->Register("sound-speed", &sound_speed, "Speed of sound(or other kinds of wave)");

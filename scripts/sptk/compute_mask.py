@@ -1,22 +1,29 @@
 #!/usr/bin/env python
 
 # wujian@2018
+"""
+Compute IAM/IBM/IRM masks, using as training targets
+"""
 
 import argparse
-import numpy as np 
+import numpy as np
 
 from libs.data_handler import SpectrogramReader, ArchiveWriter
-from libs.utils import get_logger
+from libs.utils import get_logger, get_stft_parser
 
 logger = get_logger(__name__)
+
 
 def compute_mask(speech, noise, mtype):
     if mtype == "ibm":
         binary_mask = np.abs(speech) > np.abs(noise)
         return binary_mask.astype(np.float)
-    else:
+    elif mtype == "irm":
         denominator = np.abs(speech) + np.abs(noise)
         return np.abs(speech) / denominator
+    else:
+        return np.abs(speech) / np.abs(noise)
+
 
 def run(args):
     # shape: T x F, complex
@@ -44,7 +51,9 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=
-        "Command to compute Tf-mask(as targets for Kaldi's nnet3, only for 2 component case, egs: speech & noise)"
+        "Command to compute Tf-mask(as targets for Kaldi's nnet3, only for 2 component case, egs: speech & noise)",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[get_stft_parser()]
     )
     parser.add_argument(
         "speech_scp", type=str, help="Target speech scripts in Kaldi format")
@@ -61,31 +70,8 @@ if __name__ == "__main__":
         "--mask",
         type=str,
         default="irm",
-        choices=['irm', 'ibm'],
-        help="Type of masks(irm/ibm) to compute")
-    parser.add_argument(
-        "--frame-length",
-        type=int,
-        default=1024,
-        dest="frame_length",
-        help="Frame length in number of samples")
-    parser.add_argument(
-        "--frame-shift",
-        type=int,
-        default=256,
-        dest="frame_shift",
-        help="Frame shift in number of samples")
-    parser.add_argument(
-        "--center",
-        action="store_true",
-        default=False,
-        dest="center",
-        help="Parameter \'center\' in librosa.stft functions")
-    parser.add_argument(
-        "--window",
-        default="hann",
-        dest="window",
-        help="Type of window function, see scipy.signal.get_window")
-
+        choices=['irm', 'ibm', 'iam'],
+        help="Type of masks(irm/ibm/iam) to compute. Note that if iam assigned, "
+        "second .scp is expected to be noisy component")
     args = parser.parse_args()
     run(args)

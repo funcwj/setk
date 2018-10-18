@@ -22,11 +22,12 @@ def do_ban(weight, noise_covar):
     Return:
         ban_weight: shape as F x N
     """
+    _, N = weight.shape
     nominator = np.einsum("...a,...ab,...bc,...c->...", np.conj(weight),
                           noise_covar, noise_covar, weight)
     denominator = np.einsum("...a,...ab,...b->...", np.conj(weight),
                             noise_covar, weight)
-    filters = np.abs(np.sqrt(nominator)) / (denominator)
+    filters = np.sqrt(np.abs(nominator / N)) / (denominator)
     return filters[:, None] * weight
 
 
@@ -230,7 +231,56 @@ class MvdrBeamformer(SupervisedBeamformer):
         #     steer_vector[f] = eigenvecs[:, np.argmax(eigenvals)]
         return steer_vector
 
-    def run(self, speech_mask, spectrogram, noise_mask=None, normalize=False):
+    def run(self,
+            speech_mask,
+            spectrogram,
+            noise_mask=None,
+            normalize=False,
+            method="v1"):
+        """
+        Arguments: (for N: num_mics, F: num_bins, T: num_frames)
+            speech_mask: shape as T x F, same shape as network output
+            spectrogram: shape as N x T x F
+            method: different way to compute speech covariance matrix
+        Returns:
+            stft_enhan: shape as F x T
+        """
+        noise_covar = self.compute_covar_mat(
+            1 - speech_mask if noise_mask is None else noise_mask, spectrogram)
+        if method == "v1":
+            speech_covar = self.compute_covar_mat(speech_mask, spectrogram)
+        else:
+            speech_covar = self.compute_covar_mat(
+                np.ones_like(speech_mask), spectrogram) - noise_covar
+        steer_vector = self.compute_steer_vector(speech_covar)
+        weight = self.weight(steer_vector, noise_covar)
+        return self.beamform(
+            do_ban(weight, noise_covar) if normalize else weight, spectrogram)
+
+
+class PmwfBeamformer(SupervisedBeamformer):
+    """
+    PMWF(Parameterized Multichannel Non-Causal Wiener Filter)
+    WARN: NOT TESTING
+    """
+
+    def __init__(self, num_bins, reference=0):
+        super(PmwfBeamformer, self).__init__(num_bins)
+        self.reference_id = reference
+
+    def weight(self, speech_covar, noise_covar):
+        """
+        Arguments: (for N: num_mics, F: num_bins, T: num_frames)
+            speech_covar: shape as F x N x N
+            noise_covar: shape as F x N x N
+        Return:
+            weight: shape as F x N
+        """
+        numerator = np.linalg.solve(noise_covar, speech_covar)
+        denominator = np.trace(numerator)
+        return numerator[:, self.reference_id, :] / denominator
+
+    def run(self, speech_mask, spectrogram, noise_mask=None):
         """
         Arguments: (for N: num_mics, F: num_bins, T: num_frames)
             speech_mask: shape as T x F, same shape as network output
@@ -238,18 +288,16 @@ class MvdrBeamformer(SupervisedBeamformer):
         Returns:
             stft_enhan: shape as F x T
         """
-        speech_covar = self.compute_covar_mat(speech_mask, spectrogram)
-        steer_vector = self.compute_steer_vector(speech_covar)
         noise_covar = self.compute_covar_mat(
             1 - speech_mask if noise_mask is None else noise_mask, spectrogram)
-        weight = self.weight(steer_vector, noise_covar)
-        return self.beamform(
-            do_ban(weight, noise_covar) if normalize else weight, spectrogram)
+        speech_covar = self.compute_covar_mat(speech_mask, spectrogram)
+        weight = self.weight(speech_covar, noise_covar)
+        return self.beamform(weight, spectrogram)
 
 
 class GevdBeamformer(SupervisedBeamformer):
     """
-    Max-SNR/GEV(Generalized Eigenvalue Decomposition,) Beamformer
+    Max-SNR/GEV(Generalized Eigenvalue Decomposition) Beamformer
     """
 
     def __init__(self, num_bins):
@@ -274,7 +322,12 @@ class GevdBeamformer(SupervisedBeamformer):
                     noise_covar[f])
         return weight
 
-    def run(self, speech_mask, spectrogram, noise_mask=None, normalize=False):
+    def run(self,
+            speech_mask,
+            spectrogram,
+            noise_mask=None,
+            normalize=False,
+            method="v1"):
         """
         Arguments: (for N: num_mics, F: num_bins, T: num_frames)
             speech_mask: shape as T x F, same shape as network output
@@ -282,9 +335,13 @@ class GevdBeamformer(SupervisedBeamformer):
         Returns:
             stft_enhan: shape as F x T
         """
-        speech_covar = self.compute_covar_mat(speech_mask, spectrogram)
         noise_covar = self.compute_covar_mat(
             1 - speech_mask if noise_mask is None else noise_mask, spectrogram)
+        if method == "v1":
+            speech_covar = self.compute_covar_mat(speech_mask, spectrogram)
+        else:
+            speech_covar = self.compute_covar_mat(
+                np.ones_like(speech_mask), spectrogram) - noise_covar
         weight = self.weight(speech_covar, noise_covar)
         return self.beamform(
             do_ban(weight, noise_covar) if normalize else weight, spectrogram)

@@ -12,7 +12,7 @@ import os
 import numpy as np
 from scipy.io import loadmat
 
-from libs.utils import istft, get_logger, nfft
+from libs.utils import istft, get_logger, nfft, get_stft_parser
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader
 from libs.beamformer import MvdrBeamformer, GevdBeamformer
 
@@ -25,7 +25,7 @@ def run(args):
         "frame_shift": args.frame_shift,
         "window": args.window,
         "center": args.center,  # false to comparable with kaldi
-        "transpose": False
+        "transpose": False      # F x T
     }
     spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
     mask_reader = NumpyReader(args.mask_scp) if args.numpy else ScriptReader(
@@ -59,7 +59,9 @@ def run(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description="Command to run adaptive(mvdr/gevd) beamformer")
+        description="Command to run adaptive(mvdr/gevd) beamformer",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[get_stft_parser()])
     parser.add_argument(
         'wav_scp', type=str, help="Multi-channel wave scripts in kaldi format")
     parser.add_argument(
@@ -77,29 +79,6 @@ if __name__ == '__main__':
         dest="numpy",
         help="Define type of masks in numpy.ndarray instead of kaldi's archives"
     )
-    parser.add_argument(
-        "--frame-length",
-        type=int,
-        default=1024,
-        dest="frame_length",
-        help="Frame length in number of samples")
-    parser.add_argument(
-        "--frame-shift",
-        type=int,
-        default=256,
-        dest="frame_shift",
-        help="Frame shift in number of samples")
-    parser.add_argument(
-        "--center",
-        action="store_true",
-        default=False,
-        dest="center",
-        help="Parameter \'center\' in librosa.stft functions")
-    parser.add_argument(
-        "--window",
-        default="hann",
-        dest="window",
-        help="Type of window function, see scipy.signal.get_window")
     parser.add_argument(
         "--beamformer",
         type=str,

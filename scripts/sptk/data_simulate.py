@@ -24,8 +24,8 @@ def check_args(args):
         logger.info("No disturbing speakers, add noise only")
     elif args.max_spk > num_db_spks:
         raise ValueError(
-            "Value of --max-spk exceeds number of disturbing speakers: {} vs {}".
-            format(args.max_spk, num_db_spks))
+            "Value of --max-spk exceeds number of disturbing speakers: {} vs {}"
+            .format(args.max_spk, num_db_spks))
     if num_db_spks:
         assert args.min_spk >= 1 and "Value of --min-spk should larger than zero"
     assert args.iters >= 1 and "Value of --iters should larger than zero"
@@ -126,7 +126,8 @@ def run(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description=
-        "Create mixture of speakers & background/foreground noise for target speaker"
+        "Create mixture of speakers & background/foreground noise for target speaker",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "target_spk", type=str, help="Target speaker wave scripts")

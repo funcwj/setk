@@ -8,7 +8,7 @@ import numpy as np
 
 from libs.cgmm_trainer import CgmmTrainer
 from libs.data_handler import SpectrogramReader
-from libs.utils import get_logger
+from libs.utils import get_logger, get_stft_parser
 
 logger = get_logger(__name__)
 
@@ -50,7 +50,9 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Estimate speech & noise masks using CGMM methods")
+        description="Estimate speech & noise masks using CGMM methods",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[get_stft_parser()])
     parser.add_argument(
         "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
     parser.add_argument(
@@ -61,28 +63,5 @@ if __name__ == "__main__":
         default=20,
         dest="num_epochs",
         help="Number of epochs to train CGMM parameters")
-    parser.add_argument(
-        "--frame-length",
-        type=int,
-        default=1024,
-        dest="frame_length",
-        help="Frame length in number of samples")
-    parser.add_argument(
-        "--frame-shift",
-        type=int,
-        default=256,
-        dest="frame_shift",
-        help="Frame shift in number of samples")
-    parser.add_argument(
-        "--center",
-        action="store_true",
-        default=False,
-        dest="center",
-        help="\'center\' flags in librosa.stft functions")
-    parser.add_argument(
-        "--window",
-        default="hann",
-        dest="window",
-        help="Type of window function, see scipy.signal.get_window")
     args = parser.parse_args()
     run(args)

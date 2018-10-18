@@ -15,9 +15,10 @@ from libs.utils import get_logger
 logger = get_logger(__name__)
 
 
-
-def save_figure(key, mat, dest, frame_shift):
+def save_figure(key, mat, dest, shift=16, samp_tdoa=False):
     num_frames, num_doas = mat.shape
+    plt.figure()
+    # binary: black -> higher
     plt.imshow(
         mat.T,
         origin="lower",
@@ -25,12 +26,13 @@ def save_figure(key, mat, dest, frame_shift):
         aspect="auto",
         interpolation="none")
     plt.title(key)
+    plt.colorbar()
     xp = np.linspace(0, num_frames - 1, 5)
-    yp = np.linspace(0, num_doas, 7)
-    plt.xticks(xp, ["{:.02f}".format(t) for t in (xp * frame_shift)])
+    yp = np.linspace(0, num_doas - 1, 7)
+    plt.xticks(xp, ["{:.02f}".format(t) for t in (xp * shift)])
     plt.yticks(yp, ["%d" % d for d in yp])
-    plt.xlabel('Time(s)')
-    plt.ylabel('DoA')
+    plt.xlabel("Time(s)")
+    plt.ylabel("DoA" if not samp_tdoa else "TDoA Index")
     plt.savefig(dest)
 
 
@@ -41,13 +43,20 @@ def run(args):
     ark_reader = ArchiveReader(args.srp_ark)
     for key, mat in ark_reader:
         dst = os.path.join(args.cache_dir, key.replace('.', '-'))
-        save_figure(key, mat, dst, args.frame_shift * 1e-3)
+        save_figure(
+            key,
+            mat,
+            dst,
+            shift=args.frame_shift * 1e-3,
+            samp_tdoa=args.samp_tdoa)
         logger.info('Save utterance {} to {}.png'.format(key, dst))
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser('Command to visualize augular spectrum\n' \
-                                    'egs: ./visualize_angular_spectrum.py a.ark --cache-dir demo\n')
+    parser = argparse.ArgumentParser(
+        description="Command to visualize augular spectrum.\n"
+        "egs: ./visualize_angular_spectrum.py a.ark --cache-dir demo",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'srp_ark',
         type=str,
@@ -61,8 +70,13 @@ if __name__ == '__main__':
     parser.add_argument(
         '--cache-dir',
         type=str,
-        default="figure.png",
+        default="figure",
         dest="cache_dir",
         help="Location to dump pictures")
+    parser.add_argument(
+        "--sample-tdoa",
+        dest="samp_tdoa",
+        action="store_true",
+        help="Sample TDoA instead of DoA when computing spectrum")
     args = parser.parse_args()
     run(args)

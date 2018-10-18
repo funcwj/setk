@@ -73,7 +73,8 @@ def run(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description=
-        "Command to split voiced segments. This command using a simple method based on energy threshold"
+        "Command to split voiced segments. This command using a simple method based on energy threshold",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
         "wav_scp", type=str, help="Input wave scripts in kaldi format")

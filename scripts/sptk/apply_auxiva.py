@@ -14,7 +14,7 @@ import os
 
 import numpy as np
 
-from libs.utils import stft, istft, get_logger, EPSILON
+from libs.utils import stft, istft, get_logger, get_stft_parser, EPSILON
 from libs.data_handler import SpectrogramReader
 
 logger = get_logger(__name__)
@@ -61,7 +61,7 @@ def run(args):
         "frame_length": args.frame_length,
         "frame_shift": args.frame_shift,
         "window": args.window,
-        "center": True,
+        "center": args.center,
         "transpose": True  # F x T instead of T x F
     }
 
@@ -82,29 +82,13 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Command to do AuxIVA bss algorithm")
+        description="Command to do AuxIVA bss algorithm",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[get_stft_parser()])
     parser.add_argument(
         'wav_scp', type=str, help="Multi-channel wave scripts in kaldi format")
     parser.add_argument(
         'dst_dir', type=str, help="Location to dump separated source files")
-    parser.add_argument(
-        "--frame-length",
-        type=int,
-        default=1024,
-        dest="frame_length",
-        help="Frame length in number of samples")
-    parser.add_argument(
-        "--frame-shift",
-        type=int,
-        default=256,
-        dest="frame_shift",
-        help="Frame shift in number of samples")
-    parser.add_argument(
-        "--window",
-        type=str,
-        default="hann",
-        dest="window",
-        help="Type of window function, see scipy.signal.get_window")
     parser.add_argument(
         "--num-epochs",
         default=20,
