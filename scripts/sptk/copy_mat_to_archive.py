@@ -12,6 +12,7 @@ from libs.data_handler import ArchiveWriter
 
 logger = get_logger(__name__)
 
+
 def run(args):
     num_mat = 0
     with ArchiveWriter(args.archive, args.scp) as writer:
@@ -44,8 +45,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=
         "Command to copy a set of MATLAB's .mat or Python's .npy (real)matrix to kaldi's .scp & .ark files",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "src_dir",
         type=str,

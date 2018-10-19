@@ -9,8 +9,6 @@ import pprint
 
 import numpy as np
 
-import scipy.io.wavfile as wf
-
 from libs.data_handler import WaveReader
 from libs.utils import EPSILON, MAX_INT16, get_logger, write_wav
 from tqdm import tqdm
