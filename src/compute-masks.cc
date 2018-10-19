@@ -22,7 +22,7 @@
 
 using namespace kaldi;
 
-void ComputeMasks(const ShortTimeFTComputer &stft_computer,
+void ComputeMasks(ShortTimeFTComputer &stft_computer,
                   const MatrixBase<BaseFloat> &noise_data,
                   const MatrixBase<BaseFloat> &clean_data,
                   const std::string &type, Matrix<BaseFloat> *mask) {

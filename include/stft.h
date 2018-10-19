@@ -100,20 +100,21 @@ class ShortTimeFTComputer {
   void ShortTimeFT(const MatrixBase<BaseFloat> &wave, Matrix<BaseFloat> *stft);
 
   // using overlapadd to reconstruct waveform from realfft's complex results
-  void InverseShortTimeFT(MatrixBase<BaseFloat> &stft, Matrix<BaseFloat> *wave,
-                          BaseFloat range = 0);
+  void InverseShortTimeFT(const MatrixBase<BaseFloat> &stft,
+                          Matrix<BaseFloat> *wave, BaseFloat range = 0);
 
   // compute spectrogram from stft results, abs(i^2 + r^2) or i^2 + r^2...)
-  void ComputeSpectrogram(MatrixBase<BaseFloat> &stft,
+  void ComputeSpectrogram(const MatrixBase<BaseFloat> &stft,
                           Matrix<BaseFloat> *spectra);
 
   // compute phase angle from stft results
-  void ComputePhaseAngle(MatrixBase<BaseFloat> &stft, Matrix<BaseFloat> *angle);
+  void ComputePhaseAngle(const MatrixBase<BaseFloat> &stft,
+                         Matrix<BaseFloat> *angle);
 
   // restore stft(complex) results using spectrogram(magnitude) & angle(phase
   // angle)
-  void Polar(MatrixBase<BaseFloat> &spectra, MatrixBase<BaseFloat> &angle,
-             Matrix<BaseFloat> *stft);
+  void Polar(const MatrixBase<BaseFloat> &spectra,
+             const MatrixBase<BaseFloat> &angle, Matrix<BaseFloat> *stft);
 
   // compute stft stats from raw waveform, calls above internal
   void Compute(const MatrixBase<BaseFloat> &wave, Matrix<BaseFloat> *stft,

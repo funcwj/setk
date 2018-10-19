@@ -65,7 +65,7 @@ void TestEstimateSteerVector() {
     int32 f = Rand() % 6 + 4, t = Rand() % 6 + 4, c = Rand() % 5 + 3;
     CMatrix<BaseFloat> psd(f * c, c), hmat, sv;
     for (int32 j = 0; j < f; j++) {
-      create_hermite_cmatrix(&hmat, c);
+      CreateHermiteCmatrix(&hmat, c);
       psd.RowRange(j * c, c).CopyFromMat(hmat);
     }
     std::cout << "f = " << f << ", t = " << t << ", c = " << c << std::endl;
@@ -80,7 +80,7 @@ void TestComputeMvdrBeamWeights() {
     CMatrix<BaseFloat> psd(f * c, c), hmat, weights, sv(f, c);
     sv.SetRandn();
     for (int32 j = 0; j < f; j++) {
-      create_hermite_cmatrix(&hmat, c);
+      CreateHermiteCmatrix(&hmat, c);
       psd.RowRange(j * c, c).CopyFromMat(hmat);
     }
     std::cout << "f = " << f << ", t = " << t << ", c = " << c << std::endl;
