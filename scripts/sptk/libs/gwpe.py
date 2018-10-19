@@ -181,7 +181,9 @@ def _get_power_inverse(signal, psd_context=0):
 
 
 def _get_working_shape(shape):
-    "Flattens all but the last two dimension."
+    """
+    Flattens all but the last two dimension.
+    """
     product = functools.reduce(operator.mul, [1] + list(shape[:-2]))
     return [product] + list(shape[-2:])
 
@@ -265,4 +267,3 @@ def wpe(Y, taps=10, delay=3, iters=3, psd_context=0, statistics_mode='full'):
             Y=Y[s], Y_tilde=Y_tilde[s], inverse_power=inverse_power[s])
         X = _perform_filter_operation(Y=Y, Y_tilde=Y_tilde, filter_matrix=G)
     return X
-

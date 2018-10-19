@@ -2,7 +2,7 @@
 
 # wujian@2018
 """
-Generate scripts for RIR simulation.
+Generate scripts for RIR simulation which use rir-simulate(see src/rir-simulate.cc)
 """
 import argparse
 import random
