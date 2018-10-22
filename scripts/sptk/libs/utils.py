@@ -114,22 +114,6 @@ def istft(file,
     write_wav(file, samps, fs=fs, normalize=normalize)
 
 
-def parse_scps(scp_path, addr_processor=lambda x: x):
-    assert os.path.exists(scp_path)
-    scp_dict = dict()
-    with open(scp_path, 'r') as f:
-        for scp in f:
-            scp_tokens = scp.strip().split()
-            if len(scp_tokens) != 2:
-                raise RuntimeError(
-                    "Error format of context \'{}\'".format(scp))
-            key, addr = scp_tokens
-            if key in scp_dict:
-                raise ValueError("Duplicate key \'{}\' exists!".format(key))
-            scp_dict[key] = addr_processor(addr)
-    return scp_dict
-
-
 def filekey(path):
     fname = os.path.basename(path)
     if not fname:

@@ -9,7 +9,7 @@ import librosa as audio_lib
 import numpy as np
 
 import libs.iobase as io
-from libs.utils import stft, read_wav, parse_scps, get_logger
+from libs.utils import stft, read_wav, get_logger
 
 logger = get_logger(__name__)
 
@@ -23,14 +23,58 @@ __all__ = [
 ]
 
 
+def ext_fopen(fname, mode):
+    """
+    Extend file open function, support "-", which means std-input/output
+    """
+    if mode not in ["w", "r", "wb", "rb"]:
+        raise ValueError("Unknown open mode: {mode}".format(mode=mode))
+    if not fname:
+        return None
+    if fname == "-":
+        if mode in ["w", "wb"]:
+            return sys.stdout.buffer if mode == "wb" else sys.stdout
+        else:
+            return sys.stdin.buffer if mode == "rb" else sys.stdin
+    else:
+        if not os.path.exists(fname):
+            raise FileNotFoundError("Could not find {f}".format(f=fname))
+        return open(fname, mode)
+
+
+def ext_fclose(fname, fd):
+    """
+    Extend file close function, support "-", which means std-input/output
+    """
+    if fname != "-" and fd:
+        fd.close()
+
+
+def parse_scps(scp_path, addr_processor=lambda x: x):
+    """
+    Parse kaldi's script(.scp) file with supported for stdin
+    WARN: last line of scripts could not be None and with "\n" end
+    """
+    scp_dict = dict()
+    f = ext_fopen(scp_path, 'r')
+    for scp in f:
+        scp_tokens = scp.strip().split()
+        if len(scp_tokens) != 2:
+            raise RuntimeError("Error format of context \'{}\'".format(scp))
+        key, addr = scp_tokens
+        if key in scp_dict:
+            raise ValueError("Duplicate key \'{}\' exists!".format(key))
+        scp_dict[key] = addr_processor(addr)
+    ext_fclose(scp_path, f)
+    return scp_dict
+
+
 class Reader(object):
     """
         Base class for sequential/random accessing, to be implemented
     """
 
     def __init__(self, scp_path, addr_processor=lambda x: x):
-        if not os.path.exists(scp_path):
-            raise FileNotFoundError("Could not find file {}".format(scp_path))
         self.index_dict = parse_scps(scp_path, addr_processor=addr_processor)
         self.index_keys = [key for key in self.index_dict.keys()]
 
@@ -73,27 +117,23 @@ class Writer(object):
     """
 
     def __init__(self, ark_path, scp_path=None):
-        if scp_path == "-":
-            raise ValueError("Could not write .scp to stdout")
         self.scp_path = scp_path
         self.ark_path = ark_path
-        if self.ark_path == "-" and self.scp_path:
-            self.scp_path = None
+        # if dump ark to output, then ignore scp
+        if ark_path == "-" and scp_path:
             warnings.warn(
                 "Ignore .scp output discriptor cause dump archives to stdout")
+            self.scp_path = None
 
     def __enter__(self):
-        self.ark_file = sys.stdout.buffer if self.ark_path == "-" else open(
-            self.ark_path, "wb")
-        # scp_path = "" or None
-        self.scp_file = None if not self.scp_path else open(self.scp_path, "w")
+        # "wb" is important
+        self.ark_file = ext_fopen(self.ark_path, "wb")
+        self.scp_file = ext_fopen(self.scp_path, "w")
         return self
 
     def __exit__(self, *args):
-        if self.scp_file:
-            self.scp_file.close()
-        if self.ark_path != "-":
-            self.ark_file.close()
+        ext_fclose(self.ark_path, self.ark_file)
+        ext_fclose(self.scp_path, self.scp_file)
 
     def write(self, key, data):
         raise NotImplementedError
@@ -140,7 +180,7 @@ class WaveReader(Reader):
                     self.index_dict[key]))
         return flist
 
-    def _read(self, addr):
+    def _read_s(self, addr):
         # return C x N or N
         samp_rate, samps = read_wav(
             addr, normalize=self.normalize, return_rate=True)
@@ -150,14 +190,17 @@ class WaveReader(Reader):
                 samp_rate, self.samp_rate))
         return samps
 
-    def _load(self, key):
+    def _read_m(self, key):
         # return C x N matrix or N vector
         wav_list = self._query_flist(key)
         if len(wav_list) == 1:
-            return self._read(wav_list[0])
+            return self._read_s(wav_list[0])
         else:
             # in sorted order, sentitive to beamforming
-            return np.vstack([self._read(addr) for addr in sorted(wav_list)])
+            return np.vstack([self._read_s(addr) for addr in sorted(wav_list)])
+
+    def _load(self, key):
+        return self._read_m(key)
 
     def samp_norm(self, key):
         samps = self._load(key)
@@ -176,18 +219,18 @@ class NumpyReader(Reader):
         return np.load(self.index_dict[key])
 
 
-class SpectrogramReader(Reader):
+class SpectrogramReader(WaveReader):
     """
         Sequential/Random Reader for single/multiple channel STFT
     """
 
     def __init__(self, wav_scp, normalize=True, **kwargs):
-        super(SpectrogramReader, self).__init__(wav_scp)
+        super(SpectrogramReader, self).__init__(wav_scp, normalize=normalize)
         self.stft_kwargs = kwargs
-        self.wave_reader = WaveReader(wav_scp, normalize=normalize)
 
     def _load(self, key):
-        samps = self.wave_reader[key]
+        # get wave samples
+        samps = super()._read_m(key)
         if samps.ndim == 1:
             return stft(samps, **self.stft_kwargs)
         else:
@@ -197,9 +240,6 @@ class SpectrogramReader(Reader):
             samps = np.ascontiguousarray(samps)
             return np.stack(
                 [stft(samps[c], **self.stft_kwargs) for c in range(N)])
-
-    def samp_norm(self, key):
-        return self.wave_reader.samp_norm(key)
 
 
 class ScriptReader(Reader):
@@ -233,16 +273,19 @@ class ArchiveWriter(Writer):
     """
 
     def __init__(self, ark_path, scp_path=None):
+        if not ark_path:
+            raise RuntimeError("Seem configure path of archives as None")
         super(ArchiveWriter, self).__init__(ark_path, scp_path)
+        self.abs_path = os.path.abspath(self.ark_path)
 
     def write(self, key, matrix):
         io.write_token(self.ark_file, key)
         io.write_binary_symbol(self.ark_file)
         io.write_common_mat(self.ark_file, matrix)
-        abs_path = os.path.abspath(self.ark_path)
         if self.scp_file:
             offset = self.ark_file.tell()
-            self.scp_file.write("{}\t{}:{:d}\n".format(key, abs_path, offset))
+            self.scp_file.write("{key}\t{path}:{offset}\n".format(
+                key=key, path=self.abs_path, offset=offset))
 
 
 def test_archive_writer(ark, scp):
