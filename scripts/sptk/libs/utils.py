@@ -7,6 +7,7 @@ import logging
 import argparse
 
 import librosa as audio_lib
+# using wf to handle wave IO because it support better than librosa
 import scipy.io.wavfile as wf
 import numpy as np
 
@@ -24,6 +25,11 @@ def nfft(window_size):
 def write_wav(fname, samps, fs=16000, normalize=True):
     if normalize:
         samps = samps * MAX_INT16
+    # scipy.io.wavfile.write could write single/multi-channel files
+    # for multi-channel, accept ndarray [Nsamples, Nchannels]
+    if samps.ndim != 1 and samps.shape[0] < samps.shape[1]:
+        samps = np.transpose(samps)
+        samps = np.squeeze(samps)
     # same as MATLAB and kaldi
     samps_int16 = samps.astype(np.int16)
     fdir = os.path.dirname(fname)
@@ -44,8 +50,10 @@ def read_wav(fname, normalize=True, return_rate=False):
     samp_rate, samps_int16 = wf.read(fname)
     # N x C => C x N
     samps = samps_int16.astype(np.float)
+    # tranpose because I used to put channel axis first
     if samps.ndim != 1:
         samps = np.transpose(samps)
+    # normalize like MATLAB and librosa
     if normalize:
         samps = samps / MAX_INT16
     if return_rate:
@@ -68,6 +76,7 @@ def stft(samps,
         apply_abs = True
     if samps.ndim != 1:
         raise RuntimeError("Invalid shape, librosa.stft accepts mono input")
+    # orignal stft accept samps(vector) and return matrix shape as F x T 
     stft_mat = audio_lib.stft(
         samps,
         nfft(frame_length),
@@ -100,6 +109,7 @@ def istft(file,
           nsamps=None):
     if transpose:
         stft_mat = np.transpose(stft_mat)
+    # orignal istft accept stft result(matrix, shape as FxT)
     samps = audio_lib.istft(
         stft_mat,
         frame_shift,

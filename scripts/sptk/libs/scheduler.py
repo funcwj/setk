@@ -13,7 +13,7 @@ def run_command(command, wait=True):
         [stdout, stderr] = p.communicate()
         if p.returncode is not 0:
             raise Exception(
-                "There was an error while running the command \"{0}\":{1}\n".
+                "There was an error while running the command \"{0}\":\n{1}\n".
                 format(command, bytes.decode(stderr)))
         return stdout, stderr
     else:
