@@ -14,7 +14,7 @@ This is some speech enhancement tools implemented integrated with kaldi. I use t
 * Compute angular spectrogram based on SRP-PHAT
 * RIR generator(reference from [RIR-Generator](https://github.com/ehabets/RIR-Generator))
 
-And also some useful scripts in python/shell [scripts](scripts), now I mainly work on it.
+And also some useful scripts in python/shell[(scripts)](scripts), now I mainly work on it.
 
 ### Install
 Compile pass on Mac OSX, Ubuntu and RedHat.

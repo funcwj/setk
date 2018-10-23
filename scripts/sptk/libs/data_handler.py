@@ -206,6 +206,9 @@ class WaveReader(Reader):
         samps = self._load(key)
         return np.max(np.abs(samps))
 
+    def duration(self, key):
+        samps = self._load(key)
+        return samps.shape[-1] / self.samp_rate
 
 class NumpyReader(Reader):
     """

@@ -13,32 +13,15 @@ import numpy as np
 
 from libs.scheduler import run_command
 from libs.utils import get_logger
+from libs.simulator import StrToFloatTupleAction, str_to_float_tuple
 
 logger = get_logger(__name__)
 
 
-def str_to_float_tuple(string, sep=","):
-    tokens = string.split(sep)
-    if len(tokens) == 1:
-        raise ValueError("Get only one token by sep={0}, string={1}".format(
-            sep, string))
-    floats = map(float, tokens)
-    return tuple(floats)
-
-
-class StrToFloatTupleAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        try:
-            setattr(namespace, self.dest, str_to_float_tuple(values))
-        except ValueError:
-            raise Exception("Unknown value {0} for --{1}".format(
-                values, self.dest))
-
-
 def parse_config(args):
     args_dict = dict()
-    # process t60
-    args_dict["t60_min"], args_dict["t60_max"] = args.t60_range
+    # process absorption coefficient
+    args_dict["abs_min"], args_dict["abs_max"] = args.abs_range
     # process source-distance
     args_dict["dst_min"], args_dict["dst_max"] = args.src_dist
     # process array-topo
@@ -75,6 +58,7 @@ def parse_config(args):
 
 
 def run(args):
+    config = open(args.dump_conf, "w") if args.dump_conf else None
     conf = parse_config(args)
 
     def sample_value(conf, key):
@@ -129,28 +113,39 @@ def run(args):
                 ",".join(map(format_float, [Mx - Mc + x, My, Mz]))
                 for x in conf["topo"]
             ]
-            # T60
-            t60 = "{:.3f}".format(sample_value(conf, "t60"))
+            # compute reflection coefficient from absorption coefficient
+            absc = sample_value(conf, "abs")
+            refl = np.sqrt(1 - absc)
 
-            rir_path = "{dir}/Room{room_id}-T60-{t60}-DoA-{doa}-Dst{dst}.wav".format(
-                dir=args.dump_dir,
-                room_id=room_id,
-                t60=t60,
-                doa=int(doa * 180 / np.pi),
-                dst="{:.2f}".format(dst))
+            if config:
+                rir_conf = "Room={room_size}, Speaker={speaker_location}, " \
+                    "Microphone={array_location}, Refl={refl}, DoA={doa}, Dst={dst}\n".format(
+                    doa=doa,
+                    refl=format_float(refl),
+                    dst=format_float(dst),
+                    room_size=room_size,
+                    speaker_location=source_location,
+                    array_location=",".join(map(format_float, [Mc, My, Mz])))
+                config.write(rir_conf)
+
             # generate rir using rir-simulate command
             run_command(
                 "rir-simulate --sound-velocity=340 --samp-frequency={sample_rate} "
-                "--hp-filter=true --number-samples={rir_samples} --beta={t60} "
+                "--hp-filter=true --number-samples={rir_samples} --beta={refl} "
                 "--room-topo={room_size} --receiver-location=\"{receiver_location}\" "
-                "--source-location={source_location} {rir}".format(
+                "--source-location={source_location} {dir}/Room{room_id}-{rir_id}.wav"
+                .format(
                     sample_rate=args.sample_rate,
                     rir_samples=args.rir_samples,
                     room_size=room_size,
-                    t60=t60,
+                    refl=",".join(map(format_float, [refl] * 6)),
                     receiver_location=";".join(loc_for_each_channel),
                     source_location=source_location,
-                    rir=rir_path))
+                    dir=args.dump_dir,
+                    room_id=room_id,
+                    rir_id=done_cur_room))
+    if config:
+        config.close()
     logger.info("Generate {:d} rirs in total done".format(
         args.num_rirs * args.num_rooms))
 
@@ -172,6 +167,12 @@ if __name__ == "__main__":
         dest="num_rirs",
         help="Number of rirs to simulate for each room")
     parser.add_argument(
+        "--dump-config",
+        type=str,
+        default="",
+        dest="dump_conf",
+        help="If not None, dump rir configures out")
+    parser.add_argument(
         "--rir-samples",
         type=int,
         default=4096,
@@ -187,7 +188,7 @@ if __name__ == "__main__":
         "--dump-dir",
         type=str,
         dest="dump_dir",
-        default="",
+        default="rir",
         help="Directory to dump generated rirs")
     parser.add_argument(
         "--room-dim",
@@ -221,16 +222,18 @@ if __name__ == "__main__":
         default=(0, 0.1, 0.2, 0.3),
         help="Linear topology for microphone arrays.")
     parser.add_argument(
-        "--t60-range",
+        "--absorption-coefficient-range",
         action=StrToFloatTupleAction,
-        dest="t60_range",
-        default=(0.2, 0.7),
-        help="Range of T60 values.")
+        dest="abs_range",
+        default=(0.2, 0.8),
+        help="Range of absorption coefficient of the room material. "
+        "Absorption coefficient is located between 0 and 1, if a material "
+        "offers no reflection, the absorption coefficient is close to 1.")
     parser.add_argument(
         "--source-distance",
         action=StrToFloatTupleAction,
         dest="src_dist",
-        default=(2, 3),
+        default=(1, 3),
         help="Range of distance between microphone arrays and speakers")
     args = parser.parse_args()
     run(args)

@@ -8,5 +8,6 @@ figure/
 path.sh
 scripts/sptk/__pycache__/
 scripts/sptk/*.pyc
+scripts/sptk/create_*
 scripts/sptk/libs/__pycache__/
 scripts/sptk/libs/*.pyc

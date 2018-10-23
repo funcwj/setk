@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # coding=utf-8
 # wujian@2018
-
+"""
+This command create mixture of multiple speakers with additive noise distortions, which is
+often used for training speech mask networks/predictors.
+"""
 import os
 import argparse
 import random
@@ -29,33 +32,52 @@ def check_args(args):
     assert args.iters >= 1 and "Value of --iters should larger than zero"
 
 
+def signal_power(waveform, dim):
+    """
+    Compute signal power:
+        P = \sum_{n=0}^{T-1} s[n]^2 / T
+    And:
+        E = \sum_{n=0}^{T-1} s[n]^2
+    """
+    return np.linalg.norm(waveform, 2)**2 / dim
+
+
 def add_noise(signal, noise, snr, period=False):
     """
         Add noise for target(A very simple version)
     """
-    n_nsamps = noise.size
+    n_nsamps = ndim = noise.size
     s_nsamps = signal.size
 
     if n_nsamps > s_nsamps:
         signal_seg = signal
+        ndim = s_nsamps
         noise_shift = random.randint(0, n_nsamps - s_nsamps)
         noise_seg = noise[noise_shift:noise_shift + s_nsamps]
     else:
         noise_seg = np.zeros(s_nsamps)
         if not period:
+            # ndim = noise.size
             signal_shift = random.randint(0, s_nsamps - n_nsamps)
             signal_seg = signal[signal_shift:signal_shift + n_nsamps]
             noise_seg[signal_shift:signal_shift + n_nsamps] = noise
         else:
+            # repeat
             signal_seg = signal
+            ndim = s_nsamps
             base = 0
             while base + n_nsamps <= s_nsamps:
                 noise_seg[base:base + n_nsamps] = noise
                 base += n_nsamps
             noise_seg[base:] = noise[:s_nsamps - base]
-
-    noise_seg = noise_seg * (10**(-snr / 10) * np.linalg.norm(signal_seg, 2) /
-                             np.maximum(np.linalg.norm(noise_seg, 2), EPSILON))
+    """
+    for = SNR(dB) = 10*log10*(Ps/Pn)
+    Pn/Ps = 10^(-SNR/10)
+    scaler = sqrt(Pn/Ps*10^(-SNR/10))
+    """
+    noise_seg = noise_seg * np.sqrt(
+        10**(-snr / 10) * signal_power(signal_seg, s_nsamps) / np.maximum(
+            signal_power(noise_seg, ndim), EPSILON))
 
     return noise_seg
 
