@@ -48,7 +48,7 @@ $transpose && mono_enhan_opts="$mono_enhan_opts --transpose-mask"
 
 mkdir -p $enhan_dir
 $cmd JOB=1:$nj $exp_dir/log/wav_separate.JOB.scp \
-  ./scripts/sptk/separate_wav.py \
+  ./scripts/sptk/wav_separate.py \
   $mono_enhan_opts \
   $exp_dir/wav.JOB.scp \
   $exp_dir/masks.scp \

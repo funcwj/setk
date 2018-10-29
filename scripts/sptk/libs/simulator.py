@@ -5,7 +5,8 @@ import argparse
 
 from libs.data_handler import parse_scps
 
-class DictSampler(object):
+
+class ScriptSampler(object):
     def __init__(self, scp):
         self.dict = parse_scps(scp)
         self.keys = [key for key in self.dict]

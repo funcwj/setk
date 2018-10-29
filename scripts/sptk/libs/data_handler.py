@@ -37,8 +37,6 @@ def ext_fopen(fname, mode):
         else:
             return sys.stdin.buffer if mode == "rb" else sys.stdin
     else:
-        if not os.path.exists(fname):
-            raise FileNotFoundError("Could not find {f}".format(f=fname))
         return open(fname, mode)
 
 
@@ -263,7 +261,7 @@ class ScriptReader(Reader):
 
     def _load(self, key):
         path, offset = self.index_dict[key]
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             f.seek(offset)
             io.expect_binary(f)
             ark = io.read_general_mat(f)
@@ -283,10 +281,11 @@ class ArchiveWriter(Writer):
 
     def write(self, key, matrix):
         io.write_token(self.ark_file, key)
+        # fix script generation bugs
+        offset = self.ark_file.tell()
         io.write_binary_symbol(self.ark_file)
         io.write_common_mat(self.ark_file, matrix)
         if self.scp_file:
-            offset = self.ark_file.tell()
             self.scp_file.write("{key}\t{path}:{offset}\n".format(
                 key=key, path=self.abs_path, offset=offset))
 

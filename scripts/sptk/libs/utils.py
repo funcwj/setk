@@ -76,7 +76,11 @@ def stft(samps,
         apply_abs = True
     if samps.ndim != 1:
         raise RuntimeError("Invalid shape, librosa.stft accepts mono input")
-    # orignal stft accept samps(vector) and return matrix shape as F x T 
+    # orignal stft accept samps(vector) and return matrix shape as F x T
+    # NOTE for librosa.stft:
+    # 1) win_length <= n_fft
+    # 2) if win_length is None, win_length = n_fft
+    # 3) if win_length < n_fft, pad window to n_fft
     stft_mat = audio_lib.stft(
         samps,
         nfft(frame_length),
@@ -94,6 +98,7 @@ def stft(samps,
     if transpose:
         stft_mat = np.transpose(stft_mat)
     return stft_mat
+
 
 # accept F x T or T x F(tranpose=True)
 def istft(file,
@@ -122,6 +127,42 @@ def istft(file,
         samps_norm = np.linalg.norm(samps, np.inf)
         samps = samps * norm / samps_norm
     write_wav(file, samps, fs=fs, normalize=normalize)
+
+
+def griffin_lim(magnitude,
+                frame_length=1024,
+                frame_shift=256,
+                window="hann",
+                center=True,
+                transpose=True,
+                epochs=100):
+    # TxF -> FxT
+    if transpose:
+        magnitude = np.transpose(magnitude)
+    n_fft = nfft(frame_length)
+    angle = np.exp(2j * np.pi * np.random.rand(*magnitude.shape))
+    samps = audio_lib.istft(
+        magnitude * angle,
+        frame_shift,
+        frame_length,
+        window=window,
+        center=center)
+    for _ in range(epochs):
+        stft_mat = audio_lib.stft(
+            samps,
+            n_fft,
+            frame_shift,
+            frame_length,
+            window=window,
+            center=center)
+        angle = np.exp(1j * np.angle(stft_mat))
+        samps = audio_lib.istft(
+            magnitude * angle,
+            frame_shift,
+            frame_length,
+            window=window,
+            center=center)
+    return samps
 
 
 def filekey(path):

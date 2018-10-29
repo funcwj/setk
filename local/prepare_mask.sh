@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # wujian@2018
 
 set -ue

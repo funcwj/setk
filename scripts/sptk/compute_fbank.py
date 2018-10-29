@@ -74,7 +74,7 @@ if __name__ == "__main__":
         type=int,
         default=16000,
         dest="samp_freq",
-        help="Waveform data sample frequency, default = 16000")
+        help="Waveform data sample frequency")
     parser.add_argument(
         "--apply-log",
         action="store_true",
@@ -86,8 +86,7 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         dest="apply_pow",
-        help="If true, extract power spectrogram instead of energy spectrogram"
-    )
+        help="If true, extract power spectrum instead of magnitude spectrum")
     parser.add_argument(
         "--normalize-samples",
         action="store_true",
@@ -99,18 +98,18 @@ if __name__ == "__main__":
         default=40,
         type=int,
         dest="num_bins",
-        help="Number of mel-bins defined in mel-filters, default = 40")
+        help="Number of mel-bins defined in mel-filters")
     parser.add_argument(
         "--min-freq",
         default=0,
         type=int,
         dest="min_freq",
-        help="Low cutoff frequency for mel bins, default = 0")
+        help="Low cutoff frequency for mel bins")
     parser.add_argument(
         "--max-freq",
         default=8000,
         type=int,
         dest="max_freq",
-        help="High cutoff frequency for mel bins, default = 8000(16kHz)")
+        help="High cutoff frequency for mel bins")
     args = parser.parse_args()
     run(args)

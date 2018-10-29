@@ -38,7 +38,6 @@ nj=40
 preserve_model_interval=10
 
 
-rewrite=false
 mdl=dnn
 exp_dir=exp/mask/$mdl
 
@@ -48,9 +47,6 @@ egs_opts="--nj $egs_nj --num-utts-subset $egs_dev_subset"
 
 # generate same feed forward network configs
 if [ $stage -eq 1 ]; then
-
-    [[ -d $exp_dir && ! $rewrite ]] && echo "$0: $exp_dir already exists" && exit 1
-    [[ -d $exp_dir && $rewrite ]] && echo "$0: clear $exp_dir" && rm -rf $exp_dir
     
     mkdir -p $exp_dir/configs
     input_dim=$(feat-to-dim scp:$train_dir/feats.scp -)

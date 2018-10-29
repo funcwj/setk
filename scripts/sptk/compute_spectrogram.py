@@ -38,10 +38,10 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=
-        "Command to extract spectrogram features(using sptk's librosa kernels) and write as kaldi's archives",
+        "Command to extract spectrogram features(using sptk's librosa kernels) "
+        "and write as kaldi's archives",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()]
-    )
+        parents=[get_stft_parser()])
     parser.add_argument(
         "wav_scp",
         type=str,
@@ -64,7 +64,7 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         dest="apply_pow",
-        help="If true, extract power spectrogram")
+        help="If true, extract power spectrum instead of magnitude spectrum")
     parser.add_argument(
         "--normalize-samples",
         action="store_true",

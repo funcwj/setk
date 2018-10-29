@@ -1,11 +1,20 @@
+# cmake build
 bin/
 lib/
 build/
+# sample dir
 egs/
+# figure dir
 figure/
+# vscode configure
 .vscode/
+# mypy cache
+.mypy_cache/
+# egs scp
 *.scp
+# kaldi path.sh
 path.sh
+# python tmp dir
 scripts/sptk/__pycache__/
 scripts/sptk/*.pyc
 scripts/sptk/create_*
