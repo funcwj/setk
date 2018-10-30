@@ -50,22 +50,45 @@ def ext_fclose(fname, fd):
         fd.close()
 
 
+class ext_open(object):
+    """
+    To make ext_fopen/ext_fclose easy to use like:
+    with open("egs.scp", "r") as f:
+        ...
+    
+    """
+
+    def __init__(self, fname, mode):
+        self.fname = fname
+        self.mode = mode
+
+    def __enter__(self):
+        self.fd = ext_fopen(self.fname, self.mode)
+        return self.fd
+
+    def __exit__(self, *args):
+        ext_fclose(self.fname, self.fd)
+
+
 def parse_scps(scp_path, addr_processor=lambda x: x):
     """
     Parse kaldi's script(.scp) file with supported for stdin
     WARN: last line of scripts could not be None and with "\n" end
     """
     scp_dict = dict()
-    f = ext_fopen(scp_path, 'r')
-    for scp in f:
-        scp_tokens = scp.strip().split()
-        if len(scp_tokens) != 2:
-            raise RuntimeError("Error format of context \'{}\'".format(scp))
-        key, addr = scp_tokens
-        if key in scp_dict:
-            raise ValueError("Duplicate key \'{}\' exists!".format(key))
-        scp_dict[key] = addr_processor(addr)
-    ext_fclose(scp_path, f)
+    line = 0
+    with ext_open(scp_path, "r") as f:
+        for raw_line in f:
+            scp_tokens = raw_line.strip().split()
+            line += 1
+            if len(scp_tokens) != 2:
+                raise RuntimeError("Error format in line[{:d}]: {}".format(
+                    line, raw_line))
+            key, addr = scp_tokens
+            if key in scp_dict:
+                raise ValueError("Duplicate key \'{0}\' exists in {1}".format(
+                    key, scp_path))
+            scp_dict[key] = addr_processor(addr)
     return scp_dict
 
 
@@ -150,10 +173,9 @@ class ArchiveReader(object):
 
     def __iter__(self):
         # to support stdin as input
-        fd = ext_fopen(self.ark_path, "rb")
-        for key, mat in io.read_ark(fd):
-            yield key, mat
-        ext_fclose(self.ark_path, fd)
+        with ext_fopen(self.ark_path, "rb") as fd:
+            for key, mat in io.read_ark(fd):
+                yield key, mat
 
 
 class WaveReader(Reader):
