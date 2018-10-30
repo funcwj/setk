@@ -54,7 +54,8 @@ def run(args):
             shift=args.frame_shift * 1e-3,
             frequency=16000)
 
-
+# now support input from stdin
+# shuf mask.scp | head | copy-feats scp:- ark:- | ./scripts/sptk/visualize_tf_matrix.py -
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description=

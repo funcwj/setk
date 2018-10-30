@@ -13,7 +13,7 @@ apply_pow=false
 # egs:
 # --frame-shift 256
 # --frame-length 1024
-# --center
+# --center true
 # --window hann
 stft_conf=conf/stft.conf
 

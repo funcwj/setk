@@ -37,6 +37,8 @@ def ext_fopen(fname, mode):
         else:
             return sys.stdin.buffer if mode == "rb" else sys.stdin
     else:
+        if mode in ["w", "wb"] and not os.path.exists(fname):
+            raise FileNotFoundError("Could not find {}".format(fname))
         return open(fname, mode)
 
 
@@ -74,10 +76,11 @@ class Reader(object):
 
     def __init__(self, scp_path, addr_processor=lambda x: x):
         self.index_dict = parse_scps(scp_path, addr_processor=addr_processor)
-        self.index_keys = [key for key in self.index_dict.keys()]
+        self.index_keys = list(self.index_dict.keys())
 
     def _load(self, key):
-        raise NotImplementedError
+        # return path
+        return self.index_dict[key]
 
     # number of utterance
     def __len__(self):
@@ -94,19 +97,19 @@ class Reader(object):
 
     # random index, support str/int as index
     def __getitem__(self, index):
+        if type(index) not in [int, str]:
+            raise IndexError("Unsupported index type: {}".format(type(index)))
         if type(index) == int:
+            # from int index to key
             num_utts = len(self.index_keys)
             if index >= num_utts or index < 0:
-                raise KeyError("Interger index out of range, {} vs {}".format(
-                    index, num_utts))
-            key = self.index_keys[index]
-            return self._load(key)
-        elif type(index) is str:
-            if index not in self.index_dict:
-                raise KeyError("Missing utterance {}!".format(index))
-            return self._load(index)
-        else:
-            raise IndexError("Unsupported index type: {}".format(type(index)))
+                raise KeyError(
+                    "Interger index out of range, {:d} vs {:d}".format(
+                        index, num_utts))
+            index = self.index_keys[index]
+        if index not in self.index_dict:
+            raise KeyError("Missing utterance {}!".format(index))
+        return self._load(index)
 
 
 class Writer(object):
@@ -143,14 +146,14 @@ class ArchiveReader(object):
     """
 
     def __init__(self, ark_path):
-        if not os.path.exists(ark_path):
-            raise FileNotFoundError("Could not find {}".format(ark_path))
         self.ark_path = ark_path
 
     def __iter__(self):
-        with open(self.ark_path, "rb") as fd:
-            for key, mat in io.read_ark(fd):
-                yield key, mat
+        # to support stdin as input
+        fd = ext_fopen(self.ark_path, "rb")
+        for key, mat in io.read_ark(fd):
+            yield key, mat
+        ext_fclose(self.ark_path, fd)
 
 
 class WaveReader(Reader):
@@ -207,6 +210,7 @@ class WaveReader(Reader):
     def duration(self, key):
         samps = self._load(key)
         return samps.shape[-1] / self.samp_rate
+
 
 class NumpyReader(Reader):
     """
@@ -277,17 +281,17 @@ class ArchiveWriter(Writer):
         if not ark_path:
             raise RuntimeError("Seem configure path of archives as None")
         super(ArchiveWriter, self).__init__(ark_path, scp_path)
-        self.abs_path = os.path.abspath(self.ark_path)
 
     def write(self, key, matrix):
         io.write_token(self.ark_file, key)
         # fix script generation bugs
-        offset = self.ark_file.tell()
+        if self.ark_path != "-":
+            offset = self.ark_file.tell()
         io.write_binary_symbol(self.ark_file)
         io.write_common_mat(self.ark_file, matrix)
         if self.scp_file:
             self.scp_file.write("{key}\t{path}:{offset}\n".format(
-                key=key, path=self.abs_path, offset=offset))
+                key=key, path=os.path.abspath(self.ark_path), offset=offset))
 
 
 def test_archive_writer(ark, scp):

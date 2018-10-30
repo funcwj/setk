@@ -9,7 +9,8 @@ import argparse
 import librosa as audio_lib
 import numpy as np
 
-from libs.utils import get_logger, get_stft_parser, nfft, griffin_lim, write_wav, EPSILON
+from libs.utils import get_logger, nfft, griffin_lim, write_wav, EPSILON
+from libs.opts import get_stft_parser
 from libs.data_handler import ScriptReader
 
 logger = get_logger(__name__)

@@ -10,7 +10,7 @@ epochs=20
 # --frame-length 1024
 # --frame-shift 256
 # --window hann
-# --center
+# --center true
 stft_conf=conf/stft.conf
 
 echo "$0 $@"

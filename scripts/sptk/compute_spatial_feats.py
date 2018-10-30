@@ -7,7 +7,8 @@ Compute some typical spatial features(SRP/IPD/MSC)
 
 import argparse
 
-from libs.utils import get_stft_parser, get_logger, nfft
+from libs.utils import get_logger, nfft
+from libs.opts import get_stft_parser
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 from libs.spatial import srp_phat, ipd, msc
 

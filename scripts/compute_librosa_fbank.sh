@@ -6,6 +6,9 @@ set -eu
 
 cmd="run.pl"
 nj=40
+sample_normalize=true
+apply_log=true
+apply_pow=false
 # egs:
 # --frame-length 1024
 # --frame-shift 256
@@ -14,8 +17,7 @@ nj=40
 # --sample-frequency 16000
 # --min-freq 0
 # --max-freq 8000
-# --center
-# --apply-log
+# --center true
 fbank_conf=conf/fbank_librosa.conf
 
 compress=true
@@ -34,6 +36,9 @@ dst_dir=$3
 [ ! -f $src_dir/wav.scp ] && echo "$0: missing wav.scp in $src_dir" && exit 1
 
 fbank_opts=$(cat $fbank_conf | xargs)
+$sample_normalize && fbank_opts="$fbank_opts --normalize-samples"
+$apply_log && fbank_opts="$fbank_opts --apply-log"
+$apply_pow && fbank_opts="$fbank_opts --apply-pow"
 
 exp_dir=$2 && mkdir -p $exp_dir
 mkdir -p $dst_dir && dst_dir=$(cd $dst_dir; pwd)
@@ -44,7 +49,6 @@ for n in $(seq $nj); do wav_split_scp="$wav_split_scp $exp_dir/wav.$n.scp"; done
 ./utils/split_scp.pl $src_dir/wav.scp $wav_split_scp || exit 1
 
 name="fbank"
-
 dir=$(basename $src_dir)
 
 $cmd JOB=1:$nj $exp_dir/log/compute_fbank_$dir.JOB.log \

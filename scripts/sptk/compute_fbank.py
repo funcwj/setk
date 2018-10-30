@@ -9,7 +9,8 @@ import argparse
 import librosa as audio_lib
 import numpy as np
 
-from libs.utils import stft, get_logger, get_stft_parser, nfft, EPSILON
+from libs.utils import stft, get_logger, nfft, EPSILON
+from libs.opts import get_stft_parser
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 
 logger = get_logger(__name__)

@@ -13,7 +13,7 @@ import numpy as np
 
 from libs.scheduler import run_command
 from libs.utils import get_logger
-from libs.simulator import StrToFloatTupleAction, str_to_float_tuple
+from libs.opts import StrToFloatTupleAction, str_to_float_tuple
 
 logger = get_logger(__name__)
 

@@ -8,7 +8,8 @@ import numpy as np
 
 from libs.cgmm_trainer import CgmmTrainer
 from libs.data_handler import SpectrogramReader
-from libs.utils import get_logger, get_stft_parser
+from libs.utils import get_logger
+from libs.opts import get_stft_parser
 
 logger = get_logger(__name__)
 

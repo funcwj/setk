@@ -7,7 +7,8 @@ import os
 
 import numpy as np
 
-from libs.utils import stft, istft, get_logger, get_stft_parser
+from libs.utils import stft, istft, get_logger
+from libs.opts import get_stft_parser
 from libs.data_handler import SpectrogramReader, NumpyReader, ScriptReader
 
 logger = get_logger(__name__)

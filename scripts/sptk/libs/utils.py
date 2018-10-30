@@ -4,7 +4,6 @@
 import os
 import warnings
 import logging
-import argparse
 
 import librosa as audio_lib
 # using wf to handle wave IO because it support better than librosa
@@ -188,31 +187,3 @@ def get_logger(
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     return logger
-
-
-def get_stft_parser():
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument(
-        "--frame-length",
-        type=int,
-        default=1024,
-        dest="frame_length",
-        help="Frame length in number of samples(related to sample frequency)")
-    parser.add_argument(
-        "--frame-shift",
-        type=int,
-        default=256,
-        dest="frame_shift",
-        help="Frame shift in number of samples(related to sample frequency)")
-    parser.add_argument(
-        "--center",
-        action="store_true",
-        default=False,
-        dest="center",
-        help="Value of parameter \'center\' in librosa.stft functions")
-    parser.add_argument(
-        "--window",
-        default="hann",
-        dest="window",
-        help="Type of window function, see scipy.signal.get_window")
-    return parser

@@ -8,7 +8,8 @@ import os
 import numpy as np
 from scipy.io import loadmat
 
-from libs.utils import istft, get_logger, get_stft_parser
+from libs.utils import istft, get_logger
+from libs.opts import get_stft_parser
 from libs.data_handler import SpectrogramReader
 from libs.beamformer import FixedBeamformer
 
@@ -49,11 +50,11 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[get_stft_parser()])
     parser.add_argument(
-        'wav_scp', type=str, help="Multi-channel wave scripts in kaldi format")
+        "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
     parser.add_argument(
-        'weights', type=str, help="Fixed beamformer weight in MATLAB format")
+        "weights", type=str, help="Fixed beamformer weight in MATLAB format")
     parser.add_argument(
-        'dst_dir', type=str, help="Location to dump enhanced wave file")
+        "dst_dir", type=str, help="Location to dump enhanced wave file")
     parser.add_argument(
         "--weight-key",
         default="weights",

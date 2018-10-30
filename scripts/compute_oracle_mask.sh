@@ -19,7 +19,19 @@ echo "$0 $@"
 data_dir=$(cd $1; pwd)
 mask_dir=$3
 
-for f in noise.scp clean.scp wav.scp; do
+denominator_scp=noise.scp
+case $mask in 
+  "iam"|"psm" )
+    denominator_scp=wav.scp
+    ;;
+  "ibm"|"irm" )
+    ;;
+  * )
+    echo "$0: Unknown type of mask: $mask" && exit 1
+    ;;
+esac
+
+for f in clean.scp $denominator_scp; do
     [ ! -f $data_dir/$f ] && echo "$0: missing $f in $data_dir" && exit 1
 done
 
@@ -33,9 +45,6 @@ for n in $(seq $nj); do split_speech_wav="$split_speech_wav $exp_dir/clean.$n.sc
 
 mask_opts=$(cat $stft_conf | xargs)
 name=$(basename $data_dir)
-
-denominator_scp=noise.scp
-[ $mask == 'iam' ] && denominator_scp=wav.scp
 
 $cmd JOB=1:$nj $exp_dir/log/compute_mask_$name.JOB.log \
   ./scripts/sptk/compute_mask.py $mask_opts \

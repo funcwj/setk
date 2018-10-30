@@ -8,7 +8,8 @@ Do GWPE Dereverbration Algorithm
 import argparse
 import os
 
-from libs.utils import get_logger, get_stft_parser, istft
+from libs.utils import get_logger, istft
+from libs.opts import get_stft_parser
 from libs.gwpe import wpe
 from libs.data_handler import SpectrogramReader
 

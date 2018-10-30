@@ -7,7 +7,8 @@ Compute spectrogram features(using librosa kernels) and write in kaldi format
 
 import argparse
 
-from libs.utils import stft, get_logger, get_stft_parser
+from libs.utils import stft, get_logger
+from libs.opts import get_stft_parser
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 
 logger = get_logger(__name__)
