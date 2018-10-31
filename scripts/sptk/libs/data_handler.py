@@ -4,14 +4,18 @@
 import os
 import sys
 import glob
+import pickle
 import warnings
+
+import _thread
+import threading
+import subprocess
+
 import librosa as audio_lib
 import numpy as np
 
 import libs.iobase as io
-from libs.utils import stft, read_wav, get_logger
-
-logger = get_logger(__name__)
+from libs.utils import stft, read_wav
 
 __all__ = [
     "ArchiveReader",
@@ -23,9 +27,35 @@ __all__ = [
 ]
 
 
-def ext_fopen(fname, mode):
+def pipe_fopen(command, mode, background=True):
+    if mode not in ["rb", "r"]:
+        raise RuntimeError("Now only support input from pipe")
+
+    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+
+    def background_command_waiter(command, p):
+        p.wait()
+        if p.returncode != 0:
+            warnings.warn("Command \"{0}\" exited with status {1}".format(
+                command, p.returncode))
+            _thread.interrupt_main()
+
+    if background:
+        thread = threading.Thread(
+            target=background_command_waiter, args=(command, p))
+        # exits abnormally if main thread is terminated .
+        thread.daemon = True
+        thread.start()
+    else:
+        background_command_waiter(command, p)
+    return p.stdout
+
+
+def _fopen(fname, mode):
     """
-    Extend file open function, support "-", which means std-input/output
+    Extend file open function, to support 
+        1) "-", which means stdin/stdout
+        2) "$cmd |" which means pipe.stdout
     """
     if mode not in ["w", "r", "wb", "rb"]:
         raise ValueError("Unknown open mode: {mode}".format(mode=mode))
@@ -36,26 +66,31 @@ def ext_fopen(fname, mode):
             return sys.stdout.buffer if mode == "wb" else sys.stdout
         else:
             return sys.stdin.buffer if mode == "rb" else sys.stdin
+    elif fname[-1] == "|":
+        return pipe_fopen(fname[:-1], mode, background=(mode == "rb"))
     else:
-        if mode in ["w", "wb"] and not os.path.exists(fname):
-            raise FileNotFoundError("Could not find {}".format(fname))
+        if mode in ["r", "rb"] and not os.path.exists(fname):
+            raise FileNotFoundError(
+                "Could not find common file: \"{}\"".format(fname))
         return open(fname, mode)
 
 
-def ext_fclose(fname, fd):
+def _fclose(fname, fd):
     """
-    Extend file close function, support "-", which means std-input/output
+    Extend file close function, to support
+        1) "-", which means stdin/stdout
+        2) "$cmd |" which means pipe.stdout
+        3) None type
     """
-    if fname != "-" and fd:
+    if fname != "-" and fd and fname[-1] != "|":
         fd.close()
 
 
 class ext_open(object):
     """
-    To make ext_fopen/ext_fclose easy to use like:
+    To make _fopen/_fclose easy to use like:
     with open("egs.scp", "r") as f:
         ...
-    
     """
 
     def __init__(self, fname, mode):
@@ -63,22 +98,25 @@ class ext_open(object):
         self.mode = mode
 
     def __enter__(self):
-        self.fd = ext_fopen(self.fname, self.mode)
+        self.fd = _fopen(self.fname, self.mode)
         return self.fd
 
     def __exit__(self, *args):
-        ext_fclose(self.fname, self.fd)
+        _fclose(self.fname, self.fd)
 
 
 def parse_scps(scp_path, addr_processor=lambda x: x):
     """
-    Parse kaldi's script(.scp) file with supported for stdin
-    WARN: last line of scripts could not be None and with "\n" end
+    Parse kaldi's script(.scp) file with supported for stdin/pipe
+    WARN: last line of scripts could not be None or with "\n" end
     """
     scp_dict = dict()
     line = 0
     with ext_open(scp_path, "r") as f:
         for raw_line in f:
+            # from bytes to str
+            if type(raw_line) is bytes:
+                raw_line = bytes.decode(raw_line)
             scp_tokens = raw_line.strip().split()
             line += 1
             if len(scp_tokens) != 2:
@@ -151,13 +189,13 @@ class Writer(object):
 
     def __enter__(self):
         # "wb" is important
-        self.ark_file = ext_fopen(self.ark_path, "wb")
-        self.scp_file = ext_fopen(self.scp_path, "w")
+        self.ark_file = _fopen(self.ark_path, "wb")
+        self.scp_file = _fopen(self.scp_path, "w")
         return self
 
     def __exit__(self, *args):
-        ext_fclose(self.ark_path, self.ark_file)
-        ext_fclose(self.scp_path, self.scp_file)
+        _fclose(self.ark_path, self.ark_file)
+        _fclose(self.scp_path, self.scp_file)
 
     def write(self, key, data):
         raise NotImplementedError
@@ -168,12 +206,12 @@ class ArchiveReader(object):
         Sequential Reader for Kalid's archive(.ark) object
     """
 
-    def __init__(self, ark_path):
-        self.ark_path = ark_path
+    def __init__(self, ark_or_pipe):
+        self.ark_or_pipe = ark_or_pipe
 
     def __iter__(self):
         # to support stdin as input
-        with ext_fopen(self.ark_path, "rb") as fd:
+        with ext_open(self.ark_or_pipe, "rb") as fd:
             for key, mat in io.read_ark(fd):
                 yield key, mat
 
@@ -245,6 +283,18 @@ class NumpyReader(Reader):
     def _load(self, key):
         return np.load(self.index_dict[key])
 
+class PickleReader(Reader):
+    """
+        Sequential/Random Reader for pickle object
+    """
+
+    def __init__(self, obj_scp):
+        super(PickleReader, self).__init__(obj_scp)
+
+    def _load(self, key):
+        with open(self.index_dict[key], "rb") as f:
+            obj = pickle.load(f)
+        return obj
 
 class SpectrogramReader(WaveReader):
     """
