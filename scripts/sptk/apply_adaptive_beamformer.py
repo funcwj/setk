@@ -43,7 +43,8 @@ def run(args):
         if key in mask_reader:
             num_utts += 1
             norm = spectrogram_reader.samp_norm(key)
-            logger.info("Processing utterance {}...".format(key))
+            logger.info("Processing utterance {}(norm to {:.2f})...".format(
+                key, norm))
             speech_mask = mask_reader[key]
             if args.transpose:
                 speech_mask = np.transpose(speech_mask)

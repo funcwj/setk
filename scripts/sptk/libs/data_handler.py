@@ -318,6 +318,11 @@ class SpectrogramReader(WaveReader):
             return np.stack(
                 [stft(samps[c], **self.stft_kwargs) for c in range(N)])
 
+    def samp_norm(self, key):
+        # WARN: could not implement from WaveReader
+        samps = super()._read_m(key)
+        return np.max(np.abs(samps))
+
 
 class ScriptReader(Reader):
     """
