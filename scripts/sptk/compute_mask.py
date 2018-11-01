@@ -2,7 +2,7 @@
 
 # wujian@2018
 """
-Compute IAM/IBM/IRM masks, using as training targets
+Compute IAM/IBM/IRM/PSM masks, using as training targets
 """
 
 import argparse
@@ -16,12 +16,27 @@ logger = get_logger(__name__)
 
 
 def compute_mask(speech, noise_or_mixture, mask):
+    """
+    for signal model:
+        y = x1 + x2
+    def f = STFT(x):
+        f(y) = f(x1) + f(x2) => |f(y)| = |f(x1) + f(x2)| < |f(x1)| + |f(x2)|
+    for irm:
+        1) M(x1) = |f(x1)| / (|f(x1)| + |f(x2)|)            DongYu
+        2) M(x1) = |f(x1)| / (|f(x1)|^2 + |f(x2)|^2)^0/5    DeliangWang
+        s.t. 1 >= 2) >= 1) >= 0
+    for iam:
+        M(x1) = |f(x1)| / |f(y)| = |f(x1)| / |f(x1) + f(x2)| in [0, oo]
+    for psm:
+        M(x1) = |f(x1) / f(y)| = |f(x1)| * cos(delta_phase) / |f(y)|
+    """
     if mask == "ibm":
         binary_mask = np.abs(speech) > np.abs(noise_or_mixture)
         return binary_mask.astype(np.float)
     # irm/iam/psm
     if mask == "irm":
         denominator = np.abs(speech) + np.abs(noise_or_mixture)
+        # or np.sqrt(np.abs(speech**2) + np.abs(noise_or_mixture**2))
     else:
         denominator = np.abs(noise_or_mixture)
 

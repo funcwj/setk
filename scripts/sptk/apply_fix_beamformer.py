@@ -45,8 +45,8 @@ def run(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description=
-        "Command to run fixed beamformer. Runing this command needs design fixed beamformer first.",
+        description="Command to run fixed beamformer. Runing this command needs "
+        "design fixed beamformer first.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[get_stft_parser()])
     parser.add_argument(

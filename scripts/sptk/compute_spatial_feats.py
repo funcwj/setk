@@ -65,7 +65,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=
         "Command to compute some typical spatial features, egs: SRP/MSC/IPD. ("
-        "SRP: SRP-PHAT Anguler Spectrum, MSC: Magnitude Squared Coherence, IPD: Interchannel Phase Difference)",
+        "SRP: SRP-PHAT Anguler Spectrum, MSC: Magnitude Squared Coherence, "
+        "IPD: Interchannel Phase Difference)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[get_stft_parser()])
 
