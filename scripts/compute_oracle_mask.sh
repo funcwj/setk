@@ -45,6 +45,7 @@ for n in $(seq $nj); do split_speech_wav="$split_speech_wav $exp_dir/clean.$n.sc
 ./utils/split_scp.pl $data_dir/clean.scp $split_speech_wav || exit 1
 
 mask_opts=$(cat $stft_conf | xargs)
+mask_opts="$mask_opts --mask $mask"
 name=$(basename $data_dir)
 
 $cmd JOB=1:$nj $exp_dir/log/compute_mask_$name.JOB.log \

@@ -112,17 +112,16 @@ class CgmmTrainer(object):
         # component weights
         # wn = np.ones([self.num_bins, 1]) / 2
         # ws = np.ones([self.num_bins, 1]) / 2
+        I = np.eye(self.num_channels, self.num_channels, dtype=np.complex)
 
         for e in range(num_epoches):
 
             for f in range(self.num_bins):
 
                 self.Rn[f] += theta * np.trace(
-                    self.Rn[f]).real / self.num_channels * np.eye(
-                        self.num_channels, self.num_channels, dtype=np.complex)
+                    self.Rn[f]).real / self.num_channels * I
                 self.Rs[f] += theta * np.trace(
-                    self.Rs[f]).real / self.num_channels * np.eye(
-                        self.num_channels, self.num_channels, dtype=np.complex)
+                    self.Rs[f]).real / self.num_channels * I
 
                 pn[f] = CgmmLoglikelihoodFaster(self.Rn[f], self.phi_n[f])
                 ps[f] = CgmmLoglikelihoodFaster(self.Rs[f], self.phi_s[f])

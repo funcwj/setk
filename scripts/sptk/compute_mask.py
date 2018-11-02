@@ -9,7 +9,7 @@ import argparse
 import numpy as np
 
 from libs.data_handler import SpectrogramReader, ArchiveWriter
-from libs.utils import get_logger
+from libs.utils import get_logger, cmat_abs
 from libs.opts import get_stft_parser
 
 logger = get_logger(__name__)
@@ -23,7 +23,7 @@ def compute_mask(speech, noise_or_mixture, mask):
         f(y) = f(x1) + f(x2) => |f(y)| = |f(x1) + f(x2)| < |f(x1)| + |f(x2)|
     for irm:
         1) M(x1) = |f(x1)| / (|f(x1)| + |f(x2)|)            DongYu
-        2) M(x1) = |f(x1)| / (|f(x1)|^2 + |f(x2)|^2)^0/5    DeliangWang
+        2) M(x1) = |f(x1)| / sqrt(|f(x1)|^2 + |f(x2)|^2)    DeliangWang
         s.t. 1 >= 2) >= 1) >= 0
     for iam(FFT-mask, smm):
         M(x1) = |f(x1)| / |f(y)| = |f(x1)| / |f(x1) + f(x2)| in [0, oo]
@@ -31,21 +31,20 @@ def compute_mask(speech, noise_or_mixture, mask):
         M(x1) = |f(x1) / f(y)| = |f(x1)| * cos(delta_phase) / |f(y)|
     """
     if mask == "ibm":
-        binary_mask = np.abs(speech) > np.abs(noise_or_mixture)
+        binary_mask = cmat_abs(speech) > cmat_abs(noise_or_mixture)
         return binary_mask.astype(np.float)
     # irm/iam/psm
     if mask == "irm":
-        denominator = np.abs(speech) + np.abs(noise_or_mixture)
-        # or np.sqrt(np.abs(speech**2) + np.abs(noise_or_mixture**2))
+        denominator = cmat_abs(speech) + cmat_abs(noise_or_mixture)
+        # or denominator = np.sqrt(np.abs(speech)**2 + np.abs(noise_or_mixture)**2)
     else:
-        denominator = np.abs(noise_or_mixture)
-
+        denominator = cmat_abs(noise_or_mixture)
     if mask == "psm":
-        return np.abs(speech) * np.cos(
+        return cmat_abs(speech) * np.cos(
             np.angle(noise_or_mixture) - np.angle(speech)) / denominator
     else:
         # irm/iam
-        return np.abs(speech) / denominator
+        return cmat_abs(speech) / denominator
 
 
 def run(args):
@@ -68,7 +67,7 @@ def run(args):
                 num_utts += 1
                 noise = bnoise_reader[key]
                 mask = compute_mask(speech, noise, args.mask)
-                if cutoff:
+                if cutoff > 0:
                     num_items = np.sum(mask > cutoff)
                     mask = np.minimum(mask, cutoff)
                     if num_items:

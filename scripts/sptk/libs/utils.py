@@ -21,6 +21,25 @@ def nfft(window_size):
     return int(2**np.ceil(int(np.log2(window_size))))
 
 
+def cmat_abs(cmat):
+    """
+    In [4]: c = np.random.rand(500, 513) + np.random.rand(500, 513)*1j
+
+    In [5]: %timeit np.abs(c)
+
+    5.62 ms +- 1.75 us per loop (mean +- std. dev. of 7 runs, 100 loops each)
+
+    In [6]: %timeit np.sqrt(c.real**2 + c.imag**2)
+
+    2.4 ms +- 4.25 us per loop (mean +- std. dev. of 7 runs, 100 loops each)
+    """
+    if not np.iscomplexobj(cmat):
+        raise RuntimeError(
+            "function cmat_abs expect complex as input, but got {}".format(
+                cmat.dtype))
+    return np.sqrt(cmat.real**2 + cmat.imag**2)
+
+
 def write_wav(fname, samps, fs=16000, normalize=True):
     if normalize:
         samps = samps * MAX_INT16
@@ -89,7 +108,7 @@ def stft(samps,
         center=center)
     # stft_mat: F x T or N x F x T
     if apply_abs:
-        stft_mat = np.abs(stft_mat)
+        stft_mat = cmat_abs(stft_mat)
     if apply_pow:
         stft_mat = np.power(stft_mat, 2)
     if apply_log:
