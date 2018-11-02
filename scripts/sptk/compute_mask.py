@@ -2,7 +2,7 @@
 
 # wujian@2018
 """
-Compute IAM/IBM/IRM/PSM masks, using as training targets
+Compute IAM(FFT-mask,SMM)/IBM/IRM/PSM masks, using as training targets
 """
 
 import argparse
@@ -25,7 +25,7 @@ def compute_mask(speech, noise_or_mixture, mask):
         1) M(x1) = |f(x1)| / (|f(x1)| + |f(x2)|)            DongYu
         2) M(x1) = |f(x1)| / (|f(x1)|^2 + |f(x2)|^2)^0/5    DeliangWang
         s.t. 1 >= 2) >= 1) >= 0
-    for iam:
+    for iam(FFT-mask, smm):
         M(x1) = |f(x1)| / |f(y)| = |f(x1)| / |f(x1) + f(x2)| in [0, oo]
     for psm:
         M(x1) = |f(x1) / f(y)| = |f(x1)| * cos(delta_phase) / |f(y)|
@@ -61,12 +61,19 @@ def run(args):
     bnoise_reader = SpectrogramReader(args.noise_scp, **stft_kwargs)
 
     num_utts = 0
+    cutoff = args.cutoff
     with ArchiveWriter(args.mask_ark, args.scp) as writer:
         for key, speech in speech_reader:
             if key in bnoise_reader:
                 num_utts += 1
                 noise = bnoise_reader[key]
                 mask = compute_mask(speech, noise, args.mask)
+                if cutoff:
+                    num_items = np.sum(mask > cutoff)
+                    mask = np.minimum(mask, cutoff)
+                    if num_items:
+                        logger.info("Clip {:d} items for utterance {}".format(
+                            num_items, key))
                 writer.write(key, mask)
     logger.info("Processed {} utterances".format(num_utts))
 
@@ -94,7 +101,13 @@ if __name__ == "__main__":
         default="irm",
         choices=["irm", "ibm", "iam", "psm"],
         help=
-        "Type of masks(irm/ibm/iam/psm) to compute. Note that if iam/psm assigned, "
-        "second .scp is expected to be noisy component")
+        "Type of masks(irm/ibm/iam(FFT-mask,smm)/psm) to compute. Note that "
+        "if iam/psm assigned, second .scp is expected to be noisy component")
+    parser.add_argument(
+        "--cutoff",
+        type=float,
+        default=-1,
+        help="Cutoff values(<=0, not cutoff) for some non-bounded masks, "
+        "egs: iam/psm")
     args = parser.parse_args()
     run(args)

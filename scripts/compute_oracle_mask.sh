@@ -3,6 +3,7 @@
 set -eu
 
 mask="irm"
+cutoff=-1
 stft_conf=conf/stft.conf
 
 compress=true
@@ -47,7 +48,7 @@ mask_opts=$(cat $stft_conf | xargs)
 name=$(basename $data_dir)
 
 $cmd JOB=1:$nj $exp_dir/log/compute_mask_$name.JOB.log \
-  ./scripts/sptk/compute_mask.py $mask_opts \
+  ./scripts/sptk/compute_mask.py $mask_opts --cutoff $cutoff \
   $exp_dir/clean.JOB.scp $data_dir/$denominator_scp - \| \
   copy-feats --compress=$compress ark:- \
   ark,scp:$mask_dir/$name.$mask.JOB.ark,$mask_dir/$name.$mask.JOB.scp

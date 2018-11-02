@@ -20,29 +20,20 @@ logger = get_logger(__name__)
 theta = 1e-4
 
 
-# for time t on frequency f
-def CgmmLoglikelihood(C, R, phi):
-    # for x' * R^{-1} / phi * x using  x' * (R \ x) / phi
-    # kernel = np.inner(np.conj(x), np.linalg.solve(R, x) / phi).real
-    kernel = np.trace(np.linalg.solve(R, C)).real / phi
-    # det(pi * phi * R) = (pi * phi)^N * det(R)
-    det = np.linalg.det(R).real * ((np.pi * phi)**R.shape[0])
-    # TODO: check why sometimes negative here
-    if det <= 0:
-        raise RuntimeError("Determinant of R is negative, R = {}".format(
-            phi * R))
-    loglike = np.exp(-kernel) / (det + EPSILON)
-    # check NAN
-    if np.isnan(loglike) or np.isinf(loglike):
-        raise RuntimeError(
-            "Encounter loglike = {} in CgmmLoglikehood(), det = {:.4f}, kernel = {:.4f}"
-            .format(loglike, det, kernel))
-    return loglike
-
-
 # for all frames on frequency f
-def CgmmLoglikelihoodV(C, R, phi):
-    kernels = np.trace(np.linalg.solve(R, C), axis1=1, axis2=2).real / phi
+def CgmmLoglikelihoodFaster(R, phi):
+    """
+    Make computation faster
+        for:
+            N(y, sigma) = e^(-y^H * sigma^{-1} * y) / det(pi*sigma)
+        since:
+            phi = trace(y * y^H * sigma^{-1}) / N = y^H * sigma^{-1} * y / N
+        then:
+            N(y, phi*sigma) = e^(-y^H * sigma^{-1} * y / phi) / det(pi*sigma*phi)
+                            = e^{-N} / (det(sigma) * (phi * pi)^N)
+    """
+    # kernels = np.trace(np.linalg.solve(R, C), axis1=1, axis2=2).real / phi
+    N = R.shape[0]
     # make sure hermitian
     R = (R + np.transpose(np.conj(R))) / 2
     det = np.linalg.det(R).real
@@ -51,7 +42,7 @@ def CgmmLoglikelihoodV(C, R, phi):
         raise RuntimeError(
             "Determinant of R is negative, det = {:.4f}, R = {}".format(
                 det, R))
-    loglikes = np.exp(-kernels) / (det * ((np.pi * phi)**R.shape[0]) + EPSILON)
+    loglikes = np.exp(-N) / (det * ((np.pi * phi)**N) + EPSILON)
     if np.any(np.isnan(loglikes)) or np.any(np.isinf(loglikes)):
         raise RuntimeError(
             "Encounter loglike = NAN/INF in CgmmLoglikehoodV() on some time axis"
@@ -88,26 +79,13 @@ class CgmmTrainer(object):
             self.num_channels
         ],
                             dtype=np.complex)
-        # to optimize
         self.Rtf = np.einsum("...a,...b->...ab", X, np.conj(X))
-        # for f in range(self.num_bins):
-        #     for t in range(self.num_frames):
-        #         self.Rtf[f, t] = np.outer(X[f, t], np.conj(X[f, t]))
 
         # init phi_{n,s}
         self.phi_n = np.zeros([self.num_bins, self.num_frames])
         self.phi_s = np.zeros([self.num_bins, self.num_frames])
 
         # tr(A*B^{-1}) = tr(B^{-1}*A) = tr(B\A)
-        # for f in range(self.num_bins):
-        #     for t in range(self.num_frames):
-        #         self.phi_n[f, t] = np.trace(
-        #             np.linalg.solve(self.Rn[f],
-        #                             self.Rtf[f, t])).real / self.num_channels
-        #         self.phi_s[f, t] = np.trace(
-        #             np.linalg.solve(self.Rs[f],
-        #                             self.Rtf[f, t])).real / self.num_channels
-        # to optimized
         for f in range(self.num_bins):
             # N x N, T x N x N => T x N x N
             self.phi_n[f] = np.trace(
@@ -146,27 +124,8 @@ class CgmmTrainer(object):
                     self.Rs[f]).real / self.num_channels * np.eye(
                         self.num_channels, self.num_channels, dtype=np.complex)
 
-                # for t in range(self.num_frames):
-                #     # obs vector
-                #     pn[f, t] = CgmmLoglikelihood(self.Rtf[f, t], self.Rn[f],
-                #                                  self.phi_n[f, t]) + EPSILON
-                #     ps[f, t] = CgmmLoglikelihood(self.Rtf[f, t], self.Rs[f],
-                #                                  self.phi_s[f, t]) + EPSILON
-
-                #    # update phi
-                #    self.phi_n[f, t] = np.trace(
-                #        np.linalg.solve(
-                #            self.Rn[f],
-                #            self.Rtf[f, t])).real / self.num_channels
-                #    self.phi_s[f, t] = np.trace(
-                #        np.linalg.solve(
-                #            self.Rs[f],
-                #            self.Rtf[f, t])).real / self.num_channels
-
-                pn[f] = CgmmLoglikelihoodV(self.Rtf[f], self.Rn[f],
-                                           self.phi_n[f])
-                ps[f] = CgmmLoglikelihoodV(self.Rtf[f], self.Rs[f],
-                                           self.phi_s[f])
+                pn[f] = CgmmLoglikelihoodFaster(self.Rn[f], self.phi_n[f])
+                ps[f] = CgmmLoglikelihoodFaster(self.Rs[f], self.phi_s[f])
 
                 # update phi
                 self.phi_n[f] = np.trace(
