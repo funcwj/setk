@@ -62,7 +62,6 @@ if __name__ == "__main__":
         "--num-epochs",
         type=int,
         default=20,
-        dest="num_epochs",
         help="Number of epochs to train CGMM parameters")
     args = parser.parse_args()
     run(args)

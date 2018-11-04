@@ -54,23 +54,19 @@ def get_stft_parser():
         "--frame-length",
         type=int,
         default=1024,
-        dest="frame_length",
         help="Frame length in number of samples(related to sample frequency)")
     parser.add_argument(
         "--frame-shift",
         type=int,
         default=256,
-        dest="frame_shift",
         help="Frame shift in number of samples(related to sample frequency)")
     parser.add_argument(
         "--center",
         action=StrToBoolAction,
         default=True,
-        dest="center",
         help="Value of parameter \'center\' in librosa.stft functions")
     parser.add_argument(
         "--window",
         default="hann",
-        dest="window",
         help="Type of window function, see scipy.signal.get_window")
     return parser

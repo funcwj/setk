@@ -63,7 +63,6 @@ if __name__ == '__main__':
         help="Path of augular spectrum in kaldi\'s archive format")
     parser.add_argument(
         '--frame-shift',
-        dest='frame_shift',
         type=int,
         default=16,
         help="Frame shift in ms")
@@ -71,7 +70,6 @@ if __name__ == '__main__':
         '--cache-dir',
         type=str,
         default="figure",
-        dest="cache_dir",
         help="Location to dump pictures")
     parser.add_argument(
         "--sample-tdoa",

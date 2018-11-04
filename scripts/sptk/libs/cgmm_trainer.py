@@ -74,11 +74,7 @@ class CgmmTrainer(object):
         ])
 
         # init covariance-matrix on each T-F bins
-        self.Rtf = np.zeros([
-            self.num_bins, self.num_frames, self.num_channels,
-            self.num_channels
-        ],
-                            dtype=np.complex)
+        # F x T x N x N
         self.Rtf = np.einsum("...a,...b->...ab", X, np.conj(X))
 
         # init phi_{n,s}

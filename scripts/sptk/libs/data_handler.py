@@ -13,6 +13,7 @@ import subprocess
 
 import librosa as audio_lib
 import numpy as np
+import scipy.io as sio
 
 import libs.iobase as io
 from libs.utils import stft, read_wav
@@ -24,6 +25,7 @@ __all__ = [
     "ScriptReader",
     "WaveReader",
     "NumpyReader",
+    "PickleReader",
 ]
 
 
@@ -283,6 +285,7 @@ class NumpyReader(Reader):
     def _load(self, key):
         return np.load(self.index_dict[key])
 
+
 class PickleReader(Reader):
     """
         Sequential/Random Reader for pickle object
@@ -295,6 +298,27 @@ class PickleReader(Reader):
         with open(self.index_dict[key], "rb") as f:
             obj = pickle.load(f)
         return obj
+
+
+class MatReader(Reader):
+    """
+        Sequential/Random Reader for matlab matrix object
+    """
+
+    def __init__(self, mat_scp, key):
+        super(MatReader, self).__init__(mat_scp)
+        self.matrix_key = key
+
+    def _load(self, key):
+        mat_path = self.index_dict[key]
+        with open(mat_path, "rb") as mat_dict:
+            if self.matrix_key not in mat_dict:
+                raise KeyError(
+                    "Could not find \'{}\' in matrix dictionary".format(
+                        self.matrix_key))
+            mat = mat_dict[self.matrix_key]
+        return mat
+
 
 class SpectrogramReader(WaveReader):
     """

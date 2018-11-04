@@ -86,13 +86,11 @@ if __name__ == "__main__":
         "--apply-log",
         action="store_true",
         default=False,
-        dest="apply_log",
         help="Corresponding option in feature computation")
     parser.add_argument(
         "--apply-pow",
         action="store_true",
         default=False,
-        dest="apply_pow",
         help="Corresponding option in feature computation")
     parser.add_argument(
         "--normalize-samples",
@@ -104,7 +102,6 @@ if __name__ == "__main__":
         "--fbank",
         action="store_true",
         default=False,
-        dest="fbank",
         help="Using fbank as input features")
     parser.add_argument(
         "--epochs",

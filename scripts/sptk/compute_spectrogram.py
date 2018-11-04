@@ -57,19 +57,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--apply-log",
         action="store_true",
-        default=False,
-        dest="apply_log",
         help="If true, using log spectrogram instead of linear")
     parser.add_argument(
         "--apply-pow",
         action="store_true",
-        default=False,
-        dest="apply_pow",
         help="If true, extract power spectrum instead of magnitude spectrum")
     parser.add_argument(
         "--normalize-samples",
         action="store_true",
-        default=False,
         dest="normalize",
         help="If true, normalize sample values between [-1, 1]")
     args = parser.parse_args()

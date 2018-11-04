@@ -64,17 +64,14 @@ if __name__ == '__main__':
     parser.add_argument(
         "--double",
         action="store_true",
-        default=False,
         help="If true, then write matrix in float64/complex128")
     parser.add_argument(
         "--float",
         action="store_true",
-        default=False,
         help="If true, then write matrix in float32/complex64")
     parser.add_argument(
         "--transpose",
         action="store_true",
-        default=False,
         help="If true, write transpose of original matrix instead")
     args = parser.parse_args()
     run(args)

@@ -64,13 +64,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--numpy",
         action="store_true",
-        dest="numpy",
         help="Define type of masks in numpy.ndarray instead of "
         "kaldi's archives")
     parser.add_argument(
         "--transpose-mask",
         action="store_true",
-        dest="transpose",
         help="Transpose mask from FxT to TxF(T: num_frames, F: num_bins)")
     args = parser.parse_args()
     run(args)

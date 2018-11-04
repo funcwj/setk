@@ -76,8 +76,6 @@ if __name__ == '__main__':
     parser.add_argument(
         "--numpy",
         action="store_true",
-        default=False,
-        dest="numpy",
         help="Define type of masks in numpy.ndarray instead of "
         "kaldi's archives")
     parser.add_argument(
@@ -89,14 +87,10 @@ if __name__ == '__main__':
     parser.add_argument(
         "--transpose-mask",
         action="store_true",
-        default=False,
-        dest="transpose",
         help="Shape mask from FxT to TxF(T: num_frames, F: num_bins)")
     parser.add_argument(
         "--post-filter",
         action="store_true",
-        default=False,
-        dest="post_filter",
         help="Do Blind Analytical Normalization(BAN) or not")
     args = parser.parse_args()
     run(args)

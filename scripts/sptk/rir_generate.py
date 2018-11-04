@@ -164,7 +164,6 @@ if __name__ == "__main__":
         "--num-rirs",
         type=int,
         default=1,
-        dest="num_rirs",
         help="Number of rirs to simulate for each room")
     parser.add_argument(
         "--dump-config",
@@ -176,49 +175,41 @@ if __name__ == "__main__":
         "--rir-samples",
         type=int,
         default=4096,
-        dest="rir_samples",
         help="Number samples of simulated rir")
     parser.add_argument(
         "--sample-rate",
         type=int,
         default=16000,
-        dest="sample_rate",
         help="Sample rate of simulated signal")
     parser.add_argument(
         "--dump-dir",
         type=str,
-        dest="dump_dir",
         default="rir",
         help="Directory to dump generated rirs")
     parser.add_argument(
         "--room-dim",
         type=str,
-        dest="room_dim",
         default="7,10;7,10;3,4",
         help="Constraint for room length/width/height, separated by semicolon")
     parser.add_argument(
         "--array-height",
         action=StrToFloatTupleAction,
-        dest="array_height",
         default=(1, 2),
         help="Range of array's height")
     parser.add_argument(
         "--speaker-height",
         action=StrToFloatTupleAction,
-        dest="speaker_height",
         default=(1.6, 2),
         help="Range of speaker's height")
     parser.add_argument(
         "--array-area",
         type=str,
-        dest="array_area",
         default="0.4,0.6;0,0.1",
         help="Area of room to place microphone arrays randomly"
         "(relative values to room's length and width)")
     parser.add_argument(
         "--array-topo",
         action=StrToFloatTupleAction,
-        dest="array_topo",
         default=(0, 0.1, 0.2, 0.3),
         help="Linear topology for microphone arrays.")
     parser.add_argument(

@@ -58,7 +58,6 @@ if __name__ == '__main__':
     parser.add_argument(
         "--weight-key",
         default="weights",
-        dest="weight_key",
         help="String key to index matrix in MATLAB's .mat file")
     args = parser.parse_args()
     run(args)

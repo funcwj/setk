@@ -3,7 +3,8 @@
 set -eu
 
 mask="irm"
-cutoff=-1
+# for iam(FFT-mask)
+cutoff=10
 stft_conf=conf/stft.conf
 
 compress=true
