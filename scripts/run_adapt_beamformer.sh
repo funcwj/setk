@@ -12,6 +12,7 @@ transpose=true
 beamformer="mvdr"
 # do ban or not
 normalize=false
+masking=false
 
 echo "$0 $@"
 
@@ -46,9 +47,10 @@ beamformer_opts="$stft_opts --beamformer $beamformer"
 $numpy && beamformer_opts="$beamformer_opts --numpy"
 $transpose && beamformer_opts="$beamformer_opts --transpose-mask"
 $normalize && beamformer_opts="$beamformer_opts --post-filter"
+$masking && beamformer_opts="$beamformer_opts --masking"
 
 mkdir -p $enhan_dir
-$cmd JOB=1:$nj $exp_dir/log/run_beamformer.JOB.log \
+$cmd JOB=1:$nj $exp_dir/log/run_$beamformer.JOB.log \
   ./scripts/sptk/apply_adaptive_beamformer.py \
   $beamformer_opts \
   $exp_dir/wav.JOB.scp \

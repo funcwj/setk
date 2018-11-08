@@ -4,30 +4,33 @@
 
 import numpy as np
 import scipy as sp
+
+from libs.utils import EPSILON, cmat_abs
 """
 Implement for some classic beamformer
 """
 
 __all__ = [
     "FixedBeamformer", "DSBeamformer", "SupperDirectiveBeamformer",
-    "MvdrBeamformer", "GevdBeamformer"
+    "MvdrBeamformer", "GevdBeamformer", "PmwfBeamformer"
 ]
 
 
 def do_ban(weight, noise_covar):
     """
+    Do Blind Analytical Normalization(BAN)
     Arguments: (for N: num_mics, F: num_bins)
         weight: shape as F x N
         noise_covar: shape as F x N x N
     Return:
         ban_weight: shape as F x N
     """
-    _, N = weight.shape
     nominator = np.einsum("...a,...ab,...bc,...c->...", np.conj(weight),
                           noise_covar, noise_covar, weight)
     denominator = np.einsum("...a,...ab,...b->...", np.conj(weight),
                             noise_covar, weight)
-    filters = np.sqrt(np.abs(nominator / N)) / (denominator)
+    filters = np.sqrt(cmat_abs(nominator)) / np.maximum(
+        np.real(denominator), EPSILON)
     return filters[:, None] * weight
 
 
@@ -50,7 +53,7 @@ class Beamformer(object):
                 "Input spectrogram do not match with weight, {} vs "
                 "{}".format(weight.shape, spectrogram.shape))
         spectrogram = np.transpose(spectrogram, (1, 0, 2))
-        spectrogram = np.einsum('...n,...nt->...t', weight.conj(), spectrogram)
+        spectrogram = np.einsum("...n,...nt->...t", weight.conj(), spectrogram)
         return spectrogram
 
     def run(self, spectrogram):
@@ -65,8 +68,7 @@ class Beamformer(object):
 
 class SupervisedBeamformer(Beamformer):
     """
-    BaseClass for mask based beamformer
-    TODO: Low-rank constraint for covariance matrix estimation if there is only one-speaker
+    BaseClass for TF-mask based beamformer
     """
 
     def __init__(self, num_bins):
@@ -94,9 +96,9 @@ class SupervisedBeamformer(Beamformer):
         spectrogram = np.transpose(spectrogram, (1, 0, 2))
         # num_bins x 1 x num_frames
         mask = np.expand_dims(np.transpose(target_mask), axis=1)
-        denominator = np.maximum(np.sum(mask, axis=-1, keepdims=True), 1e-6)
+        denominator = np.maximum(np.sum(mask, axis=-1, keepdims=True), EPSILON)
         # num_bins x num_mics x num_mics
-        covar_mat = np.einsum('...dt,...et->...de', mask * spectrogram,
+        covar_mat = np.einsum("...dt,...et->...de", mask * spectrogram,
                               spectrogram.conj()) / denominator
         return covar_mat
 
@@ -163,7 +165,7 @@ class SupperDirectiveBeamformer(DSBeamformer):
     def compute_diffuse_covar(self, num_bins, c=340, sample_rate=16000):
         """
         Compute coherence matrix of diffuse field noise
-            \Gamma(\omega)_{ij} = \sinc(\omega \tau_{ij}) = \sinc(2 \pi f \tau_{ij})
+            \\Gamma(\\omega)_{ij} = \\sinc(\\omega \\tau_{ij}) = \\sinc(2 \\pi f \\tau_{ij})
         """
         covar = np.zeros([num_bins, self.num_mics, self.num_mics])
         dist = np.tile(self.linear_topo, (4, 1))
@@ -186,7 +188,7 @@ class SupperDirectiveBeamformer(DSBeamformer):
         noise_covar = self.compute_diffuse_covar(
             num_bins, c=c, sample_rate=sample_rate)
         numerator = np.linalg.solve(noise_covar, steer_vector)
-        denominator = np.einsum('...d,...d->...', steer_vector.conj(),
+        denominator = np.einsum("...d,...d->...", steer_vector.conj(),
                                 numerator)
         return numerator / np.expand_dims(denominator, axis=-1)
 
@@ -194,6 +196,10 @@ class SupperDirectiveBeamformer(DSBeamformer):
 class MvdrBeamformer(SupervisedBeamformer):
     """
     MVDR(Minimum Variance Distortionless Response) Beamformer
+    Formula:
+        h_mvdr(f) = R(f)_{vv}^{-1}*d(f) / [d(f)^H*R(f)_{vv}^{-1}*d(f)]
+    where
+        d(f) = P(R(f)_{xx}) P: max eigenvector
     """
 
     def __init__(self, num_bins):
@@ -208,7 +214,7 @@ class MvdrBeamformer(SupervisedBeamformer):
             weight: shape as F x N
         """
         numerator = np.linalg.solve(noise_covar, steer_vector)
-        denominator = np.einsum('...d,...d->...', steer_vector.conj(),
+        denominator = np.einsum("...d,...d->...", steer_vector.conj(),
                                 numerator)
         return numerator / np.expand_dims(denominator, axis=-1)
 
@@ -219,16 +225,12 @@ class MvdrBeamformer(SupervisedBeamformer):
         Returns:
             steer_vector: shape as F x N
         """
-        # faster version
+        # batch(faster) version
         # eigenvals: F x N, ascending order
-        # eigenvecs: F x N x N
+        # eigenvecs: F x N x N on each columns, |vec|_2 = 1
+        # NOTE: eigenvalues computed by np.linalg.eig is not necessarily ordered.
         _, eigenvecs = np.linalg.eigh(speech_covar)
         steer_vector = eigenvecs[:, :, -1]
-        # num_mics = speech_covar.shape[1]
-        # steer_vector = np.zeros((self.num_bins, num_mics), dtype=np.complex)
-        # for f in range(self.num_bins):
-        #     eigenvals, eigenvecs = np.linalg.eigh(speech_covar[f])
-        #     steer_vector[f] = eigenvecs[:, np.argmax(eigenvals)]
         return steer_vector
 
     def run(self,
@@ -250,6 +252,7 @@ class MvdrBeamformer(SupervisedBeamformer):
         if method == "v1":
             speech_covar = self.compute_covar_mat(speech_mask, spectrogram)
         else:
+            # seems bad this branch
             speech_covar = self.compute_covar_mat(
                 np.ones_like(speech_mask), spectrogram) - noise_covar
         steer_vector = self.compute_steer_vector(speech_covar)
@@ -260,13 +263,38 @@ class MvdrBeamformer(SupervisedBeamformer):
 
 class PmwfBeamformer(SupervisedBeamformer):
     """
-    PMWF(Parameterized Multichannel Non-Causal Wiener Filter)
-    WARN: NOT TESTING
+    PMWF(Parameterized Multichannel Non-Causal Wiener Filter), treat beta = 0 now
+    Reference:
+        1) Erdogan H, Hershey J R, Watanabe S, et al. Improved MVDR Beamforming Using 
+            Single-Channel Mask Prediction Networks[C]//Interspeech. 2016: 1981-1985.
+        2) Souden M, Benesty J, Affes S. On optimal frequency-domain multichannel 
+            linear filtering for noise reduction[J]. IEEE Transactions on audio, speech, 
+            and language processing, 2010, 18(2): 260-276.
+    Formula:
+        h_pmwf(f) = numerator(f)*u(f) / trace(numerator(f))
+    where
+        numerator(f) = R(f)_vv^{-1}*R(f)_xx = R(f)_vv^{-1}*(R(f)_yy^{-1} - R(f)_vv^{-1})
+                     = R(f)_vv^{-1}*R(f)_yy^{-1} - I
+        trace(numerator(f)) = trace(R(f)_vv^{-1}*R(f)_yy^{-1} - I)
+                            = trace(R(f)_vv^{-1}*R(f)_yy^{-1}) - N
+        u(f): pre-assigned or estimated using snr in 1)
     """
 
-    def __init__(self, num_bins, reference=0):
+    def __init__(self, num_bins, ref_channel=None):
         super(PmwfBeamformer, self).__init__(num_bins)
-        self.reference_id = reference
+        self.ref_channel = ref_channel
+
+    def _snr(self, weight, speech_covar, noise_covar):
+        """
+        Estimate post-snr suppose we got weight, along whole frequency band
+        Formula:
+            snr(w) = \\sum_f w(f)^H*R(f)_xx*w(f) / \\sum_f w(f)^H*R(f)_vv*w(f) 
+        """
+        pow_s = np.einsum("...fa,...fab,...fb->...", np.conj(weight),
+                          speech_covar, weight)
+        pow_n = np.einsum("...fa,...fab,...fb->...", np.conj(weight),
+                          noise_covar, weight)
+        return np.real(pow_s) / np.maximum(EPSILON, np.real(pow_n))
 
     def weight(self, speech_covar, noise_covar):
         """
@@ -276,11 +304,24 @@ class PmwfBeamformer(SupervisedBeamformer):
         Return:
             weight: shape as F x N
         """
+        _, N, _ = speech_covar.shape
         numerator = np.linalg.solve(noise_covar, speech_covar)
-        denominator = np.trace(numerator)
-        return numerator[:, self.reference_id, :] / denominator
+        if self.ref_channel is None:
+            # using snr to select channel
+            ref_channel = np.argmax([
+                self._snr(numerator[:, :, c], speech_covar, noise_covar)
+                for c in range(N)
+            ])
+        else:
+            ref_channel = self.ref_channel
+        if ref_channel >= N:
+            raise RuntimeError(
+                "Reference channel ID exceeds total channels: {:d} vs {:d}".
+                format(ref_channel, N))
+        denominator = np.trace(numerator, axis1=1, axis2=2)
+        return numerator[:, :, ref_channel] / denominator[:, None]
 
-    def run(self, speech_mask, spectrogram, noise_mask=None):
+    def run(self, speech_mask, spectrogram, noise_mask=None, normalize=False):
         """
         Arguments: (for N: num_mics, F: num_bins, T: num_frames)
             speech_mask: shape as T x F, same shape as network output
@@ -292,12 +333,17 @@ class PmwfBeamformer(SupervisedBeamformer):
             1 - speech_mask if noise_mask is None else noise_mask, spectrogram)
         speech_covar = self.compute_covar_mat(speech_mask, spectrogram)
         weight = self.weight(speech_covar, noise_covar)
-        return self.beamform(weight, spectrogram)
+        return self.beamform(
+            do_ban(weight, noise_covar) if normalize else weight, spectrogram)
 
 
 class GevdBeamformer(SupervisedBeamformer):
     """
     Max-SNR/GEV(Generalized Eigenvalue Decomposition) Beamformer
+    Formula:
+        h_gevd(f) = P(R(f)_xx, R(f)_vv) P: max generalzed eigenvector
+    which maximum:
+        snr(f) = h(f)^H*R(f)_xx^H*h(f) / h(f)^H*R(f)_vv^H*h(f)
     """
 
     def __init__(self, num_bins):
@@ -315,11 +361,16 @@ class GevdBeamformer(SupervisedBeamformer):
         weight = np.zeros((self.num_bins, num_mics), dtype=np.complex)
         for f in range(self.num_bins):
             try:
+                # sp.linalg.eigh returns eigen values in ascending order
                 _, eigenvecs = sp.linalg.eigh(speech_covar[f], noise_covar[f])
                 weight[f] = eigenvecs[:, -1]
             except np.linalg.LinAlgError:
-                weight[f] = num_mics * np.ones(num_mics) / np.trace(
-                    noise_covar[f])
+                raise RuntimeError(
+                    "LinAlgError when computing eign on frequency "
+                    "{:d}: \nRxx = {}, \nRvv = {}".format(
+                        f, speech_covar[f], noise_covar[f]))
+                # weight[f] = num_mics * np.ones(num_mics) / np.trace(
+                #     noise_covar[f])
         return weight
 
     def run(self,
