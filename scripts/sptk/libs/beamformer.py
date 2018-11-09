@@ -96,7 +96,7 @@ class SupervisedBeamformer(Beamformer):
         spectrogram = np.transpose(spectrogram, (1, 0, 2))
         # num_bins x 1 x num_frames
         mask = np.expand_dims(np.transpose(target_mask), axis=1)
-        denominator = np.maximum(np.sum(mask, axis=-1, keepdims=True), EPSILON)
+        denominator = np.maximum(np.sum(mask, axis=-1, keepdims=True), 1e-6)
         # num_bins x num_mics x num_mics
         covar_mat = np.einsum("...dt,...et->...de", mask * spectrogram,
                               spectrogram.conj()) / denominator

@@ -10,6 +10,7 @@ import numpy as np
 
 debug = False
 
+
 def print_info(info):
     if debug:
         print(info)
@@ -27,7 +28,7 @@ def peek_char(fd):
     # peek_c = fd.read(1)
     # fd.seek(-1, 1)
     # see https://stackoverflow.com/questions/25070952/python-why-does-peek1-return-8k-bytes-instead-of-1-byte
-    peek_c = fd.peek(1)[: 1]
+    peek_c = fd.peek(1)[:1]
     if type(peek_c) == bytes:
         peek_c = bytes.decode(peek_c)
     return peek_c
@@ -210,6 +211,35 @@ def read_sparse_vec(fd):
     return sparse_vec
 
 
+def read_float_vec(fd):
+    """
+        Read float vector(for class Vector in kaldi setup)
+        see matrix/kaldi-vector.cc
+    """
+    vec_type = read_token(fd)
+    print_info('\tType of the common vector: {}'.format(vec_type))
+    float_size = 4 if vec_type == 'FV' else 8
+    float_type = np.float32 if vec_type == 'FV' else np.float64
+    dim = read_int32(fd)
+    print_info('\tDim of the common vector: {}'.format(dim))
+    vec_data = fd.read(float_size * dim)
+    return np.fromstring(vec_data, dtype=float_type)
+
+
+def write_float_vec(fd, vec):
+    """
+        Write a float vector
+    """
+    assert vec.dtype == np.float32 or vec.dtype == np.float64
+    vec_type = 'FV' if vec.dtype == np.float32 else 'DV'
+    write_token(fd, vec_type)
+    if vec.ndim != 1:
+        raise RuntimeError("write_float_vec accept 1D-vector only")
+    dim = vec.size
+    write_int32(fd, dim)
+    fd.write(vec.tobytes())
+
+
 def read_sparse_mat(fd):
     """ 
         Reference to function Read in SparseMatrix
@@ -228,7 +258,8 @@ def uint16_to_floats(min_value, prange, pchead):
     """ 
         Uncompress type unsigned int16
         see matrix/compressed-matrix.cc:
-            inline float CompressedMatrix::Uint16ToFloat(const GlobalHeader &global_header, uint16 value)
+            inline float CompressedMatrix::
+            Uint16ToFloat(const GlobalHeader &global_header, uint16 value)
     """
     p = []
     for value in pchead:
@@ -240,7 +271,8 @@ def uint8_to_float(char, pchead):
     """ 
         Uncompress unsigned int8
         see matrix/compressed-matrix.cc:
-            inline float CompressedMatrix::CharToFloat(float p0, float p25, float p75, float p100, uint8 value)
+            inline float CompressedMatrix::
+            CharToFloat(float p0, float p25, float p75, float p100, uint8 value)
     """
     if char <= 64:
         return float(pchead[0] + (pchead[1] - pchead[0]) * char * (1 / 64.0))
@@ -344,7 +376,7 @@ def read_general_mat(fd, direct_access=False):
         return read_common_mat(fd)
 
 
-def read_ark(fd):
+def read_ark(fd, matrix=True):
     """ 
         Usage:
         for key, mat in read_ark(ark):
@@ -355,8 +387,8 @@ def read_ark(fd):
         key = read_key(fd)
         if not key:
             break
-        mat = read_general_mat(fd)
-        yield key, mat
+        obj = read_general_mat(fd) if matrix else read_float_vec(fd)
+        yield key, obj
 
 
 def read_ali(fd):

@@ -205,16 +205,17 @@ class Writer(object):
 
 class ArchiveReader(object):
     """
-        Sequential Reader for Kalid's archive(.ark) object
+        Sequential Reader for Kalid's archive(.ark) object(support matrix/vector)
     """
 
-    def __init__(self, ark_or_pipe):
+    def __init__(self, ark_or_pipe, matrix=True):
         self.ark_or_pipe = ark_or_pipe
+        self.matrix = matrix
 
     def __iter__(self):
         # to support stdin as input
         with ext_open(self.ark_or_pipe, "rb") as fd:
-            for key, mat in io.read_ark(fd):
+            for key, mat in io.read_ark(fd, matrix=self.matrix):
                 yield key, mat
 
 
@@ -353,7 +354,7 @@ class ScriptReader(Reader):
         Reader for kaldi's scripts(for BaseFloat matrix)
     """
 
-    def __init__(self, ark_scp):
+    def __init__(self, ark_scp, matrix=True):
         def addr_processor(addr):
             addr_token = addr.split(":")
             if len(addr_token) == 1:
@@ -363,13 +364,15 @@ class ScriptReader(Reader):
 
         super(ScriptReader, self).__init__(
             ark_scp, addr_processor=addr_processor)
+        self.matrix = matrix
 
     def _load(self, key):
         path, offset = self.index_dict[key]
         with open(path, "rb") as f:
             f.seek(offset)
             io.expect_binary(f)
-            ark = io.read_general_mat(f)
+            ark = io.read_general_mat(
+                f) if self.matrix else io.read_float_vec(f)
         return ark
 
 
@@ -378,18 +381,22 @@ class ArchiveWriter(Writer):
         Writer for kaldi's scripts && archive(for BaseFloat matrix)
     """
 
-    def __init__(self, ark_path, scp_path=None):
+    def __init__(self, ark_path, scp_path=None, matrix=True):
         if not ark_path:
             raise RuntimeError("Seem configure path of archives as None")
         super(ArchiveWriter, self).__init__(ark_path, scp_path)
+        self.matrix = matrix
 
-    def write(self, key, matrix):
+    def write(self, key, obj):
         io.write_token(self.ark_file, key)
         # fix script generation bugs
         if self.ark_path != "-":
             offset = self.ark_file.tell()
         io.write_binary_symbol(self.ark_file)
-        io.write_common_mat(self.ark_file, matrix)
+        if self.matrix:
+            io.write_common_mat(self.ark_file, obj)
+        else:
+            io.write_float_vec(self.ark_file, obj)
         if self.scp_file:
             self.scp_file.write("{key}\t{path}:{offset}\n".format(
                 key=key, path=os.path.abspath(self.ark_path), offset=offset))
