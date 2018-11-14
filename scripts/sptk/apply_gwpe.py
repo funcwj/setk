@@ -48,13 +48,14 @@ def run(args):
         for chid in range(dereverb.shape[0]):
             chpath = os.path.join(args.dst_dir, "{}.CH{:d}.wav".format(
                 key, chid + 1))
-            istft(chpath, dereverb[chid], **stft_kwargs)
+            istft(chpath, dereverb[chid], **stft_kwargs, fs=args.samp_freq)
     logger.info("Processed {:d} utterances".format(len(spectrogram_reader)))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Command to do GWPE dereverbration algorithm(512/128/blackman)",
+        description=
+        "Command to do GWPE dereverbration algorithm(512/128/blackman)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[get_stft_parser()])
     parser.add_argument(
@@ -84,5 +85,11 @@ if __name__ == "__main__":
         default=3,
         type=int,
         help="Number of iterations to step in GWPE")
+    parser.add_argument(
+        "--sample-frequency",
+        type=int,
+        default=16000,
+        dest="samp_freq",
+        help="Waveform data sample frequency")
     args = parser.parse_args()
     run(args)

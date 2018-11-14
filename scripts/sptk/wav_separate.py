@@ -20,13 +20,14 @@ def run(args):
         "frame_length": args.frame_length,
         "frame_shift": args.frame_shift,
         "window": args.window,
-        "center": args.center,  # false to comparable with kaldi
+        "center": args.center,
     }
     spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
     mask_reader = NumpyReader(args.mask_scp) if args.numpy else ScriptReader(
         args.mask_scp)
 
     num_utts = 0
+    fs = args.samp_freq,
     for key, specs in spectrogram_reader:
         if key in mask_reader:
             num_utts += 1
@@ -37,12 +38,16 @@ def run(args):
             if mask.shape != specs.shape:
                 raise ValueError(
                     "Dimention mismatch between mask and spectrogram"
-                    "({:d} x {:d} vs {:d} x {:d}), need check configures".
-                    format(mask.shape[0], mask.shape[1], specs.shape[0],
-                           specs.shape[1]))
+                    "({0[0]} x {0[1]} vs {1[0]} x {1[1]}), need check configures"
+                    .format(mask.shape, specs.shape))
+            nsamps = spectrogram_reader.nsamps(
+                key) if args.keep_length else None
             istft(
-                os.path.join(args.dst_dir, "{}.wav".format(key)), specs * mask,
-                **stft_kwargs)
+                os.path.join(args.dst_dir, "{}.wav".format(key)),
+                specs * mask,
+                **stft_kwargs,
+                fs=fs,
+                nsamps=nsamps)
     logger.info("Processed {} utterances".format(num_utts))
 
 
@@ -62,12 +67,23 @@ if __name__ == "__main__":
     parser.add_argument(
         "dst_dir", type=str, help="Location to dump separated wave files")
     parser.add_argument(
+        "--sample-frequency",
+        type=int,
+        default=16000,
+        dest="samp_freq",
+        help="Waveform data sample frequency")
+    parser.add_argument(
+        "--keep-length",
+        action="store_true",
+        help="If ture, keep result the same length as orginal")
+    parser.add_argument(
         "--numpy",
         action="store_true",
         help="Define type of masks in numpy.ndarray instead of "
         "kaldi's archives")
     parser.add_argument(
         "--transpose-mask",
+        dest="transpose",
         action="store_true",
         help="Transpose mask from FxT to TxF(T: num_frames, F: num_bins)")
     args = parser.parse_args()

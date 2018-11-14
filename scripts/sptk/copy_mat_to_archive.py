@@ -33,7 +33,7 @@ def run(args):
             num_mat += 1
         if args.merge:
             mat = np.vstack(mat_list)
-            writer.write(filekey(args.src_scp), mat)
+            writer.write(filekey(args.dst_ark), mat)
             logger.info(
                 "Merge {0} matrix into archive {1}, shape as {2[0]}x{2[1]}".
                 format(num_mat, args.dst_ark, mat.shape))

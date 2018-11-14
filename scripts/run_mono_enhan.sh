@@ -9,6 +9,8 @@ cmd="run.pl"
 
 numpy=false
 transpose=false
+keep_length=false
+fs=16000
 stft_conf=conf/stft.conf
 
 echo "$0 $@"
@@ -45,10 +47,12 @@ for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_dir/wav.$n.scp"; done
 mono_enhan_opts=$(cat $stft_conf | xargs)
 $numpy && mono_enhan_opts="$mono_enhan_opts --numpy"
 $transpose && mono_enhan_opts="$mono_enhan_opts --transpose-mask"
+$keep_length && mono_enhan_opts="$mono_enhan_opts --keep-length"
 
 mkdir -p $enhan_dir
 $cmd JOB=1:$nj $exp_dir/log/wav_separate.JOB.scp \
   ./scripts/sptk/wav_separate.py \
+  --sample-frequency $fs \
   $mono_enhan_opts \
   $exp_dir/wav.JOB.scp \
   $exp_dir/masks.scp \

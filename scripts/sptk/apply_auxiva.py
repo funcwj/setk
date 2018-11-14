@@ -77,7 +77,8 @@ def run(args):
                     key, idx + 1)),
                 separated[idx],
                 **stft_kwargs,
-                norm=spectrogram_reader.samp_norm(key))
+                norm=spectrogram_reader.samp_norm(key),
+                fs=args.samp_freq)
     logger.info("Processed {:d} utterances".format(len(spectrogram_reader)))
 
 
@@ -96,5 +97,11 @@ if __name__ == "__main__":
         type=int,
         dest="epochs",
         help="Number of epochs to run AuxIVA algorithm")
+    parser.add_argument(
+        "--sample-frequency",
+        type=int,
+        default=16000,
+        dest="samp_freq",
+        help="Waveform data sample frequency")
     args = parser.parse_args()
     run(args)

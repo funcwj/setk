@@ -9,6 +9,7 @@ import librosa as audio_lib
 # using wf to handle wave IO because it support better than librosa
 import scipy.io.wavfile as wf
 import numpy as np
+import scipy as sp
 
 MAX_INT16 = np.iinfo(np.int16).max
 EPSILON = np.finfo(np.float32).eps
@@ -94,18 +95,16 @@ def stft(samps,
         apply_abs = True
     if samps.ndim != 1:
         raise RuntimeError("Invalid shape, librosa.stft accepts mono input")
+    n_fft = nfft(frame_length)
+    if window == "sqrthann":
+        window = np.sqrt(sp.signal.hann(n_fft, sym=False))
     # orignal stft accept samps(vector) and return matrix shape as F x T
     # NOTE for librosa.stft:
     # 1) win_length <= n_fft
     # 2) if win_length is None, win_length = n_fft
     # 3) if win_length < n_fft, pad window to n_fft
     stft_mat = audio_lib.stft(
-        samps,
-        nfft(frame_length),
-        frame_shift,
-        frame_length,
-        window=window,
-        center=center)
+        samps, n_fft, frame_shift, frame_length, window=window, center=center)
     # stft_mat: F x T or N x F x T
     if apply_abs:
         stft_mat = cmat_abs(stft_mat)
@@ -132,6 +131,9 @@ def istft(file,
           nsamps=None):
     if transpose:
         stft_mat = np.transpose(stft_mat)
+    n_fft = nfft(frame_length)
+    if window == "sqrthann":
+        window = np.sqrt(sp.signal.hann(n_fft, sym=False))
     # orignal istft accept stft result(matrix, shape as FxT)
     samps = audio_lib.istft(
         stft_mat,

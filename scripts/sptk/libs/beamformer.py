@@ -5,7 +5,7 @@
 import numpy as np
 import scipy as sp
 
-from libs.utils import EPSILON, cmat_abs
+from .utils import EPSILON, cmat_abs
 """
 Implement for some classic beamformer
 """

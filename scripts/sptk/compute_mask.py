@@ -73,6 +73,7 @@ def run(args):
                     if num_items:
                         logger.info("Clip {:d} items for utterance {}".format(
                             num_items, key))
+                    mask = np.maximum(mask, 0)
                 writer.write(key, mask)
     logger.info("Processed {} utterances".format(num_utts))
 

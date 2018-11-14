@@ -9,4 +9,6 @@ Some useful scripts(work with python 3.6.5+) for speech enhancement integrated w
 7. AuxIVA, GWPE, FB
 8. Mask computation(iam, irm, ibm, psm)
 9. RIR simulation
-10. ...
+10. TF spectral masking, oracle speech separation
+11. SI-SDR computation
+12. ...

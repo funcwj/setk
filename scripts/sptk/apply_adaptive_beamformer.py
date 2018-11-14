@@ -61,6 +61,7 @@ def run(args):
                 os.path.join(args.dst_dir, '{}.wav'.format(key)),
                 stft_enh,
                 norm=norm,
+                fs=args.samp_freq,
                 **stft_kwargs)
     logger.info("Processed {:d} utterances out of {:d}".format(
         num_utts, len(spectrogram_reader)))
@@ -91,6 +92,12 @@ if __name__ == '__main__':
         default="mvdr",
         choices=["mvdr", "gevd", "pmwf"],
         help="Type of adaptive beamformer to apply")
+    parser.add_argument(
+        "--sample-frequency",
+        type=int,
+        default=16000,
+        dest="samp_freq",
+        help="Waveform data sample frequency")
     parser.add_argument(
         "--transpose-mask",
         dest="trans",

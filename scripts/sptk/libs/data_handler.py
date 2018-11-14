@@ -15,8 +15,8 @@ import librosa as audio_lib
 import numpy as np
 import scipy.io as sio
 
-import libs.iobase as io
-from libs.utils import stft, read_wav
+from . import iobase as io
+from .utils import stft, read_wav
 
 __all__ = [
     "ArchiveReader",
@@ -267,13 +267,16 @@ class WaveReader(Reader):
         return self._read_m(key)
 
     def samp_norm(self, key):
-        samps = self._load(key)
+        samps = self._read_m(key)
         return np.max(np.abs(samps))
 
     def duration(self, key):
-        samps = self._load(key)
+        samps = self._read_m(key)
         return samps.shape[-1] / self.samp_rate
 
+    def nsamps(self, key):
+        samps = self._read_m(key)
+        return samps.shape[-1]
 
 class NumpyReader(Reader):
     """
@@ -342,11 +345,6 @@ class SpectrogramReader(WaveReader):
             samps = np.ascontiguousarray(samps)
             return np.stack(
                 [stft(samps[c], **self.stft_kwargs) for c in range(N)])
-
-    def samp_norm(self, key):
-        # WARN: could not implement from WaveReader
-        samps = super()._read_m(key)
-        return np.max(np.abs(samps))
 
 
 class ScriptReader(Reader):
