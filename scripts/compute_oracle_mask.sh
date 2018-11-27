@@ -3,7 +3,7 @@
 set -eu
 
 mask="irm"
-# for iam(FFT-mask)
+# for iam(FFT-mask)/psm etc
 cutoff=10
 stft_conf=conf/stft.conf
 
@@ -13,17 +13,27 @@ nj=40
 
 echo "$0 $@"
 
+function usage {
+  echo "Options:"
+  echo "  --nj        <nj>                  # number of jobs to run parallel, (default=40)"
+  echo "  --cmd       <run.pl|queue.pl>     # how to run jobs, (default=run.pl)"
+  echo "  --compress  <true|false>          # compress feature or not, (default=true)"
+  echo "  --stft-conf <stft-conf>           # stft configurations files, (default=conf/stft.conf)"
+  echo "  --cutoff    <cutoff>              # values to cutoff when compute iam/psm, (default=10)"
+  echo "  --mask      <ibm|iam|psm|irm|psa> # type of TF-masks to compute, (default=irm)"
+}
+
 . ./path.sh
 . ./utils/parse_options.sh || exit 1
 
-[ $# -ne 3 ] && echo "Script format error: $0 <data-dir> <log-dir> <mask-dir>" && exit 1
+[ $# -ne 3 ] && echo "Script format error: $0 <data-dir> <log-dir> <mask-dir>" && usage && exit 1
 
 data_dir=$(cd $1; pwd)
 mask_dir=$3
 
 denominator_scp=noise.scp
 case $mask in 
-  "iam"|"psm" )
+  "iam"|"psm"|"psa" )
     denominator_scp=wav.scp
     ;;
   "ibm"|"irm" )

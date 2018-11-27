@@ -21,11 +21,22 @@ compress=true
 
 echo "$0 $@"
 
+function usage {
+  echo "Options:"
+  echo "  --nj                <nj>                # number of jobs to run parallel, (default=40)"
+  echo "  --cmd               <run.pl|queue.pl>   # how to run jobs, (default=run.pl)"
+  echo "  --compress          <true|false>        # compress feature or not, (default=true)"
+  echo "  --apply-log         <true|false>        # use log or linear spectrogram, (default=true)"
+  echo "  --apply-pow         <true|false>        # use power or magnitude spectrogram, (default=false)"
+  echo "  --stft-conf         <stft-conf>         # stft configurations files, (default=conf/stft.conf)"
+  echo "  --sample-normalize  <true|false>        # normalize wav samples into [0, 1] or not, (default=true)"
+}
+
 . ./path.sh
 
 . ./utils/parse_options.sh || exit 1
 
-[ $# -ne 3 ] && echo "Script format error: $0 <data-dir> <log-dir> <spectrogram-dir>" && exit 1
+[ $# -ne 3 ] && echo "Script format error: $0 <data-dir> <log-dir> <spectrogram-dir>" && usage && exit 1
 
 src_dir=$(cd $1; pwd)
 dst_dir=$3
@@ -46,9 +57,11 @@ for n in $(seq $nj); do wav_split_scp="$wav_split_scp $exp_dir/wav.$n.scp"; done
 
 ./utils/split_scp.pl $src_dir/wav.scp $wav_split_scp || exit 1
 
+$apply_log && $apply_pow && echo "$0: Using log-amplitude feature instead" && exit 1
+
 name="linear_amp_spectrogram"
-$apply_log && name="log_amp_spectrogram"
-$apply_pow && name="log_pow_spectrogram"
+$apply_log && ! $apply_pow && name="log_amp_spectrogram"
+! $apply_log && $apply_pow && name="linear_pow_spectrogram"
 
 dir=$(basename $src_dir)
 

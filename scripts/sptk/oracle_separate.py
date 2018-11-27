@@ -23,7 +23,7 @@ def compute_mask(mixture, targets_list, mask_type):
     Return:
         masks_list
     """
-    if mask_type == 'ibm':
+    if mask_type == "ibm":
         max_index = np.argmax(
             np.stack([cmat_abs(mat) for mat in targets_list]), 0)
         return [max_index == s for s in range(len(targets_list))]
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         "--mask",
         type=str,
         default="irm",
-        choices=["iam", 'irm', 'ibm', 'psm'],
+        choices=["iam", "irm", "ibm", "psm"],
         help="Type of mask to use for speech separation")
     parser.add_argument(
         "--sample-frequency",

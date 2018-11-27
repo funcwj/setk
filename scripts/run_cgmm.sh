@@ -5,6 +5,7 @@
 set -eu
 
 nj=40
+cmd="run.pl"
 epochs=20
 # stft.conf example:
 # --frame-length 1024
@@ -16,9 +17,19 @@ init_mask=
 
 echo "$0 $@"
 
+function usage {
+  echo "Options:"
+  echo "  --nj        <nj>                  # number of jobs to run parallel, (default=40)"
+  echo "  --cmd       <run.pl|queue.pl>     # how to run jobs, (default=run.pl)"
+  echo "  --stft-conf <stft-conf>           # stft configurations files, (default=conf/stft.conf)"
+  echo "  --epochs    <epochs>              # number of epochs to run CGMM, (default=20)"
+  echo "  --init-mask <init-mask>           # dir or script for mask initialization, (default="")"
+}
+
+. ./path.sh
 . ./utils/parse_options.sh || exit 1 
 
-[ $# -ne 2 ] && echo "Script format error: $0 <wav-scp> <dst-dir>" && exit 1
+[ $# -ne 2 ] && echo "Script format error: $0 <wav-scp> <dst-dir>" && usage && exit 1
 
 wav_scp=$1
 dst_dir=$2
@@ -37,7 +48,7 @@ cgmm_opts="--num-epochs $epochs"
 [ ! -z $init_mask ] && cgmm_opts="$cgmm_opts --init-speech-mask $init_mask"
 
 mkdir -p $dst_dir
-./utils/run.pl JOB=1:$nj $exp_dir/log/run_cgmm.JOB.log \
+$cmd JOB=1:$nj $exp_dir/log/run_cgmm.JOB.log \
   ./scripts/sptk/estimate_cgmm_masks.py \
   $stft_opts $cgmm_opts \
   $exp_dir/wav.JOB.scp \

@@ -196,9 +196,6 @@ class Writer(object):
         # "wb" is important
         if not self.dump_out_dir:
             self.ark_file = _fopen(self.path_or_dir, "wb")
-        else:
-            if not os.path.exists(self.path_or_dir):
-                os.makedirs(self.path_or_dir)
         self.scp_file = _fopen(self.scp_path, "w")
         return self
 
@@ -413,7 +410,18 @@ class ArchiveWriter(Writer):
                 offset=offset))
 
 
-class WaveWriter(Writer):
+class DirWriter(Writer):
+    """
+        Writer to dump into directory
+    """
+
+    def __init__(self, dump_dir, scp_path=None):
+        if not os.path.exists(dump_dir):
+            os.makedirs(dump_dir)
+        super(DirWriter, self).__init__(dump_dir, scp_path)
+
+
+class WaveWriter(DirWriter):
     """
         Writer for wave files
     """
@@ -433,7 +441,7 @@ class WaveWriter(Writer):
                 key=key, path=os.path.abspath(obj_path)))
 
 
-class NumpyWriter(Writer):
+class NumpyWriter(DirWriter):
     """
         Writer for numpy ndarray
     """
@@ -448,7 +456,7 @@ class NumpyWriter(Writer):
         obj_path = os.path.join(self.path_or_dir, "{}".format(key))
         np.save(obj_path, obj)
         if self.scp_file:
-            self.scp_file.write("{key}\t{path}\n".format(
+            self.scp_file.write("{key}\t{path}.npy\n".format(
                 key=key, path=os.path.abspath(obj_path)))
 
 

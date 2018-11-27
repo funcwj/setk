@@ -1,5 +1,4 @@
 // src/matrix-scale-elements.cc
-// wujian@2018
 
 // Copyright 2018 Jian Wu
 

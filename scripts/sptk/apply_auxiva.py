@@ -78,7 +78,7 @@ def run(args):
                 separated[idx],
                 **stft_kwargs,
                 norm=spectrogram_reader.samp_norm(key),
-                fs=args.samp_freq)
+                fs=args.fs)
     logger.info("Processed {:d} utterances".format(len(spectrogram_reader)))
 
 
@@ -101,7 +101,7 @@ if __name__ == "__main__":
         "--sample-frequency",
         type=int,
         default=16000,
-        dest="samp_freq",
+        dest="fs",
         help="Waveform data sample frequency")
     args = parser.parse_args()
     run(args)

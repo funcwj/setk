@@ -15,10 +15,20 @@ transpose=false
 
 echo "$0 $@"
 
+function usage {
+  echo "Options:"
+  echo "  --nj        <nj>                  # number of jobs to run parallel, (default=40)"
+  echo "  --cmd       <run.pl|queue.pl>     # how to run jobs, (default=run.pl)"
+  echo "  --compress  <true|false>          # compress feature or not, (default=true)"
+  echo "  --stft-conf <stft-conf>           # stft configurations files, (default=conf/stft.conf)"
+  echo "  --numpy     <numpy>               # load masks from np.ndarray instead, (default=false)"
+  echo "  --transpose <transpose>           # transpose TF-mask or not, (default=false)"
+}
+
 . ./path.sh
 . ./utils/parse_options.sh || exit 1
 
-[ $# -ne 4 ] && echo "Script format error: $0 <data-dir> <mask-scp> <log-dir> <feats-dir>" && exit 1
+[ $# -ne 4 ] && echo "Script format error: $0 <data-dir> <mask-scp> <log-dir> <feats-dir>" && usage && exit 1
 
 src_dir=$(cd $1; pwd)
 dst_dir=$4

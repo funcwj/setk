@@ -7,7 +7,7 @@ import os
 import numpy as np
 
 from libs.cgmm_trainer import CgmmTrainer
-from libs.data_handler import SpectrogramReader, ScriptReader
+from libs.data_handler import SpectrogramReader, ScriptReader, NumpyWriter
 from libs.utils import get_logger
 from libs.opts import get_stft_parser
 
@@ -23,33 +23,30 @@ def run(args):
         "transpose": False
     }
 
-    if not os.path.exists(args.dst_dir):
-        os.makedirs(args.dst_dir)
-
     spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
     init_mask_reader = ScriptReader(args.init_mask) if args.init_mask else None
 
     num_done = 0
-    for key, stft in spectrogram_reader:
-        if not os.path.exists(
-                os.path.join(args.dst_dir, "{}.npy".format(key))):
-            init_mask = None
-            if init_mask_reader and key in init_mask_reader:
-                init_mask = init_mask_reader[key]
-                logger.info("Using external speech mask to initialize cgmm")
-            # stft: N x F x T
-            trainer = CgmmTrainer(stft, Ms=init_mask)
-            try:
-                speech_masks = trainer.train(args.num_epochs)
-                num_done += 1
-                np.save(
-                    os.path.join(args.dst_dir, key),
-                    speech_masks.astype(np.float32))
-                logger.info("Training utterance {} ... Done".format(key))
-            except RuntimeError:
-                logger.warn("Training utterance {} ... Failed".format(key))
-        else:
-            logger.info("Training utterance {} ... Skip".format(key))
+    with NumpyWriter(args.dst_dir) as writer:
+        for key, stft in spectrogram_reader:
+            if not os.path.exists(
+                    os.path.join(args.dst_dir, "{}.npy".format(key))):
+                init_mask = None
+                if init_mask_reader and key in init_mask_reader:
+                    init_mask = init_mask_reader[key]
+                    logger.info(
+                        "Using external speech mask to initialize cgmm")
+                # stft: N x F x T
+                trainer = CgmmTrainer(stft, Ms=init_mask)
+                try:
+                    speech_masks = trainer.train(args.num_epochs)
+                    num_done += 1
+                    writer.write(key, speech_masks.astype(np.float32))
+                    logger.info("Training utterance {} ... Done".format(key))
+                except RuntimeError:
+                    logger.warn("Training utterance {} ... Failed".format(key))
+            else:
+                logger.info("Training utterance {} ... Skip".format(key))
     logger.info("Train {:d} utterances over {:d}".format(
         num_done, len(spectrogram_reader)))
 
@@ -62,7 +59,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
     parser.add_argument(
-        'dst_dir', type=str, help="Location to dump estimated speech masks")
+        "dst_dir", type=str, help="Location to dump estimated speech masks")
     parser.add_argument(
         "--num-epochs",
         type=int,

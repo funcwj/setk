@@ -11,10 +11,18 @@ weight_key="weights"
 
 echo "$0 $@"
 
+function usage {
+  echo "Options:"
+  echo "  --nj          <nj>                  # number of jobs to run parallel, (default=40)"
+  echo "  --cmd         <run.pl|queue.pl>     # how to run jobs, (default=run.pl)"
+  echo "  --stft-conf   <stft-conf>           # stft configurations files, (default=conf/stft.conf)"
+  echo "  --weight-key  <weight-key>          # index keys to index matlab mat files, (default=weights)"
+}
+
 . ./path.sh
 . ./utils/parse_options.sh || exit 1
 
-[ $# -ne 3 ] && echo "Script format error: $0 <wav-scp> <weight-mat> <enhan-dir>" && exit 1
+[ $# -ne 3 ] && echo "Script format error: $0 <wav-scp> <weight-mat> <enhan-dir>" && usage && exit 1
 
 wav_scp=$1
 weight=$2

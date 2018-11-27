@@ -24,11 +24,22 @@ compress=true
 
 echo "$0 $@"
 
+function usage {
+  echo "Options:"
+  echo "  --nj                <nj>                # number of jobs to run parallel, (default=40)"
+  echo "  --cmd               <run.pl|queue.pl>   # how to run jobs, (default=run.pl)"
+  echo "  --compress          <true|false>        # compress feature or not, (default=true)"
+  echo "  --apply-log         <true|false>        # use log or linear fbank, (default=true)"
+  echo "  --apply-pow         <true|false>        # use power or magnitude spectrogram, (default=false)"
+  echo "  --fbank-conf        <fbank-conf>        # stft configurations files, (default=conf/fbank_librosa.conf)"
+  echo "  --sample-normalize  <true|false>        # normalize wav samples into [0, 1] or not, (default=true)"
+}
+
 . ./path.sh
 
 . ./utils/parse_options.sh || exit 1
 
-[ $# -ne 3 ] && echo "Script format error: $0 <data-dir> <log-dir> <fbank-dir>" && exit 1
+[ $# -ne 3 ] && echo "Script format error: $0 <data-dir> <log-dir> <fbank-dir>" && usage && exit 1
 
 src_dir=$(cd $1; pwd)
 dst_dir=$3

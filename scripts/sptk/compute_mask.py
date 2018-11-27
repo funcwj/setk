@@ -43,6 +43,10 @@ def compute_mask(speech, noise_or_mixture, mask):
     if mask == "psm":
         return cmat_abs(speech) * np.cos(
             np.angle(noise_or_mixture) - np.angle(speech)) / denominator
+    elif mask == "psa":
+        # keep nominator only
+        return cmat_abs(speech) * np.cos(
+            np.angle(noise_or_mixture) - np.angle(speech))
     else:
         # irm/iam
         return cmat_abs(speech) / denominator
@@ -70,6 +74,7 @@ def run(args):
                 mask = compute_mask(speech[0] if speech.ndim == 3 else speech,
                                     denorm[0] if denorm.ndim == 3 else denorm,
                                     args.mask)
+                # iam, psm, psa
                 if cutoff > 0:
                     num_items = np.sum(mask > cutoff)
                     mask = np.minimum(mask, cutoff)
@@ -78,13 +83,14 @@ def run(args):
                         logger.info(
                             "Clip {:d}({:.2f}) items over {:f} for utterance {}"
                             .format(num_items, percent, cutoff, key))
-                    num_items = np.sum(mask < 0)
-                    if num_items:
-                        percent = float(num_items) / mask.size
-                        average = np.sum(mask[mask < 0]) / num_items
-                        logger.info(
-                            "Clip {:d}({:.2f}, {:.2f}) items below zero for utterance {}"
-                            .format(num_items, percent, average, key))
+                num_items = np.sum(mask < 0)
+                # psm, psa
+                if num_items:
+                    percent = float(num_items) / mask.size
+                    average = np.sum(mask[mask < 0]) / num_items
+                    logger.info(
+                        "Clip {:d}({:.2f}, {:.2f}) items below zero for utterance {}"
+                        .format(num_items, percent, average, key))
                     mask = np.maximum(mask, 0)
                 writer.write(key, mask)
             else:
@@ -117,7 +123,7 @@ if __name__ == "__main__":
         "--mask",
         type=str,
         default="irm",
-        choices=["irm", "ibm", "iam", "psm"],
+        choices=["irm", "ibm", "iam", "psm", "psa"],
         help=
         "Type of masks(irm/ibm/iam(FFT-mask,smm)/psm) to compute. Note that "
         "if iam/psm assigned, second .scp is expected to be noisy component")

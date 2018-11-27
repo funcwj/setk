@@ -1,6 +1,6 @@
-// featbin/select-feats.cc
+// src/modify-feats.cc
 
-// Copyright 2012 Korbinian Riedhammer
+// Copyright 2018 Jian Wu
 
 // See ../../COPYING for clarification regarding multiple authors
 //

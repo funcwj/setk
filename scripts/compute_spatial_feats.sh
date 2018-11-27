@@ -23,10 +23,26 @@ src_sample_tdoa=false
 
 echo "$0 $@"
 
+function usage {
+  echo "Options:"
+  echo "  --nj               <nj>               # number of jobs to run parallel, (default=40)"
+  echo "  --cmd              <run.pl|queue.pl>  # how to run jobs, (default=run.pl)"
+  echo "  --compress         <true|false>       # compress feature or not, (default=true)"
+  echo "  --stft-conf        <stft-conf>        # stft configurations files, (default=conf/stft.conf)"
+  echo "  --feats            <srp|ipd|msc>      # type of spatial features, (default=ipd)"
+  echo "  --ipd-index        <ipd-index>        # channel index to compute ipd, (default=0,1)"
+  echo "  --ipd-sin          <true|false>       # paste sin(ipd) feature or not, (default=false)"
+  echo "  --msc-ctx          <msc-ctx>          # length of context for MSC computation, (default=1)"
+  echo "  --srp-fs           <srp-fs>           # sample frequency for source wave, (default=16000)"
+  echo "  --srp-topo         <srp-topo>         # microphone topo description, (default="")"
+  echo "  --srp-num-doa      <num-doa>          # doa resolution, (default=181)"
+  echo "  --srp-sample-tdoa  <true|false>       # sample tdoa instead of doa, (default=false)" 
+}
+
 . ./path.sh
 . ./utils/parse_options.sh || exit 1
 
-[ $# -ne 3 ] && echo "Script format error: $0 <data-dir> <log-dir> <feats-dir>" && exit 1
+[ $# -ne 3 ] && echo "Script format error: $0 <data-dir> <log-dir> <feats-dir>" && usage && exit 1
 
 src_dir=$(cd $1; pwd)
 dst_dir=$3

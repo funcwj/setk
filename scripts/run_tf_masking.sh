@@ -15,10 +15,21 @@ stft_conf=conf/stft.conf
 
 echo "$0 $@"
 
+function usage {
+  echo "Options:"
+  echo "  --nj            <nj>                # number of jobs to run parallel, (default=40)"
+  echo "  --cmd           <run.pl|queue.pl>   # how to run jobs, (default=run.pl)"
+  echo "  --stft-conf     <stft-conf>         # stft configurations files, (default=conf/stft.conf)"
+  echo "  --numpy         <numpy>             # load masks from np.ndarray instead, (default=false)"
+  echo "  --transpose     <transpose>         # transpose TF-mask or not, (default=false)"
+  echo "  --fs            <fs>                # sample frequency for output wave, (default=16000)"
+  echo "  --keep-length   <true|false>        # keep same length as original or not, (default=false)"
+}
+
 . ./path.sh
 . ./utils/parse_options.sh || exit 1
 
-[ $# -ne 3 ] && echo "Script format error: $0 <wav-scp> <mask-dir/mask-scp> <enhan-dir>" && exit 1
+[ $# -ne 3 ] && echo "Script format error: $0 <wav-scp> <mask-dir/mask-scp> <enhan-dir>" && usage && exit 1
 
 wav_scp=$1
 enhan_dir=$3

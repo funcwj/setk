@@ -1,6 +1,6 @@
 // src/matrix-scale-rows.cc
 
-// Copyright 2018  (author: Jian Wu)
+// Copyright 2018  Jian Wu
 
 // See ../../COPYING for clarification regarding multiple authors
 //

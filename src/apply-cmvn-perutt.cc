@@ -1,4 +1,4 @@
-// featbin/apply-cmvn.cc
+// src/apply-cmvn-perutt.cc
 
 // Copyright 2018 Jian Wu
 
