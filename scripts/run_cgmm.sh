@@ -12,6 +12,7 @@ epochs=20
 # --window hann
 # --center true
 stft_conf=conf/stft.conf
+init_mask=
 
 echo "$0 $@"
 
@@ -21,17 +22,24 @@ echo "$0 $@"
 
 wav_scp=$1
 dst_dir=$2
-exp_dir=./exp/cgmm && mkdir -p $exp_dir
+
+for x in $wav_scp $stft_conf; do [ ! -f $x ] && echo "$0: missing file: $x" && exit 1; done
+
+dirname=$(basename $dst_dir)
+exp_dir=./exp/cgmm/$dirname && mkdir -p $exp_dir
 stft_opts=$(cat $stft_conf | xargs)
 
 split_wav_scp="" && for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_dir/wav.$n.scp"; done
 
 ./utils/split_scp.pl $wav_scp $split_wav_scp
 
+cgmm_opts="--num-epochs $epochs"
+[ ! -z $init_mask ] && cgmm_opts="$cgmm_opts --init-speech-mask $init_mask"
+
 mkdir -p $dst_dir
 ./utils/run.pl JOB=1:$nj $exp_dir/log/run_cgmm.JOB.log \
   ./scripts/sptk/estimate_cgmm_masks.py \
-  $stft_opts --num-epochs $epochs \
+  $stft_opts $cgmm_opts \
   $exp_dir/wav.JOB.scp \
   $dst_dir
 

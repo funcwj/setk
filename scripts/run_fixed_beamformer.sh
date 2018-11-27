@@ -20,6 +20,8 @@ wav_scp=$1
 weight=$2
 enhan_dir=$3
 
+for x in $wav_scp $weight $stft_conf; do [ ! -f $x ] && echo "$0: missing file: $x" && exit 1; done
+
 exp_dir=./exp/fixed_beamformer && mkdir -p $exp_dir
 
 wav_split_scp="" && for n in $(seq $nj); do wav_split_scp="$wav_split_scp $exp_dir/wav.$n.scp"; done

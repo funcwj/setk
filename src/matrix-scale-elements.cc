@@ -30,13 +30,9 @@ int main(int argc, char *argv[]) {
         "\n"
         "Usage: matrix-scale-elements [options] <matrix-rspecifier> "
         "<matrix-rspecifier> <matrix-wspecifier>\n"
-        "e.g.: matrix-scale-elements scp:masks.scp scp:weights.scp "
-        "ark,scp:fixed_masks.ark,fixed_masks.scp\n";
+        "e.g.: matrix-scale-elements scp:src.scp scp:weights.scp ark:fix.ark\n";
 
     ParseOptions po(usage);
-
-    BaseFloat power = 1;
-    po.Register("apply-pow", &power, "Apply power after hadamard product");
 
     po.Read(argc, argv);
 
@@ -44,6 +40,7 @@ int main(int argc, char *argv[]) {
       po.PrintUsage();
       exit(1);
     }
+
     std::string input_rspecifier = po.GetArg(1);
     std::string scale_rspecifier = po.GetArg(2);
     std::string matrix_wspecifier = po.GetArg(3);
@@ -63,8 +60,6 @@ int main(int argc, char *argv[]) {
       Matrix<BaseFloat> scale(scale_reader.Value(key));
       const Matrix<BaseFloat> &input = input_reader.Value();
       scale.MulElements(input);
-      scale.ApplyPow(power);
-
       mat_writer.Write(key, scale);
       num_done++;
     }

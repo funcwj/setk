@@ -55,24 +55,35 @@ class CgmmTrainer(object):
         CgmmTrainer for two targets: speech & noise
     """
 
-    def __init__(self, X):
-        # N x F x T => F x T x N
-        X = X.transpose([1, 2, 0])
+    def __init__(self, X, Ms=None):
+        # N x F x T => F x N x T
+        X = X.transpose([1, 0, 2])
 
         # self.X = X
-        self.num_bins, self.num_frames, self.num_channels = X.shape
+        self.num_bins, self.num_channels, self.num_frames = X.shape
 
         # init R{n,s}
-        self.Rs = np.array([
-            # (N x T) * (T x N)
-            np.dot(X[f].T, np.conj(X[f])) / self.num_frames
-            for f in range(self.num_bins)
-        ])
-        self.Rn = np.array([
-            np.eye(self.num_channels, self.num_channels, dtype=np.complex)
-            for f in range(self.num_bins)
-        ])
+        if Ms is None:
+            self.Rs = np.einsum("...dt,...et->...de", X,
+                                X.conj()) / self.num_frames
+            self.Rn = np.array([
+                np.eye(self.num_channels, self.num_channels, dtype=np.complex)
+                for f in range(self.num_bins)
+            ])
+        else:
+            # Ms: T x F => F x 1 x T
+            Ms = np.expand_dims(np.transpose(Ms), axis=1)
+            denominator_s = np.maximum(
+                np.sum(Ms, axis=-1, keepdims=True), 1e-6)
+            self.Rs = np.einsum("...dt,...et->...de", Ms * X,
+                                X.conj()) / denominator_s
+            denominator_n = np.maximum(
+                np.sum(1 - Ms, axis=-1, keepdims=True), 1e-6)
+            self.Rn = np.einsum("...dt,...et->...de",
+                                (1 - Ms) * X, X.conj()) / denominator_n
 
+        # F x N x T => F x T x N
+        X = X.transpose([0, 2, 1])
         # init covariance-matrix on each T-F bins
         # F x T x N x N
         self.Rtf = np.einsum("...a,...b->...ab", X, np.conj(X))

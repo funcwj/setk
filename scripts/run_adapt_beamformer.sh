@@ -24,7 +24,10 @@ echo "$0 $@"
 wav_scp=$1
 enhan_dir=$3
 
-exp_dir=./exp/run_$beamformer && mkdir -p $exp_dir
+for x in $wav_scp $stft_conf; do [ ! -f $x ] && echo "$0: missing file: $x" && exit 1; done
+
+dirname=$(basename $enhan_dir)
+exp_dir=./exp/run_$beamformer/$dirname && mkdir -p $exp_dir
 
 if $numpy; then
   [ ! -d $2 ] && echo "$0: $2 is expected to be directory" && exit 1

@@ -7,7 +7,7 @@ import os
 import numpy as np
 
 from libs.cgmm_trainer import CgmmTrainer
-from libs.data_handler import SpectrogramReader
+from libs.data_handler import SpectrogramReader, ScriptReader
 from libs.utils import get_logger
 from libs.opts import get_stft_parser
 
@@ -27,13 +27,18 @@ def run(args):
         os.makedirs(args.dst_dir)
 
     spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
+    init_mask_reader = ScriptReader(args.init_mask) if args.init_mask else None
 
     num_done = 0
     for key, stft in spectrogram_reader:
         if not os.path.exists(
                 os.path.join(args.dst_dir, "{}.npy".format(key))):
+            init_mask = None
+            if init_mask_reader and key in init_mask_reader:
+                init_mask = init_mask_reader[key]
+                logger.info("Using external speech mask to initialize cgmm")
             # stft: N x F x T
-            trainer = CgmmTrainer(stft)
+            trainer = CgmmTrainer(stft, Ms=init_mask)
             try:
                 speech_masks = trainer.train(args.num_epochs)
                 num_done += 1
@@ -63,5 +68,11 @@ if __name__ == "__main__":
         type=int,
         default=20,
         help="Number of epochs to train CGMM parameters")
+    parser.add_argument(
+        "--init-speech-mask",
+        type=str,
+        default="",
+        dest="init_mask",
+        help="Speech mask scripts for cgmm initialization")
     args = parser.parse_args()
     run(args)

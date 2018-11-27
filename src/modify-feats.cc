@@ -1,6 +1,6 @@
-// src/modify-feats.cc
+// featbin/select-feats.cc
 
-// Copyright 2018 Jian Wu
+// Copyright 2012 Korbinian Riedhammer
 
 // See ../../COPYING for clarification regarding multiple authors
 //
@@ -41,13 +41,15 @@ int main(int argc, char *argv[]) {
 
     bool output_vector = false;
     std::string op = "average";
+    int32 n = -1;
 
     po.Register("output-vector", &output_vector,
                 "If true, output in vector instead of matrix if possible, egs, "
                 "when \"--operator=average\"");
+    po.Register("n", &n, "Value of index when operator == \'index\'");
     po.Register("operator", &op,
                 "Operation on input features: "
-                "\"average\"|\"sum\"|\"sample\"");
+                "\"average\"|\"sum\"|\"sample\"|\"index\"");
 
     po.Read(argc, argv);
 
@@ -56,7 +58,7 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
 
-    if (op != "average" && op != "sum" && op != "sample") {
+    if (op != "average" && op != "sum" && op != "sample" && op != "index") {
       KALDI_ERR << "Unknown operator: " << op;
     }
 
@@ -93,6 +95,12 @@ int main(int argc, char *argv[]) {
         op_mat.Row(0).CopyFromVec(mat.Row(time_index));
         KALDI_VLOG(2) << "Random choose time index as " << time_index
                       << " for matrix " << kaldi_reader.Key();
+      } else if (op == "index") {
+        int32 num_rows = mat.NumRows();
+        int32 index = (n >= 0 ? n : num_rows + n);
+        if (index >= num_rows || index < 0)
+          KALDI_ERR << "Index out of range(" << n << " vs " << num_rows << ")";
+        op_mat.Row(0).CopyFromVec(mat.Row(index));
       } else {
         op_mat.Row(0).AddRowSumMat(1.0, mat, 0.0);
         if (op == "average") op_mat.Scale(1.0 / mat.NumRows());

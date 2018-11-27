@@ -27,7 +27,7 @@ def run(args):
         args.mask_scp)
 
     num_utts = 0
-    fs = args.samp_freq,
+    fs = args.samp_freq
     for key, specs in spectrogram_reader:
         if key in mask_reader:
             num_utts += 1

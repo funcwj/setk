@@ -23,7 +23,10 @@ echo "$0 $@"
 wav_scp=$1
 enhan_dir=$3
 
-exp_dir=exp/mono_enhan && mkdir -p $exp_dir
+for x in $wav_scp $stft_conf; do [ ! -f $x ] && echo "$0: missing file: $x" && exit 1; done
+
+dirname=$(basename $enhan_dir)
+exp_dir=exp/tf_masking/$dirname && mkdir -p $exp_dir
 
 # if numpy=true, prepare mask.scp first
 if $numpy; then
@@ -44,18 +47,18 @@ for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_dir/wav.$n.scp"; done
 
 ./utils/split_scp.pl $wav_scp $split_wav_scp || exit 1
 
-mono_enhan_opts=$(cat $stft_conf | xargs)
-$numpy && mono_enhan_opts="$mono_enhan_opts --numpy"
-$transpose && mono_enhan_opts="$mono_enhan_opts --transpose-mask"
-$keep_length && mono_enhan_opts="$mono_enhan_opts --keep-length"
+masking_opts=$(cat $stft_conf | xargs)
+$numpy && masking_opts="$masking_opts --numpy"
+$transpose && masking_opts="$masking_opts --transpose-mask"
+$keep_length && masking_opts="$masking_opts --keep-length"
 
 mkdir -p $enhan_dir
 $cmd JOB=1:$nj $exp_dir/log/wav_separate.JOB.scp \
   ./scripts/sptk/wav_separate.py \
   --sample-frequency $fs \
-  $mono_enhan_opts \
+  $masking_opts \
   $exp_dir/wav.JOB.scp \
   $exp_dir/masks.scp \
   $enhan_dir 
 
-echo "$0: Run mono-masking done"
+echo "$0: Run TF-masking done"

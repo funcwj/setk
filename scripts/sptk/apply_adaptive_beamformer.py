@@ -49,6 +49,8 @@ def run(args):
                 key, norm))
             # prefer T x F
             speech_mask = mask_reader[key]
+            # constraint [0, 1]
+            speech_mask = np.minimum(speech_mask, 1)
             if args.trans:
                 speech_mask = np.transpose(speech_mask)
             # stft_enh, stft_mat: F x T

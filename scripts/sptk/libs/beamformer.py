@@ -34,6 +34,76 @@ def do_ban(weight, noise_covar):
     return filters[:, None] * weight
 
 
+def solve_pevd(speech_covar, noise_covar=None):
+    """
+    Return principle eigenvector of covariance matrix (pair)
+    Arguments: (for N: num_mics, F: num_bins)
+        speech_covar: shape as F x N x N
+        noise_covar: same as speech_covar if not None
+    Return:
+        pvector: shape as F x N
+    """
+    if noise_covar is None:
+        # batch(faster) version
+        # eigenvals: F x N, ascending order
+        # eigenvecs: F x N x N on each columns, |vec|_2 = 1
+        # NOTE: eigenvalues computed by np.linalg.eig is not necessarily ordered.
+        _, eigenvecs = np.linalg.eigh(speech_covar)
+        return eigenvecs[:, :, -1]
+    else:
+        F, N, _ = speech_covar
+        pvec = np.zeros((F, N), dtype=np.complex)
+        for f in range(F, N):
+            try:
+                # sp.linalg.eigh returns eigen values in ascending order
+                _, eigenvecs = sp.linalg.eigh(speech_covar[f], noise_covar[f])
+                pvec[f] = eigenvecs[:, -1]
+            except np.linalg.LinAlgError:
+                try:
+                    eigenvals, eigenvecs = sp.linalg.eig(
+                        speech_covar[f], noise_covar[f])
+                    pvec[f] = eigenvecs[:, np.argmax(eigenvals)]
+                except np.linalg.LinAlgError:
+                    raise RuntimeError(
+                        "LinAlgError when computing eig on frequency "
+                        "{:d}: \nRxx = {}, \nRvv = {}".format(
+                            f, speech_covar[f], noise_covar[f]))
+        return pvec
+
+
+def rank1_constraint(speech_covar, noise_covar=None):
+    """
+    Return generalized rank1 approximation of covariance matrix
+    Arguments: (for N: num_mics, F: num_bins)
+        speech_covar: shape as F x N x N
+        noise_covar: same as speech_covar if not None
+    Return:
+        rank1_mat: shape as F x N x N
+    """
+    if noise_covar is None:
+        eigenvals, eigenvecs = np.linalg.eigh(speech_covar)
+        pvals = eigenvals[:, -1]
+        pvecs = eigenvecs[:, :, -1]
+        rank1_appro = np.einsum("...a,...b->...ab", pvals[:, None] * pvecs,
+                                pvecs.conj())
+    else:
+        num_bins = speech_covar.shape[0]
+        rank1_appro = np.zeros_like(speech_covar, dtype=speech_covar.dtype)
+        for f in range(num_bins):
+            try:
+                # sp.linalg.eigh returns eigen values in ascending order
+                eigenvals, eigenvecs = sp.linalg.eigh(speech_covar[f],
+                                                      noise_covar[f])
+                rank1_appro[f] = eigenvals[-1] * np.outer(
+                    eigenvecs[:, -1], eigenvecs[:, -1].conj())
+            except np.linalg.LinAlgError:
+                raise RuntimeError(
+                    "LinAlgError when computing eig on frequency "
+                    "{:d}: \nRxx = {}, \nRvv = {}".format(
+                        f, speech_covar[f], noise_covar[f]))
+    return rank1_appro
+
+
 class Beamformer(object):
     def __init__(self):
         pass
@@ -220,25 +290,15 @@ class MvdrBeamformer(SupervisedBeamformer):
 
     def compute_steer_vector(self, speech_covar):
         """
+        Compute steer vector using PCA methods
         Arguments: (for N: num_mics, F: num_bins, T: num_frames)
             speech_covar: shape as F x N x N
         Returns:
             steer_vector: shape as F x N
         """
-        # batch(faster) version
-        # eigenvals: F x N, ascending order
-        # eigenvecs: F x N x N on each columns, |vec|_2 = 1
-        # NOTE: eigenvalues computed by np.linalg.eig is not necessarily ordered.
-        _, eigenvecs = np.linalg.eigh(speech_covar)
-        steer_vector = eigenvecs[:, :, -1]
-        return steer_vector
+        return solve_pevd(speech_covar)
 
-    def run(self,
-            speech_mask,
-            spectrogram,
-            noise_mask=None,
-            normalize=False,
-            method="v1"):
+    def run(self, speech_mask, spectrogram, noise_mask=None, normalize=False):
         """
         Arguments: (for N: num_mics, F: num_bins, T: num_frames)
             speech_mask: shape as T x F, same shape as network output
@@ -249,12 +309,7 @@ class MvdrBeamformer(SupervisedBeamformer):
         """
         noise_covar = self.compute_covar_mat(
             1 - speech_mask if noise_mask is None else noise_mask, spectrogram)
-        if method == "v1":
-            speech_covar = self.compute_covar_mat(speech_mask, spectrogram)
-        else:
-            # seems bad this branch
-            speech_covar = self.compute_covar_mat(
-                np.ones_like(speech_mask), spectrogram) - noise_covar
+        speech_covar = self.compute_covar_mat(speech_mask, spectrogram)
         steer_vector = self.compute_steer_vector(speech_covar)
         weight = self.weight(steer_vector, noise_covar)
         return self.beamform(
@@ -332,6 +387,7 @@ class PmwfBeamformer(SupervisedBeamformer):
         noise_covar = self.compute_covar_mat(
             1 - speech_mask if noise_mask is None else noise_mask, spectrogram)
         speech_covar = self.compute_covar_mat(speech_mask, spectrogram)
+        # speech_covar = rank1_constraint(speech_covar)
         weight = self.weight(speech_covar, noise_covar)
         return self.beamform(
             do_ban(weight, noise_covar) if normalize else weight, spectrogram)
@@ -357,28 +413,9 @@ class GevdBeamformer(SupervisedBeamformer):
         Return:
             weight: shape as F x N
         """
-        num_mics = speech_covar.shape[1]
-        weight = np.zeros((self.num_bins, num_mics), dtype=np.complex)
-        for f in range(self.num_bins):
-            try:
-                # sp.linalg.eigh returns eigen values in ascending order
-                _, eigenvecs = sp.linalg.eigh(speech_covar[f], noise_covar[f])
-                weight[f] = eigenvecs[:, -1]
-            except np.linalg.LinAlgError:
-                raise RuntimeError(
-                    "LinAlgError when computing eign on frequency "
-                    "{:d}: \nRxx = {}, \nRvv = {}".format(
-                        f, speech_covar[f], noise_covar[f]))
-                # weight[f] = num_mics * np.ones(num_mics) / np.trace(
-                #     noise_covar[f])
-        return weight
+        return solve_pevd(speech_covar, noise_covar)
 
-    def run(self,
-            speech_mask,
-            spectrogram,
-            noise_mask=None,
-            normalize=False,
-            method="v1"):
+    def run(self, speech_mask, spectrogram, noise_mask=None, normalize=False):
         """
         Arguments: (for N: num_mics, F: num_bins, T: num_frames)
             speech_mask: shape as T x F, same shape as network output
@@ -388,11 +425,9 @@ class GevdBeamformer(SupervisedBeamformer):
         """
         noise_covar = self.compute_covar_mat(
             1 - speech_mask if noise_mask is None else noise_mask, spectrogram)
-        if method == "v1":
-            speech_covar = self.compute_covar_mat(speech_mask, spectrogram)
-        else:
-            speech_covar = self.compute_covar_mat(
-                np.ones_like(speech_mask), spectrogram) - noise_covar
+        speech_covar = self.compute_covar_mat(speech_mask, spectrogram)
+        # add for test
+        # speech_covar = rank1_constraint(speech_covar, noise_covar)
         weight = self.weight(speech_covar, noise_covar)
         return self.beamform(
             do_ban(weight, noise_covar) if normalize else weight, spectrogram)

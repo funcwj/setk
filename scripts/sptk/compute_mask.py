@@ -35,8 +35,9 @@ def compute_mask(speech, noise_or_mixture, mask):
         return binary_mask.astype(np.float)
     # irm/iam/psm
     if mask == "irm":
-        denominator = cmat_abs(speech) + cmat_abs(noise_or_mixture)
-        # or denominator = np.sqrt(np.abs(speech)**2 + np.abs(noise_or_mixture)**2)
+        # denominator = cmat_abs(speech) + cmat_abs(noise_or_mixture)
+        denominator = np.sqrt(
+            cmat_abs(speech)**2 + cmat_abs(noise_or_mixture)**2)
     else:
         denominator = cmat_abs(noise_or_mixture)
     if mask == "psm":
@@ -57,24 +58,37 @@ def run(args):
     }
 
     speech_reader = SpectrogramReader(args.speech_scp, **stft_kwargs)
-    bnoise_reader = SpectrogramReader(args.noise_scp, **stft_kwargs)
+    denorm_reader = SpectrogramReader(args.denorm_scp, **stft_kwargs)
 
     num_utts = 0
     cutoff = args.cutoff
     with ArchiveWriter(args.mask_ark, args.scp) as writer:
         for key, speech in speech_reader:
-            if key in bnoise_reader:
+            if key in denorm_reader:
                 num_utts += 1
-                noise = bnoise_reader[key]
-                mask = compute_mask(speech, noise, args.mask)
+                denorm = denorm_reader[key]
+                mask = compute_mask(speech[0] if speech.ndim == 3 else speech,
+                                    denorm[0] if denorm.ndim == 3 else denorm,
+                                    args.mask)
                 if cutoff > 0:
                     num_items = np.sum(mask > cutoff)
                     mask = np.minimum(mask, cutoff)
                     if num_items:
-                        logger.info("Clip {:d} items for utterance {}".format(
-                            num_items, key))
+                        percent = float(num_items) / mask.size
+                        logger.info(
+                            "Clip {:d}({:.2f}) items over {:f} for utterance {}"
+                            .format(num_items, percent, cutoff, key))
+                    num_items = np.sum(mask < 0)
+                    if num_items:
+                        percent = float(num_items) / mask.size
+                        average = np.sum(mask[mask < 0]) / num_items
+                        logger.info(
+                            "Clip {:d}({:.2f}, {:.2f}) items below zero for utterance {}"
+                            .format(num_items, percent, average, key))
                     mask = np.maximum(mask, 0)
                 writer.write(key, mask)
+            else:
+                logger.warn("Missing bg-noise for utterance {}".format(key))
     logger.info("Processed {} utterances".format(num_utts))
 
 
@@ -85,9 +99,13 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[get_stft_parser()])
     parser.add_argument(
-        "speech_scp", type=str, help="Target speech scripts in Kaldi format")
+        "speech_scp",
+        type=str,
+        help="Scripts for target speech in Kaldi format")
     parser.add_argument(
-        "noise_scp", type=str, help="Background noise scripts in Kaldi format")
+        "denorm_scp",
+        type=str,
+        help="Scripts for bg-noise or mixture in Kaldi format")
     parser.add_argument(
         "mask_ark", type=str, help="Location to dump mask archives")
     parser.add_argument(

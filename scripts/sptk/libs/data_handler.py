@@ -16,7 +16,7 @@ import numpy as np
 import scipy.io as sio
 
 from . import iobase as io
-from .utils import stft, read_wav
+from .utils import stft, read_wav, write_wav
 
 __all__ = [
     "ArchiveReader",
@@ -26,6 +26,7 @@ __all__ = [
     "WaveReader",
     "NumpyReader",
     "PickleReader",
+    "MatReader",
 ]
 
 
@@ -63,6 +64,7 @@ def _fopen(fname, mode):
         raise ValueError("Unknown open mode: {mode}".format(mode=mode))
     if not fname:
         return None
+    fname = fname.strip()
     if fname == "-":
         if mode in ["w", "wb"]:
             return sys.stdout.buffer if mode == "wb" else sys.stdout
@@ -180,23 +182,29 @@ class Writer(object):
         Base Writer class to be implemented
     """
 
-    def __init__(self, ark_path, scp_path=None):
+    def __init__(self, obj_path_or_dir, scp_path=None):
+        self.path_or_dir = obj_path_or_dir
         self.scp_path = scp_path
-        self.ark_path = ark_path
         # if dump ark to output, then ignore scp
-        if ark_path == "-" and scp_path:
-            warnings.warn(
-                "Ignore .scp output discriptor cause dump archives to stdout")
+        if obj_path_or_dir == "-" and scp_path:
+            warnings.warn("Ignore script output discriptor cause "
+                          "dump archives to stdout")
             self.scp_path = None
+        self.dump_out_dir = os.path.isdir(obj_path_or_dir)
 
     def __enter__(self):
         # "wb" is important
-        self.ark_file = _fopen(self.ark_path, "wb")
+        if not self.dump_out_dir:
+            self.ark_file = _fopen(self.path_or_dir, "wb")
+        else:
+            if not os.path.exists(self.path_or_dir):
+                os.makedirs(self.path_or_dir)
         self.scp_file = _fopen(self.scp_path, "w")
         return self
 
     def __exit__(self, *args):
-        _fclose(self.ark_path, self.ark_file)
+        if not self.dump_out_dir:
+            _fclose(self.path_or_dir, self.ark_file)
         _fclose(self.scp_path, self.scp_file)
 
     def write(self, key, data):
@@ -277,6 +285,7 @@ class WaveReader(Reader):
     def nsamps(self, key):
         samps = self._read_m(key)
         return samps.shape[-1]
+
 
 class NumpyReader(Reader):
     """
@@ -369,8 +378,8 @@ class ScriptReader(Reader):
         with open(path, "rb") as f:
             f.seek(offset)
             io.expect_binary(f)
-            ark = io.read_general_mat(
-                f) if self.matrix else io.read_float_vec(f)
+            ark = io.read_general_mat(f) if self.matrix else io.read_float_vec(
+                f)
         return ark
 
 
@@ -386,9 +395,12 @@ class ArchiveWriter(Writer):
         self.matrix = matrix
 
     def write(self, key, obj):
+        if not isinstance(obj, np.ndarray):
+            raise RuntimeError("Expect np.ndarray object, but got {}".format(
+                type(obj)))
         io.write_token(self.ark_file, key)
         # fix script generation bugs
-        if self.ark_path != "-":
+        if self.path_or_dir != "-":
             offset = self.ark_file.tell()
         io.write_binary_symbol(self.ark_file)
         if self.matrix:
@@ -397,7 +409,47 @@ class ArchiveWriter(Writer):
             io.write_float_vec(self.ark_file, obj)
         if self.scp_file:
             self.scp_file.write("{key}\t{path}:{offset}\n".format(
-                key=key, path=os.path.abspath(self.ark_path), offset=offset))
+                key=key, path=os.path.abspath(self.path_or_dir),
+                offset=offset))
+
+
+class WaveWriter(Writer):
+    """
+        Writer for wave files
+    """
+
+    def __init__(self, dump_dir, scp_path=None, **wav_kwargs):
+        super(WaveWriter, self).__init__(dump_dir, scp_path)
+        self.wav_kwargs = wav_kwargs
+
+    def write(self, key, obj):
+        if not isinstance(obj, np.ndarray):
+            raise RuntimeError("Expect np.ndarray object, but got {}".format(
+                type(obj)))
+        obj_path = os.path.join(self.path_or_dir, "{}.wav".format(key))
+        write_wav(obj_path, obj, **self.wav_kwargs)
+        if self.scp_file:
+            self.scp_file.write("{key}\t{path}\n".format(
+                key=key, path=os.path.abspath(obj_path)))
+
+
+class NumpyWriter(Writer):
+    """
+        Writer for numpy ndarray
+    """
+
+    def __init__(self, dump_dir, scp_path=None):
+        super(NumpyWriter, self).__init__(dump_dir, scp_path)
+
+    def write(self, key, obj):
+        if not isinstance(obj, np.ndarray):
+            raise RuntimeError("Expect np.ndarray object, but got {}".format(
+                type(obj)))
+        obj_path = os.path.join(self.path_or_dir, "{}".format(key))
+        np.save(obj_path, obj)
+        if self.scp_file:
+            self.scp_file.write("{key}\t{path}\n".format(
+                key=key, path=os.path.abspath(obj_path)))
 
 
 def test_archive_writer(ark, scp):

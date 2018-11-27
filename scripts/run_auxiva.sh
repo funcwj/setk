@@ -24,7 +24,8 @@ dst_dir=$2
 
 [ ! -d $dst_dir ] && mkdir -p $dst_dir
 
-exp_dir=exp/auxiva && mkdir -p $exp_dir
+dirname=$(basename $dst_dir)
+exp_dir=exp/auxiva/$dirname && mkdir -p $exp_dir
 
 split_wav_scp=""
 for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_dir/wav.$n.scp"; done
@@ -36,6 +37,7 @@ $cmd JOB=1:$nj $exp_dir/log/run_auxiva.JOB.log \
   ./scripts/sptk/apply_auxiva.py \
   --num-epochs $epochs \
   --window $window \
+  --center true \
   --frame-length $frame_length \
   --frame-shift $frame_shift \
   $exp_dir/wav.JOB.scp \

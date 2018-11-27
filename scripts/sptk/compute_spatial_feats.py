@@ -36,7 +36,7 @@ def compute_spatial_feats(args, S):
         L, R = indexes
         return ipd(S[L], S[R], sin=args.ipd_sin)
     else:
-        return msc(S, context=args.context)
+        return msc(S, context=args.msc_ctx)
 
 
 def run(args):
@@ -57,6 +57,8 @@ def run(args):
             # feats: T x F
             writer.write(key, feats)
             num_utts += 1
+            if not num_utts % 1000:
+                logger.info("Processed {:d} utterance...".format(num_utts))
     logger.info("Processed {} for {:d} utterances".format(
         args.type.upper(), num_utts))
 
@@ -71,7 +73,7 @@ if __name__ == "__main__":
         parents=[get_stft_parser()])
 
     parser.add_argument(
-        'wav_scp', type=str, help="Multi-channel wave scripts in kaldi format")
+        "wav_scp", type=str, help="Multi-Channel wave scripts in kaldi format")
     parser.add_argument(
         "dup_ark",
         type=str,
@@ -122,9 +124,9 @@ if __name__ == "__main__":
         default="0,1",
         help="Given two channels to compute IPD spatial features")
     parser.add_argument(
-        "--msc.context",
+        "--msc.ctx",
         type=int,
-        dest="context",
+        dest="msc_ctx",
         default=1,
         help="Value of context in MSC computation")
     args = parser.parse_args()

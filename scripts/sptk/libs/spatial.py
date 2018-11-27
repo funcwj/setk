@@ -134,3 +134,31 @@ def ipd(si, sj, sin=False):
         return cos_ipd
     sin_ipd = np.sin(ipd_mat)
     return np.concatenate((cos_ipd, sin_ipd), axis=1)
+
+
+def directional_feats(spectrogram, steer_vector):
+    """
+    Compute directional features, suppose we got steer_vector
+    Reference:
+        see function msc
+    Arguments:
+        spectrogram: N x F x T
+        steer_vector: N x F
+    Return:
+        directional_feats: T x F
+    """
+    N, F, T = spectrogram.shape
+    arg_s, arg_t = np.angle(spectrogram), np.angle(steer_vector)
+    df = np.zeros([N * (N - 1) // 2, F, T])
+    idx = 0
+    for i in range(N):
+        for j in range(i + 1, N):
+            # F x T
+            delta_s = arg_s[i] - arg_s[j]
+            # 1 x T
+            delta_t = np.expand_dims(arg_t[i] - arg_t[j], 1)
+            # F x T
+            df[idx] = np.cos(delta_s - delta_t)
+            idx += 1
+    df = np.average(df, axis=0)
+    return np.transpose(df)

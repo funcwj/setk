@@ -26,9 +26,8 @@ int main(int argc, char *argv[]) {
     using namespace kaldi;
 
     const char *usage =
-        "Sum the rows of an input table of matrices and output the "
-        "corresponding\n"
-        "table of vectors\n"
+        "Scale the rows of an input table of matrices and output the "
+        "corresponding table of matrices\n"
         "\n"
         "Usage: matrix-scale-rows [options] <vector-rspecifier> "
         "<matrix-rspecifier> <matrix-wspecifier>\n"

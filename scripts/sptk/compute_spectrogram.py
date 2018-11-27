@@ -26,14 +26,13 @@ def run(args):
         "apply_abs": True,
         "transpose": True  # T x F
     }
-    spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
-    num_utts = 0
+    reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
 
     with ArchiveWriter(args.dup_ark, args.scp) as writer:
-        for key, feats in spectrogram_reader:
-            writer.write(key, feats)
-            num_utts += 1
-    logger.info("Process {:d} utterances".format(num_utts))
+        for key, feats in reader:
+            # default using ch1 in multi-channel case
+            writer.write(key, feats[0] if feats.ndim == 3 else feats)
+    logger.info("Process {:d} utterances".format(len(reader)))
 
 
 if __name__ == "__main__":

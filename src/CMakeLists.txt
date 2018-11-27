@@ -13,6 +13,7 @@ add_executable(matrix-scale-elements matrix-scale-elements.cc)
 add_executable(matrix-scale-rows matrix-scale-rows.cc)
 add_executable(wav-to-power wav-to-power.cc)
 add_executable(modify-feats modify-feats.cc)
+add_executable(apply-cmvn-perutt apply-cmvn-perutt.cc)
 
 target_link_libraries(compute-stft-stats ${DEPEND_LIBS} setk)
 target_link_libraries(compute-masks ${DEPEND_LIBS} setk)
@@ -27,3 +28,5 @@ target_link_libraries(matrix-scale-elements ${DEPEND_LIBS} setk)
 target_link_libraries(matrix-scale-rows ${DEPEND_LIBS} setk)
 target_link_libraries(wav-to-power ${DEPEND_LIBS} setk)
 target_link_libraries(modify-feats ${DEPEND_LIBS} setk)
+target_link_libraries(apply-cmvn-perutt ${DEPEND_LIBS} setk)
+

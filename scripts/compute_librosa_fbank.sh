@@ -33,7 +33,7 @@ echo "$0 $@"
 src_dir=$(cd $1; pwd)
 dst_dir=$3
 
-[ ! -f $src_dir/wav.scp ] && echo "$0: missing wav.scp in $src_dir" && exit 1
+for x in $src_dir/wav.scp $fbank_conf; do [ ! -f $x ] && echo "$0: missing file: $x" && exit 1; done
 
 fbank_opts=$(cat $fbank_conf | xargs)
 $sample_normalize && fbank_opts="$fbank_opts --normalize-samples"

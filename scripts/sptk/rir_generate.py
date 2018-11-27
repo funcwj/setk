@@ -58,7 +58,6 @@ def parse_config(args):
 
 
 def run(args):
-    config = open(args.dump_conf, "w") if args.dump_conf else None
     conf = parse_config(args)
 
     def sample_value(conf, key):
@@ -71,13 +70,16 @@ def run(args):
     if not os.path.exists(args.dump_dir):
         os.makedirs(args.dump_dir)
 
+    rir_cfg = open(args.dump_cfg, "w") if args.dump_cfg else None
+
     logger.info(
         "This command will generate {:d} rirs in total, {:d} for each room".
         format(args.num_rirs * args.num_rooms, args.num_rirs))
 
-    for room_id in tqdm.trange(args.num_rooms, desc="Finished Rooms"):
+    # for room_id in tqdm.trange(args.num_rooms, desc="Finished Rooms"):
+    for room_id in range(args.num_rooms):
         done_cur_room = 0
-
+        logger.info("Simulate for room {:d}...".format(room_id + 1))
         while True:
             if done_cur_room == args.num_rirs:
                 break
@@ -117,16 +119,16 @@ def run(args):
             absc = sample_value(conf, "abs")
             refl = np.sqrt(1 - absc)
 
-            if config:
+            if rir_cfg:
                 rir_conf = "Room={room_size}, Speaker={speaker_location}, " \
                     "Microphone={array_location}, Refl={refl}, DoA={doa}, Dst={dst}\n".format(
-                    doa=doa,
+                    doa=doa*180/np.pi,
                     refl=format_float(refl),
                     dst=format_float(dst),
                     room_size=room_size,
                     speaker_location=source_location,
                     array_location=",".join(map(format_float, [Mc, My, Mz])))
-                config.write(rir_conf)
+                rir_cfg.write(rir_conf)
 
             # generate rir using rir-simulate command
             run_command(
@@ -144,8 +146,8 @@ def run(args):
                     dir=args.dump_dir,
                     room_id=room_id,
                     rir_id=done_cur_room))
-    if config:
-        config.close()
+    if rir_cfg:
+        rir_cfg.close()
     logger.info("Generate {:d} rirs in total done".format(
         args.num_rirs * args.num_rooms))
 
@@ -166,10 +168,9 @@ if __name__ == "__main__":
         default=1,
         help="Number of rirs to simulate for each room")
     parser.add_argument(
-        "--dump-config",
+        "--dump-cfg",
         type=str,
         default="",
-        dest="dump_conf",
         help="If not None, dump rir configures out")
     parser.add_argument(
         "--rir-samples",
