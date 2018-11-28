@@ -42,9 +42,11 @@ def run(args):
     num_utts = 0
 
     with ArchiveWriter(args.dup_ark, args.scp) as writer:
-        for key, spect in spectrogram_reader:
+        for key, spectrum in spectrogram_reader:
             # N x F * F x T = N * T => T x N
-            fbank = np.transpose(np.dot(mel_weights, spect))
+            fbank = np.transpose(
+                np.dot(mel_weights,
+                       spectrum[0] if spectrum.ndim == 3 else spectrum))
             if args.apply_log:
                 fbank = np.log(np.maximum(fbank, EPSILON))
             writer.write(key, fbank)

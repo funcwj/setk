@@ -109,28 +109,31 @@ class ext_open(object):
         _fclose(self.fname, self.fd)
 
 
-def parse_scps(scp_path, addr_processor=lambda x: x):
+def parse_scps(scp_path, value_processor=lambda x: x, num_tokens=2):
     """
     Parse kaldi's script(.scp) file with supported for stdin/pipe
+    If num_tokens >= 2, function will check token number
     WARN: last line of scripts could not be None or with "\n" end
     """
     scp_dict = dict()
     line = 0
     with ext_open(scp_path, "r") as f:
         for raw_line in f:
-            # from bytes to str
-            if type(raw_line) is bytes:
-                raw_line = bytes.decode(raw_line)
             scp_tokens = raw_line.strip().split()
             line += 1
-            if len(scp_tokens) != 2:
-                raise RuntimeError("Error format in line[{:d}]: {}".format(
-                    line, raw_line))
-            key, addr = scp_tokens
+            if num_tokens >= 2 and len(scp_tokens) != num_tokens or len(
+                    scp_tokens) < 2:
+                raise RuntimeError(
+                    "For {}, format error in line[{:d}]: {}".format(
+                        scp_path, line, raw_line))
+            if num_tokens == 2:
+                key, value = scp_tokens
+            else:
+                key, value = scp_tokens[0], scp_tokens[1:]
             if key in scp_dict:
-                raise ValueError("Duplicate key \'{0}\' exists in {1}".format(
+                raise ValueError("Duplicated key \'{0}\' exists in {1}".format(
                     key, scp_path))
-            scp_dict[key] = addr_processor(addr)
+            scp_dict[key] = value_processor(value)
     return scp_dict
 
 
@@ -139,8 +142,9 @@ class Reader(object):
         Base class for sequential/random accessing, to be implemented
     """
 
-    def __init__(self, scp_path, addr_processor=lambda x: x):
-        self.index_dict = parse_scps(scp_path, addr_processor=addr_processor)
+    def __init__(self, scp_path, value_processor=lambda x: x):
+        self.index_dict = parse_scps(
+            scp_path, value_processor=value_processor, num_tokens=2)
         self.index_keys = list(self.index_dict.keys())
 
     def _load(self, key):
@@ -367,7 +371,7 @@ class ScriptReader(Reader):
             return (path, offset)
 
         super(ScriptReader, self).__init__(
-            ark_scp, addr_processor=addr_processor)
+            ark_scp, value_processor=addr_processor)
         self.matrix = matrix
 
     def _load(self, key):

@@ -125,8 +125,10 @@ if __name__ == "__main__":
         default="irm",
         choices=["irm", "ibm", "iam", "psm", "psa"],
         help=
-        "Type of masks(irm/ibm/iam(FFT-mask,smm)/psm) to compute. Note that "
-        "if iam/psm assigned, second .scp is expected to be noisy component")
+        "Type of masks(irm/ibm/iam(FFT-mask,smm)/psm/psa) to compute. \'psa\' "
+        "is not a real mask(nominator of psm), but could compute using this "
+        "command. Noted that if iam/psm assigned, second .scp is expected "
+        "to be noisy component.")
     parser.add_argument(
         "--cutoff",
         type=float,
