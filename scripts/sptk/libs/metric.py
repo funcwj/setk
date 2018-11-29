@@ -1,3 +1,5 @@
+# wujian@2018
+
 """
 SI-SNR(scale-invariant SNR/SDR) measure of speech separation
 """

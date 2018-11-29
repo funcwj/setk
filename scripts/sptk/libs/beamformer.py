@@ -51,7 +51,7 @@ def solve_pevd(speech_covar, noise_covar=None):
         _, eigenvecs = np.linalg.eigh(speech_covar)
         return eigenvecs[:, :, -1]
     else:
-        F, N, _ = speech_covar
+        F, N, _ = speech_covar.shape
         pvec = np.zeros((F, N), dtype=np.complex)
         for f in range(F, N):
             try:
