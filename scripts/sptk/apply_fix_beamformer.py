@@ -38,12 +38,12 @@ def run(args):
         stft_enh = beamformer.run(stft_mat)
         # do not normalize
         istft(
-            os.path.join(args.dst_dir, '{}.wav'.format(key)), stft_enh,
+            os.path.join(args.dst_dir, "{}.wav".format(key)), stft_enh,
             **stft_kwargs)
-    logger.info("Processed {} utterances".format(num_utts))
+    logger.info("Processed {:d} utterances".format(num_utts))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to run fixed beamformer. Runing this command needs "
         "design fixed beamformer first.",

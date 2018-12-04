@@ -81,7 +81,7 @@ def run(args):
                     if num_items:
                         percent = float(num_items) / mask.size
                         logger.info(
-                            "Clip {:d}({:.2f}) items over {:f} for utterance {}"
+                            "Clip {:d}({:.2f}) items over {:.2f} for utterance {}"
                             .format(num_items, percent, cutoff, key))
                 num_items = np.sum(mask < 0)
                 # psm, psa

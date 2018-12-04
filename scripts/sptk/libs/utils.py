@@ -127,6 +127,7 @@ def istft(file,
           transpose=True,
           normalize=True,
           norm=None,
+          power=None,
           fs=16000,
           nsamps=None):
     if transpose:
@@ -145,7 +146,11 @@ def istft(file,
     # renorm if needed
     if norm:
         samps_norm = np.linalg.norm(samps, np.inf)
-        samps = samps * norm / samps_norm
+        samps = samps * norm / (samps_norm + EPSILON)
+    # keep same power
+    if power:
+        samps_pow = np.linalg.norm(samps, 2)**2 / samps.size
+        samps = samps * np.sqrt(power / samps_pow)
     write_wav(file, samps, fs=fs, normalize=normalize)
 
 

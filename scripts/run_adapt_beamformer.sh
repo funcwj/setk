@@ -13,6 +13,10 @@ beamformer="mvdr"
 # do ban or not
 normalize=false
 masking=false
+# online
+alpha=0.8
+chunk_size=-1
+channels=4
 
 echo "$0 $@"
 
@@ -26,6 +30,9 @@ function usage {
   echo "  --beamformer  <mvdr|pmwf|gevd>    # type of adaptive beamformer to apply, (default=mvdr)"
   echo "  --normalize   <true|false>        # do ban or not, (default=false)"
   echo "  --masking     <true|false>        # do TF-masking after beamforming or not, (default=false)"
+  echo "  --alpha       <alpha>             # remember coefficient used in online version, (default=0.8)"
+  echo "  --chunk-size  <chunk-size>        # chunk size in online beamformer, (default=-1)"
+  echo "  --channels    <channels>          # number of channels, (default=4)"
 }
 
 . ./path.sh
@@ -63,6 +70,10 @@ $numpy && beamformer_opts="$beamformer_opts --numpy"
 $transpose && beamformer_opts="$beamformer_opts --transpose-mask"
 $normalize && beamformer_opts="$beamformer_opts --post-filter"
 $masking && beamformer_opts="$beamformer_opts --masking"
+
+if [ $chunk_size -gt 0 ]; then
+  beamformer_opts="$beamformer_opts --online.alpha $alpha --online.chunk-size $chunk_size --online.channels $channels"
+fi
 
 mkdir -p $enhan_dir
 $cmd JOB=1:$nj $exp_dir/log/run_$beamformer.JOB.log \

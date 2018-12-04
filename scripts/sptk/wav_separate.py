@@ -42,13 +42,15 @@ def run(args):
                     .format(mask.shape, specs.shape))
             nsamps = spectrogram_reader.nsamps(
                 key) if args.keep_length else None
+            power = spectrogram_reader.power(key)
             istft(
                 os.path.join(args.dst_dir, "{}.wav".format(key)),
                 specs * mask,
                 **stft_kwargs,
                 fs=fs,
+                power=power,
                 nsamps=nsamps)
-    logger.info("Processed {} utterances".format(num_utts))
+    logger.info("Processed {:d} utterances".format(num_utts))
 
 
 if __name__ == "__main__":

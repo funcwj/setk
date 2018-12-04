@@ -15,7 +15,7 @@ import librosa as audio_lib
 import numpy as np
 import scipy.io as sio
 
-from . import iobase as io
+from . import kaldi_io as io
 from .utils import stft, read_wav, write_wav
 
 __all__ = [
@@ -286,6 +286,11 @@ class WaveReader(Reader):
     def nsamps(self, key):
         samps = self._read_m(key)
         return samps.shape[-1]
+
+    def power(self, key):
+        samps = self._read_m(key)
+        s = samps if samps.ndim == 1 else samps[0]
+        return np.linalg.norm(s, 2)**2 / s.size
 
 
 class NumpyReader(Reader):

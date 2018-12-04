@@ -16,8 +16,36 @@ from libs.utils import istft, get_logger, nfft
 from libs.opts import get_stft_parser
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader
 from libs.beamformer import MvdrBeamformer, GevdBeamformer, PmwfBeamformer
+from libs.beamformer import OnlineGevdBeamformer, OnlineMvdrBeamformer
 
 logger = get_logger(__name__)
+
+
+def do_online_beamform(beamformer, speech_mask, stft_mat, args):
+    """
+    Do online beamformer(gevd, mvdr):
+    Arguments:
+        speech_mask: shape as T x F
+        stft_mat: shape as N x F x T
+    Return:
+        stft_enh: shape as F x T
+    """
+    chunk_size = args.chunk_size
+    beamformer.reset_stats(args.alpha)
+    num_chunks = stft_mat.shape[-1] // chunk_size
+    enh_chunks = []
+    for c in range(num_chunks + 1):
+        base = chunk_size * c
+        if c == num_chunks:
+            chunk = beamformer.run(
+                speech_mask[base:], stft_mat[:, :, base:], normalize=args.ban)
+        else:
+            chunk = beamformer.run(
+                speech_mask[base:base + chunk_size],
+                stft_mat[:, :, base:base + chunk_size],
+                normalize=args.ban)
+        enh_chunks.append(chunk)
+    return np.hstack(enh_chunks)
 
 
 def run(args):
@@ -32,35 +60,55 @@ def run(args):
     mask_reader = NumpyReader(args.mask_scp) if args.numpy else ScriptReader(
         args.mask_scp)
 
+    online = False
     num_bins = nfft(args.frame_length) // 2 + 1
+
     supported_beamformer = {
         "mvdr": MvdrBeamformer(num_bins),
         "gevd": GevdBeamformer(num_bins),
         "pmwf": PmwfBeamformer(num_bins)
     }
-    beamformer = supported_beamformer[args.beamformer]
+    supported_online_beamformer = {
+        "mvdr": OnlineMvdrBeamformer(num_bins, args.channels, args.alpha),
+        "gevd": OnlineGevdBeamformer(num_bins, args.channels, args.alpha),
+    }
+    if args.chunk_size <= 0:
+        logger.info("Using offline {} beamformer".format(args.beamformer))
+        beamformer = supported_beamformer[args.beamformer]
+    else:
+        if args.chunk_size <= 32:
+            raise RuntimeError(
+                "Seems chunk size({:.2f}) too small for online beamformer".
+                format(args.chunk_size))
+        beamformer = supported_online_beamformer[args.beamformer]
+        online = True
+        logger.info("Using online {} beamformer, chunk size = {:d}".format(
+            args.beamformer, args.chunk_size))
 
     num_utts = 0
     for key, stft_mat in spectrogram_reader:
         if key in mask_reader:
             num_utts += 1
             norm = spectrogram_reader.samp_norm(key)
-            logger.info("Processing utterance {}(norm to {:.2f})...".format(
-                key, norm))
+            logger.info("Processing utterance {}...".format(key))
             # prefer T x F
             speech_mask = mask_reader[key]
             # constraint [0, 1]
             speech_mask = np.minimum(speech_mask, 1)
             if args.trans:
                 speech_mask = np.transpose(speech_mask)
-            # stft_enh, stft_mat: F x T
-            stft_enh = beamformer.run(
-                speech_mask, stft_mat, normalize=args.postf)
+            # stft_enh, stft_mat: (N) x F x T
+            if not online:
+                stft_enh = beamformer.run(
+                    speech_mask, stft_mat, normalize=args.ban)
+            else:
+                stft_enh = do_online_beamform(beamformer, speech_mask,
+                                              stft_mat, args)
             # masking beamformer output if necessary
             if args.mask:
                 stft_enh = stft_enh * np.transpose(speech_mask)
             istft(
-                os.path.join(args.dst_dir, '{}.wav'.format(key)),
+                os.path.join(args.dst_dir, "{}.wav".format(key)),
                 stft_enh,
                 norm=norm,
                 fs=args.samp_freq,
@@ -69,7 +117,7 @@ def run(args):
         num_utts, len(spectrogram_reader)))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to run adaptive(mvdr/gevd/pmwf) beamformer",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -108,13 +156,31 @@ if __name__ == '__main__':
         "(T: num_frames, F: num_bins)")
     parser.add_argument(
         "--post-filter",
-        dest="postf",
+        dest="ban",
         action="store_true",
         help="Do Blind Analytical Normalization(BAN) or not")
     parser.add_argument(
         "--masking",
         dest="mask",
         action="store_true",
-        help="If true, masking enhanced spectogram after beamforming")
+        help="If true, masking enhanced spectrogram after beamforming")
+    parser.add_argument(
+        "--online.alpha",
+        default=0.8,
+        dest="alpha",
+        type=float,
+        help="Remember coefficient when updating covariance matrix")
+    parser.add_argument(
+        "--online.chunk-size",
+        default=-1,
+        type=int,
+        dest="chunk_size",
+        help="If >= 64, using online beamformer instead")
+    parser.add_argument(
+        "--online.channels",
+        default=4,
+        type=int,
+        dest="channels",
+        help="Number of channels available")
     args = parser.parse_args()
     run(args)
