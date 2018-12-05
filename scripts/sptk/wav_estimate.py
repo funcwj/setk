@@ -11,7 +11,7 @@ import numpy as np
 
 from libs.utils import get_logger, nfft, griffin_lim, write_wav, EPSILON
 from libs.opts import get_stft_parser
-from libs.data_handler import ScriptReader
+from libs.data_handler import ScriptReader, WaveWriter
 
 logger = get_logger(__name__)
 
@@ -42,27 +42,27 @@ def run(args):
         # F x N
         mel_inv_weights = np.linalg.pinv(mel_weights)
 
-    for key, spec in feature_reader:
-        # if log, tranform to linear
-        if args.apply_log:
-            spec = np.exp(spec)
-        # convert fbank to spectrum
-        # feat: T x N
-        if args.fbank:
-            spec = np.maximum(spec @ np.transpose(mel_inv_weights), EPSILON)
-        # if power spectrum, tranform to magnitude spectrum
-        if args.apply_pow:
-            spec = np.sqrt(spec)
-        if spec.shape[1] - 1 != nfft(args.frame_length) // 2:
-            raise RuntimeError("Seems missing --fbank options?")
-        # griffin lim
-        samps = griffin_lim(spec, **griffin_lim_kwargs)
-        write_wav(
-            os.path.join(args.dump_dir, "{}.wav".format(key)),
-            samps,
-            fs=args.samp_freq,
-            normalize=args.normalize)
-    logger.info("Process {:d} utterance done".format(len(feature_reader)))
+    with WaveWriter(
+            args.dump_dir, fs=args.samp_freq,
+            normalize=args.normalize) as writer:
+        for key, spec in feature_reader:
+            # if log, tranform to linear
+            if args.apply_log:
+                spec = np.exp(spec)
+            # convert fbank to spectrum
+            # feat: T x N
+            if args.fbank:
+                spec = np.maximum(spec @ np.transpose(mel_inv_weights),
+                                  EPSILON)
+            # if power spectrum, tranform to magnitude spectrum
+            if args.apply_pow:
+                spec = np.sqrt(spec)
+            if spec.shape[1] - 1 != nfft(args.frame_length) // 2:
+                raise RuntimeError("Seems missing --fbank options?")
+            # griffin lim
+            samps = griffin_lim(spec, **griffin_lim_kwargs)
+            writer.write(key, samps)
+    logger.info("Processed {:d} utterance done".format(len(feature_reader)))
 
 
 if __name__ == "__main__":

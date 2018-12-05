@@ -8,7 +8,7 @@ Do GWPE Dereverbration Algorithm
 import argparse
 import os
 
-from libs.utils import get_logger, istft
+from libs.utils import get_logger, istft, write_wav
 from libs.opts import get_stft_parser
 from libs.gwpe import wpe
 from libs.data_handler import SpectrogramReader
@@ -46,9 +46,12 @@ def run(args):
         dereverb = np.transpose(dereverb, [1, 2, 0])
         # write for each channel
         for chid in range(dereverb.shape[0]):
-            chpath = os.path.join(args.dst_dir, "{}.CH{:d}.wav".format(
-                key, chid + 1))
-            istft(chpath, dereverb[chid], **stft_kwargs, fs=args.samp_freq)
+            samps = istft(dereverb[chid], **stft_kwargs)
+            write_wav(
+                os.path.join(args.dst_dir, "{}.CH{:d}.wav".format(
+                    key, chid + 1)),
+                samps,
+                fs=args.samp_freq)
     logger.info("Processed {:d} utterances".format(len(spectrogram_reader)))
 
 

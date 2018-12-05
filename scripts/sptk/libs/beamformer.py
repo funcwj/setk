@@ -12,7 +12,8 @@ Implement for some classic beamformer
 
 __all__ = [
     "FixedBeamformer", "DSBeamformer", "SupperDirectiveBeamformer",
-    "MvdrBeamformer", "GevdBeamformer", "PmwfBeamformer"
+    "MvdrBeamformer", "GevdBeamformer", "PmwfBeamformer",
+    "OnlineMvdrBeamformer", "OnlineGevdBeamformer"
 ]
 
 
@@ -53,7 +54,7 @@ def solve_pevd(Rxx, Rvv=None):
     else:
         F, N, _ = Rxx.shape
         pvec = np.zeros((F, N), dtype=np.complex)
-        for f in range(F, N):
+        for f in range(F):
             try:
                 # sp.linalg.eigh returns eigen values in ascending order
                 _, eigenvecs = sp.linalg.eigh(Rxx[f], Rvv[f])
@@ -232,6 +233,10 @@ class OnlineSupervisedBeamformer(SupervisedBeamformer):
 
 
 class FixedBeamformer(Beamformer):
+    """
+    Fixed Beamformer, need predefined weights
+    """
+
     def __init__(self, weight):
         super(FixedBeamformer, self).__init__()
         # F x N
@@ -248,6 +253,10 @@ class FixedBeamformer(Beamformer):
 
 
 class DSBeamformer(Beamformer):
+    """
+    Delay and Sum Beamformer
+    """
+
     def __init__(self, linear_topo):
         super(DSBeamformer, self).__init__()
         if type(linear_topo) is not list:
@@ -287,6 +296,10 @@ class DSBeamformer(Beamformer):
 
 
 class SupperDirectiveBeamformer(DSBeamformer):
+    """
+    SupperDirective Beamformer in diffused noise field
+    """
+
     def __init__(self, linear_topo):
         super(SupperDirectiveBeamformer, self).__init__(linear_topo)
 
@@ -327,7 +340,7 @@ class MvdrBeamformer(SupervisedBeamformer):
     Formula:
         h_mvdr(f) = R(f)_{vv}^{-1}*d(f) / [d(f)^H*R(f)_{vv}^{-1}*d(f)]
     where
-        d(f) = P(R(f)_{xx}) P: max eigenvector
+        d(f) = P(R(f)_{xx}) P: principle eigenvector
     """
 
     def __init__(self, num_bins):
@@ -360,7 +373,7 @@ class MvdrBeamformer(SupervisedBeamformer):
 
 class PmwfBeamformer(SupervisedBeamformer):
     """
-    PMWF(Parameterized Multichannel Non-Causal Wiener Filter), treat beta = 0 now
+    PMWF(Parameterized Multichannel Non-Causal Wiener Filter)
     Reference:
         1) Erdogan H, Hershey J R, Watanabe S, et al. Improved MVDR Beamforming Using 
             Single-Channel Mask Prediction Networks[C]//Interspeech. 2016: 1981-1985.
@@ -444,6 +457,10 @@ class GevdBeamformer(SupervisedBeamformer):
 
 
 class OnlineGevdBeamformer(OnlineSupervisedBeamformer):
+    """
+    Online version of GEVD beamformer
+    """
+
     def __init__(self, num_bins, num_channels, alpha=0.8):
         super(OnlineGevdBeamformer, self).__init__(
             num_bins, num_channels, alpha=alpha)
@@ -460,6 +477,10 @@ class OnlineGevdBeamformer(OnlineSupervisedBeamformer):
 
 
 class OnlineMvdrBeamformer(OnlineSupervisedBeamformer):
+    """
+    Online version of MVDR beamformer
+    """
+
     def __init__(self, num_bins, num_channels, alpha=0.8):
         super(OnlineMvdrBeamformer, self).__init__(
             num_bins, num_channels, alpha=alpha)

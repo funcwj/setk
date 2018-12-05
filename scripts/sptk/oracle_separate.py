@@ -8,7 +8,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 from libs.data_handler import SpectrogramReader
-from libs.utils import istft, get_logger, cmat_abs
+from libs.utils import istft, get_logger, cmat_abs, write_wav
 from libs.opts import get_stft_parser
 
 logger = get_logger(__name__)
@@ -73,13 +73,12 @@ def run(args):
         targets_list = [reader[key] for reader in targets_reader]
         spk_masks = compute_mask(mixture, targets_list, args.mask)
         for index, mask in enumerate(spk_masks):
-            istft(
-                os.path.join(args.dump_dir, '{}.s{}.wav'.format(
+            samps = istft(mixture * mask, **stft_kwargs, nsamps=nsamps)
+            write_wav(
+                os.path.join(args.dump_dir, "{}.s{}.wav".format(
                     key, index + 1)),
-                mixture * mask,
-                **stft_kwargs,
-                fs=args.fs,
-                nsamps=nsamps)
+                samps,
+                fs=args.fs)
     logger.info("Processed {} utterance!".format(num_utts))
 
 

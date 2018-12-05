@@ -14,7 +14,7 @@ from scipy.io import loadmat
 
 from libs.utils import istft, get_logger, nfft
 from libs.opts import get_stft_parser
-from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader
+from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, WaveWriter
 from libs.beamformer import MvdrBeamformer, GevdBeamformer, PmwfBeamformer
 from libs.beamformer import OnlineGevdBeamformer, OnlineMvdrBeamformer
 
@@ -76,7 +76,7 @@ def run(args):
         logger.info("Using offline {} beamformer".format(args.beamformer))
         beamformer = supported_beamformer[args.beamformer]
     else:
-        if args.chunk_size <= 32:
+        if args.chunk_size < 32:
             raise RuntimeError(
                 "Seems chunk size({:.2f}) too small for online beamformer".
                 format(args.chunk_size))
@@ -85,36 +85,35 @@ def run(args):
         logger.info("Using online {} beamformer, chunk size = {:d}".format(
             args.beamformer, args.chunk_size))
 
-    num_utts = 0
-    for key, stft_mat in spectrogram_reader:
-        if key in mask_reader:
-            num_utts += 1
-            norm = spectrogram_reader.samp_norm(key)
-            logger.info("Processing utterance {}...".format(key))
-            # prefer T x F
-            speech_mask = mask_reader[key]
-            # constraint [0, 1]
-            speech_mask = np.minimum(speech_mask, 1)
-            if args.trans:
-                speech_mask = np.transpose(speech_mask)
-            # stft_enh, stft_mat: (N) x F x T
-            if not online:
-                stft_enh = beamformer.run(
-                    speech_mask, stft_mat, normalize=args.ban)
-            else:
-                stft_enh = do_online_beamform(beamformer, speech_mask,
-                                              stft_mat, args)
-            # masking beamformer output if necessary
-            if args.mask:
-                stft_enh = stft_enh * np.transpose(speech_mask)
-            istft(
-                os.path.join(args.dst_dir, "{}.wav".format(key)),
-                stft_enh,
-                norm=norm,
-                fs=args.samp_freq,
-                **stft_kwargs)
+    num_done = 0
+    with WaveWriter(args.dst_dir, fs=args.samp_freq) as writer:
+        for key, stft_mat in spectrogram_reader:
+            if key in mask_reader:
+                num_done += 1
+                power = spectrogram_reader.power(key)
+                logger.info(
+                    "Processing utterance {}, signal power {:.2f}...".format(
+                        key, power))
+                # prefer T x F
+                speech_mask = mask_reader[key]
+                # constraint [0, 1]
+                speech_mask = np.minimum(speech_mask, 1)
+                if args.trans:
+                    speech_mask = np.transpose(speech_mask)
+                # stft_enh, stft_mat: (N) x F x T
+                if not online:
+                    stft_enh = beamformer.run(
+                        speech_mask, stft_mat, normalize=args.ban)
+                else:
+                    stft_enh = do_online_beamform(beamformer, speech_mask,
+                                                  stft_mat, args)
+                # masking beamformer output if necessary
+                if args.mask:
+                    stft_enh = stft_enh * np.transpose(speech_mask)
+                samps = istft(stft_enh, power=power, **stft_kwargs)
+                writer.write(key, samps)
     logger.info("Processed {:d} utterances out of {:d}".format(
-        num_utts, len(spectrogram_reader)))
+        num_done, len(spectrogram_reader)))
 
 
 if __name__ == "__main__":

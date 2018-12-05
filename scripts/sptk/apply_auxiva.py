@@ -14,7 +14,7 @@ import os
 
 import numpy as np
 
-from libs.utils import stft, istft, get_logger, EPSILON
+from libs.utils import stft, istft, get_logger, write_wav, EPSILON
 from libs.opts import get_stft_parser
 from libs.data_handler import SpectrogramReader
 
@@ -72,12 +72,14 @@ def run(args):
         logger.info("Processing utterance {}...".format(key))
         separated = auxiva(spectrogram, args.epochs)
         for idx in range(separated.shape[0]):
-            istft(
-                os.path.join(args.dst_dir, "{}.SRC{:d}.wav".format(
-                    key, idx + 1)),
+            samps = istft(
                 separated[idx],
                 **stft_kwargs,
-                norm=spectrogram_reader.samp_norm(key),
+                norm=spectrogram_reader.samp_norm(key))
+            write_wav(
+                os.path.join(args.dst_dir, "{}.SRC{:d}.wav".format(
+                    key, idx + 1)),
+                samps,
                 fs=args.fs)
     logger.info("Processed {:d} utterances".format(len(spectrogram_reader)))
 

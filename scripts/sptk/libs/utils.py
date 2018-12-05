@@ -14,7 +14,7 @@ import scipy as sp
 MAX_INT16 = np.iinfo(np.int16).max
 EPSILON = np.finfo(np.float32).eps
 
-__all__ = ["stft", "istft", "get_logger"]
+__all__ = ["stft", "istft", "get_logger", "write_wav", "read_wav"]
 
 
 def nfft(window_size):
@@ -25,13 +25,9 @@ def nfft(window_size):
 def cmat_abs(cmat):
     """
     In [4]: c = np.random.rand(500, 513) + np.random.rand(500, 513)*1j
-
     In [5]: %timeit np.abs(c)
-
     5.62 ms +- 1.75 us per loop (mean +- std. dev. of 7 runs, 100 loops each)
-
     In [6]: %timeit np.sqrt(c.real**2 + c.imag**2)
-
     2.4 ms +- 4.25 us per loop (mean +- std. dev. of 7 runs, 100 loops each)
     """
     if not np.iscomplexobj(cmat):
@@ -42,6 +38,9 @@ def cmat_abs(cmat):
 
 
 def write_wav(fname, samps, fs=16000, normalize=True):
+    """
+    Write wav files in int16, support single/multi-channel
+    """
     if normalize:
         samps = samps * MAX_INT16
     # scipy.io.wavfile.write could write single/multi-channel files
@@ -118,17 +117,14 @@ def stft(samps,
 
 
 # accept F x T or T x F(tranpose=True)
-def istft(file,
-          stft_mat,
+def istft(stft_mat,
           frame_length=1024,
           frame_shift=256,
           center=False,
           window="hann",
           transpose=True,
-          normalize=True,
           norm=None,
           power=None,
-          fs=16000,
           nsamps=None):
     if transpose:
         stft_mat = np.transpose(stft_mat)
@@ -143,7 +139,7 @@ def istft(file,
         window=window,
         center=center,
         length=nsamps)
-    # renorm if needed
+    # renorm, remove in the future
     if norm:
         samps_norm = np.linalg.norm(samps, np.inf)
         samps = samps * norm / (samps_norm + EPSILON)
@@ -151,7 +147,8 @@ def istft(file,
     if power:
         samps_pow = np.linalg.norm(samps, 2)**2 / samps.size
         samps = samps * np.sqrt(power / samps_pow)
-    write_wav(file, samps, fs=fs, normalize=normalize)
+    # write_wav(file, samps, fs=fs, normalize=normalize)
+    return samps
 
 
 def griffin_lim(magnitude,
@@ -208,6 +205,7 @@ def get_logger(
         file=False):
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
+    # file or console
     handler = logging.StreamHandler() if not file else logging.FileHandler(
         name)
     handler.setLevel(logging.INFO)

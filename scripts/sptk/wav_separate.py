@@ -9,7 +9,7 @@ import numpy as np
 
 from libs.utils import stft, istft, get_logger
 from libs.opts import get_stft_parser
-from libs.data_handler import SpectrogramReader, NumpyReader, ScriptReader
+from libs.data_handler import SpectrogramReader, NumpyReader, ScriptReader, WaveWriter
 
 logger = get_logger(__name__)
 
@@ -26,31 +26,28 @@ def run(args):
     mask_reader = NumpyReader(args.mask_scp) if args.numpy else ScriptReader(
         args.mask_scp)
 
-    num_utts = 0
-    fs = args.samp_freq
-    for key, specs in spectrogram_reader:
-        if key in mask_reader:
-            num_utts += 1
-            mask = mask_reader[key]
-            if args.transpose:
-                mask = np.transpose(mask)
-            logger.info("Processing utterance {}...".format(key))
-            if mask.shape != specs.shape:
-                raise ValueError(
-                    "Dimention mismatch between mask and spectrogram"
-                    "({0[0]} x {0[1]} vs {1[0]} x {1[1]}), need check configures"
-                    .format(mask.shape, specs.shape))
-            nsamps = spectrogram_reader.nsamps(
-                key) if args.keep_length else None
-            power = spectrogram_reader.power(key)
-            istft(
-                os.path.join(args.dst_dir, "{}.wav".format(key)),
-                specs * mask,
-                **stft_kwargs,
-                fs=fs,
-                power=power,
-                nsamps=nsamps)
-    logger.info("Processed {:d} utterances".format(num_utts))
+    num_done = 0
+    with WaveWriter(args.dst_dir, fs=args.samp_freq) as writer:
+        for key, specs in spectrogram_reader:
+            if key in mask_reader:
+                num_done += 1
+                mask = mask_reader[key]
+                if args.transpose:
+                    mask = np.transpose(mask)
+                logger.info("Processing utterance {}...".format(key))
+                if mask.shape != specs.shape:
+                    raise ValueError(
+                        "Dimention mismatch between mask and spectrogram"
+                        "({0[0]} x {0[1]} vs {1[0]} x {1[1]}), need check configures"
+                        .format(mask.shape, specs.shape))
+                nsamps = spectrogram_reader.nsamps(
+                    key) if args.keep_length else None
+                power = spectrogram_reader.power(key)
+                samps = istft(
+                    specs * mask, **stft_kwargs, power=power, nsamps=nsamps)
+                writer.write(key, samps)
+    logger.info("Processed {:d} utterances over {:d}".format(
+        num_done, len(spectrogram_reader)))
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ from scipy.io import loadmat
 
 from libs.utils import istft, get_logger
 from libs.opts import get_stft_parser
-from libs.data_handler import SpectrogramReader
+from libs.data_handler import SpectrogramReader, WaveWriter
 from libs.beamformer import FixedBeamformer
 
 logger = get_logger(__name__)
@@ -31,16 +31,14 @@ def run(args):
             args.weight_key, args.weights))
 
     beamformer = FixedBeamformer(weights_dict[args.weight_key])
-    num_utts = 0
-    for key, stft_mat in spectrogram_reader:
-        num_utts += 1
-        logger.info("Processing utterance {}".format(key))
-        stft_enh = beamformer.run(stft_mat)
-        # do not normalize
-        istft(
-            os.path.join(args.dst_dir, "{}.wav".format(key)), stft_enh,
-            **stft_kwargs)
-    logger.info("Processed {:d} utterances".format(num_utts))
+    with WaveWriter(args.dump_dir) as writer:
+        for key, stft_mat in spectrogram_reader:
+            logger.info("Processing utterance {}...".format(key))
+            stft_enh = beamformer.run(stft_mat)
+            # do not normalize
+            samps = istft(stft_enh, **stft_kwargs)
+            writer.write(key, samps)
+    logger.info("Processed {:d} utterances".format(len(spectrogram_reader)))
 
 
 if __name__ == "__main__":

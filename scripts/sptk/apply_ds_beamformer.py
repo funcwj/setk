@@ -9,7 +9,7 @@ import numpy as np
 
 from libs.utils import istft, get_logger
 from libs.opts import get_stft_parser
-from libs.data_handler import SpectrogramReader
+from libs.data_handler import SpectrogramReader, WaveWriter
 from libs.beamformer import DSBeamformer
 
 logger = get_logger(__name__)
@@ -32,19 +32,13 @@ def run(args):
     beamformer = DSBeamformer(topo)
     logger.info("Initialize {:d} channel DSBeamformer".format(len(topo)))
 
-    if args.dst_dir and not os.path.exists(args.dst_dir):
-        os.makedirs(args.dst_dir)
-
-    for key, stft_src in spectrogram_reader:
-        stft_enh = beamformer.run(
-            doa, stft_src, c=args.speed, sample_rate=args.fs)
-        power = spectrogram_reader.power(key)
-        istft(
-            os.path.join(args.dst_dir, "{}.wav".format(key)),
-            stft_enh,
-            **stft_kwargs,
-            fs=args.fs,
-            power=power)
+    with WaveWriter(args.dst_dir, fs=args.fs) as writer:
+        for key, stft_src in spectrogram_reader:
+            stft_enh = beamformer.run(
+                doa, stft_src, c=args.speed, sample_rate=args.fs)
+            power = spectrogram_reader.power(key)
+            samps = istft(stft_enh, **stft_kwargs, power=power)
+            writer.write(key, samps)
     logger.info("Processed {:d} utterances".format(len(spectrogram_reader)))
 
 
