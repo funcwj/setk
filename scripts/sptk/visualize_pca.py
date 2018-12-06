@@ -58,7 +58,7 @@ if __name__ == "__main__":
         type=str,
         help="Read specifier of archives/Directory of ndarrays")
     parser.add_argument(
-        "--matrix-ark",
+        "--input-matrix",
         action="store_true",
         dest="matrix",
         help="If true, treat input as matrix archives")

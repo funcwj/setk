@@ -18,13 +18,14 @@ def run(args):
         args.src_scp, args.key)
     num_mat = 0
     mat_list = []
-    with ArchiveWriter(args.dst_ark, args.scp) as writer:
+    with ArchiveWriter(
+            args.dst_ark, args.scp, matrix=(not args.vector)) as writer:
         for key, mat in src_reader:
             if args.transpose:
                 mat = np.transpose(mat)
             if args.apply_log:
                 mat = np.log(np.maximum(mat, EPSILON))
-            if args.minus_by_one:
+            if args.minus:
                 mat = 1 - mat
             if not args.merge:
                 writer.write(key, mat)
@@ -82,6 +83,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--minus-by-one",
         action="store_true",
+        dest="minus",
         help="If true,  write (1 - matrix) to archives")
+    parser.add_argument(
+        "--input-vector",
+        action="store_true",
+        dest="vector",
+        help="If true, dump vectors out")
     args = parser.parse_args()
     run(args)

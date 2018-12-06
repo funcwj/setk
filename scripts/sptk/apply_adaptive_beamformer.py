@@ -93,7 +93,7 @@ def run(args):
                 power = spectrogram_reader.power(key)
                 logger.info(
                     "Processing utterance {}, signal power {:.2f}...".format(
-                        key, power))
+                        key, 10 * np.log10(power + 1e-5)))
                 # prefer T x F
                 speech_mask = mask_reader[key]
                 # constraint [0, 1]
