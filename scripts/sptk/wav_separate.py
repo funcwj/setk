@@ -42,9 +42,9 @@ def run(args):
                         .format(mask.shape, specs.shape))
                 nsamps = spectrogram_reader.nsamps(
                     key) if args.keep_length else None
-                power = spectrogram_reader.power(key)
+                norm = spectrogram_reader.samp_norm(key)
                 samps = istft(
-                    specs * mask, **stft_kwargs, power=power, nsamps=nsamps)
+                    specs * mask, **stft_kwargs, norm=norm, nsamps=nsamps)
                 writer.write(key, samps)
     logger.info("Processed {:d} utterances over {:d}".format(
         num_done, len(spectrogram_reader)))

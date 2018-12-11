@@ -35,11 +35,12 @@ def run(args):
         "transpose": False  # F x T
     }
 
+    if args.max_freq > args.samp_freq // 2:
+        raise RuntimeError("Max frequency for mel exceeds sample frequency")
     spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
     # N x F
     mel_weights = audio_lib.filters.mel(args.samp_freq,
                                         nfft(args.frame_length), **mel_kwargs)
-    num_utts = 0
 
     with ArchiveWriter(args.dup_ark, args.scp) as writer:
         for key, spectrum in spectrogram_reader:
@@ -50,8 +51,7 @@ def run(args):
             if args.apply_log:
                 fbank = np.log(np.maximum(fbank, EPSILON))
             writer.write(key, fbank)
-            num_utts += 1
-    logger.info("Process {:d} utterances".format(num_utts))
+    logger.info("Process {:d} utterances".format(len(spectrogram_reader)))
 
 
 if __name__ == "__main__":

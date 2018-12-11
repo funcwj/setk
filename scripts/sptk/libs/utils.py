@@ -96,14 +96,19 @@ def stft(samps,
         raise RuntimeError("Invalid shape, librosa.stft accepts mono input")
     n_fft = nfft(frame_length)
     if window == "sqrthann":
-        window = np.sqrt(sp.signal.hann(n_fft, sym=False))
+        window = np.sqrt(sp.signal.hann(frame_length, sym=False))
     # orignal stft accept samps(vector) and return matrix shape as F x T
     # NOTE for librosa.stft:
     # 1) win_length <= n_fft
     # 2) if win_length is None, win_length = n_fft
     # 3) if win_length < n_fft, pad window to n_fft
     stft_mat = audio_lib.stft(
-        samps, n_fft, frame_shift, frame_length, window=window, center=center)
+        samps,
+        n_fft,
+        frame_shift,
+        win_length=frame_length,
+        window=window,
+        center=center)
     # stft_mat: F x T or N x F x T
     if apply_abs:
         stft_mat = cmat_abs(stft_mat)
@@ -128,14 +133,13 @@ def istft(stft_mat,
           nsamps=None):
     if transpose:
         stft_mat = np.transpose(stft_mat)
-    n_fft = nfft(frame_length)
     if window == "sqrthann":
-        window = np.sqrt(sp.signal.hann(n_fft, sym=False))
+        window = np.sqrt(sp.signal.hann(frame_length, sym=False))
     # orignal istft accept stft result(matrix, shape as FxT)
     samps = audio_lib.istft(
         stft_mat,
         frame_shift,
-        frame_length,
+        win_length=frame_length,
         window=window,
         center=center,
         length=nsamps)

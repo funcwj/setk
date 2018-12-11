@@ -143,8 +143,7 @@ class Reader(object):
     """
 
     def __init__(self, scp_path, value_processor=lambda x: x):
-        self.index_dict = parse_scps(
-            scp_path, value_processor=value_processor, num_tokens=2)
+        self.index_dict = parse_scps(scp_path, value_processor=value_processor)
         self.index_keys = list(self.index_dict.keys())
 
     def _load(self, key):
