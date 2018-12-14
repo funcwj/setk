@@ -19,7 +19,7 @@ __all__ = ["stft", "istft", "get_logger", "write_wav", "read_wav"]
 
 def nfft(window_size):
     # nextpow2
-    return int(2**np.ceil(int(np.log2(window_size))))
+    return int(2**np.ceil(np.log2(window_size)))
 
 
 def cmat_abs(cmat):

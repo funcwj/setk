@@ -32,35 +32,35 @@ class VoiceSpliter(object):
         self.reset()
 
     def run(self, frame):
-        if self.cur_step < 0:
+        if self.cur_steps < 0:
             raise RuntimeError(
                 "Seems bugs existed in VoiceSpliter's implementation")
         active = self.pyvad.is_speech(frame, self.fs)
         if active:
-            # cur_step = 0, record start point
-            if self.cur_step == 0:
-                self.start_point = self.cur_frame
+            # cur_steps = 0, record cpt_point
+            if self.cur_steps == 0:
+                self.cpt_point = self.cur_frame
             if not self.voiced:
-                self.cur_step += 1
-                if self.cur_step == self.cache_size:
+                self.cur_steps += 1
+                if self.cur_steps == self.cache_size:
                     self.voiced = True
         else:
-            if self.cur_step:
-                self.cur_step -= 1
-                if self.voiced and self.cur_step == 0:
+            if self.cur_steps:
+                self.cur_steps -= 1
+                if self.voiced and self.cur_steps == 0:
                     self.voiced = False
-                    self.segments.append((self.start_point, self.cur_frame))
+                    self.segments.append((self.cpt_point, self.cur_frame))
         self.cur_frame += 1
 
-    def stop(self):
-        if self.voiced and self.start_point != self.cur_frame:
-            self.segments.append((self.start_point, self.cur_frame))
+    def report(self):
+        if self.voiced and self.cpt_point != self.cur_frame:
+            self.segments.append((self.cpt_point, self.cur_frame))
         return self.segments
 
     def reset(self):
-        self.cur_step = 0
+        self.cur_steps = 0
         self.cur_frame = 0
-        self.start_point = 0
+        self.cpt_point = 0
         self.voiced = False
         self.segments = []
 
@@ -81,7 +81,7 @@ def run(args):
             for frame in split_frame(ori_wav, step):
                 frame = frame.astype(np.int16)
                 splitter.run(frame.tobytes())
-            segments = splitter.stop()
+            segments = splitter.report()
             gather = []
             for seg in segments:
                 s, t = seg

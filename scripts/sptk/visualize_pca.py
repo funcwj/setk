@@ -43,7 +43,7 @@ def run(args):
     pca_mat = pca.fit_transform(org_mat)
 
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
     ax.scatter(pca_mat[:, 0], pca_mat[:, 1], pca_mat[:, 2])
     plt.show()
 
