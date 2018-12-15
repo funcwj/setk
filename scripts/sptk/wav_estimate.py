@@ -10,7 +10,7 @@ import librosa as audio_lib
 import numpy as np
 
 from libs.utils import get_logger, nfft, griffin_lim, write_wav, EPSILON
-from libs.opts import get_stft_parser
+from libs.opts import StftParser
 from libs.data_handler import ScriptReader, WaveWriter
 
 logger = get_logger(__name__)
@@ -71,7 +71,7 @@ if __name__ == "__main__":
         "Command to restore signal from fbank/spectrogram using Griffin Lim algorithm."
         "(NOTE: fbank/mel-spectrogram performs not very well)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()])
+        parents=[StftParser.parser])
     parser.add_argument(
         "feat_scp", type=str, help="Source fbank or magnitude script")
     parser.add_argument(

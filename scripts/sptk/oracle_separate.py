@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 from libs.data_handler import SpectrogramReader
 from libs.utils import istft, get_logger, cmat_abs, write_wav
-from libs.opts import get_stft_parser
+from libs.opts import StftParser
 
 logger = get_logger(__name__)
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
         description="Command to do oracle speech separation, "
         "using specified mask(IAM|IBM|IRM|PSM)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()])
+        parents=[StftParser.parser])
     parser.add_argument(
         "mix_scp",
         type=str,

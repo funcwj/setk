@@ -1,5 +1,4 @@
 # wujian@2018
-
 """
 Some customized action for argparse
 """
@@ -50,7 +49,7 @@ class StrToFloatTupleAction(argparse.Action):
                 values, self.dest))
 
 
-def get_stft_parser():
+class StftParser(object):
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
         "--frame-length",
@@ -71,4 +70,3 @@ def get_stft_parser():
         "--window",
         default="hann",
         help="Type of window function, see scipy.signal.get_window")
-    return parser

@@ -9,7 +9,7 @@ import argparse
 import os
 
 from libs.utils import get_logger, istft, write_wav
-from libs.opts import get_stft_parser
+from libs.opts import StftParser
 from libs.gwpe import wpe
 from libs.data_handler import SpectrogramReader
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         description=
         "Command to do GWPE dereverbration algorithm(512/128/blackman)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()])
+        parents=[StftParser.parser])
     parser.add_argument(
         "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
     parser.add_argument(

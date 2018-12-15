@@ -8,7 +8,7 @@ Compute spectrogram features(using librosa kernels) and write in kaldi format
 import argparse
 
 from libs.utils import stft, get_logger
-from libs.opts import get_stft_parser
+from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 
 logger = get_logger(__name__)
@@ -41,7 +41,7 @@ if __name__ == "__main__":
         "Command to extract spectrogram features(using sptk's librosa kernels) "
         "and write as kaldi's archives",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()])
+        parents=[StftParser.parser])
     parser.add_argument(
         "wav_scp",
         type=str,

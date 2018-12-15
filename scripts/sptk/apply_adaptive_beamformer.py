@@ -13,7 +13,7 @@ import numpy as np
 from scipy.io import loadmat
 
 from libs.utils import istft, get_logger, nfft
-from libs.opts import get_stft_parser
+from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, WaveWriter
 from libs.beamformer import MvdrBeamformer, GevdBeamformer, PmwfBeamformer
 from libs.beamformer import OnlineGevdBeamformer, OnlineMvdrBeamformer
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to run adaptive(mvdr/gevd/pmwf) beamformer",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()])
+        parents=[StftParser.parser])
     parser.add_argument(
         "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
     parser.add_argument(
