@@ -6,7 +6,7 @@ import argparse
 import os
 import numpy as np
 
-from libs.cgmm_trainer import CgmmTrainer
+from libs.cluster import CgmmTrainer
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyWriter
 from libs.utils import get_logger
 from libs.opts import StftParser
