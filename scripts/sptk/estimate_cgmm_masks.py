@@ -6,10 +6,10 @@ import argparse
 import os
 import numpy as np
 
-from libs.cgmm_trainer import CgmmTrainer
+from libs.cluster import CgmmTrainer
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyWriter
 from libs.utils import get_logger
-from libs.opts import get_stft_parser
+from libs.opts import StftParser
 
 logger = get_logger(__name__)
 
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Estimate speech & noise masks using CGMM methods",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()])
+        parents=[StftParser.parser])
     parser.add_argument(
         "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
     parser.add_argument(

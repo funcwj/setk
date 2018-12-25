@@ -80,14 +80,33 @@ def run(args):
     for room_id in range(args.num_rooms):
         done_cur_room = 0
         logger.info("Simulate for room {:d}...".format(room_id + 1))
+
+        # generate configure for current room
         while True:
-            if done_cur_room == args.num_rirs:
-                break
-            # generate configure for current room
+            # room size
             Rx, Ry, Rz = sample_value(conf, "Rx"), sample_value(
                 conf, "Ry"), sample_value(conf, "Rz")
             # microphone location
-            Mx, My = sample_value(conf, "Mx"), sample_value(conf, "My")
+            Mx, My, Mz = sample_value(conf, "Mx"), sample_value(
+                conf, "My"), sample_value(conf, "Mz")
+            room_size = ",".join(map(format_float, [Rx, Ry, Rz]))
+            # center position
+            Mc = (conf["topo"][-1] - conf["topo"][0]) / 2
+            # coordinate of each channel
+            loc_for_each_channel = [
+                ",".join(map(format_float, [Mx - Mc + x, My, Mz]))
+                for x in conf["topo"]
+            ]
+            # compute reflection coefficient from absorption coefficient
+            absc = sample_value(conf, "abs")
+            refl = np.sqrt(1 - absc)
+            # valid
+            if Mz < Rz:
+                break
+        # fix room configure and microphone location
+        while True:
+            if done_cur_room == args.num_rirs:
+                break
             # speaker location
             dst = sample_value(conf, "dst")
             # sample from 0-180
@@ -100,33 +119,24 @@ def run(args):
                 continue
             # speaker and microphone height
             Sz = sample_value(conf, "Sz")
-            Mz = sample_value(conf, "Mz")
-            # check peaker and microphone height
-            if Sz > Rz or Mz > Rz:
+            # check speaker height
+            if Sz > Rz:
                 continue
 
             done_cur_room += 1
             source_location = ",".join(map(format_float, [Sx, Sy, Sz]))
-            room_size = ",".join(map(format_float, [Rx, Ry, Rz]))
-            # center position
-            Mc = (conf["topo"][-1] - conf["topo"][0]) / 2
-            # coordinate of each channel
-            loc_for_each_channel = [
-                ",".join(map(format_float, [Mx - Mc + x, My, Mz]))
-                for x in conf["topo"]
-            ]
-            # compute reflection coefficient from absorption coefficient
-            absc = sample_value(conf, "abs")
-            refl = np.sqrt(1 - absc)
 
             if rir_cfg:
-                rir_conf = "Room={room_size}, Speaker={speaker_location}, " \
-                    "Microphone={array_location}, Refl={refl}, DoA={doa}, Dst={dst}\n".format(
-                    doa=doa*180/np.pi,
+                rir_conf = "Room{room_id}-{rir_id} Room={room_size}, " \
+                "Microphone={array_location}, Refl={refl}, " \
+                "Speaker={speaker_location}, DoA={doa}, Dst={dst}\n".format(
+                    doa=format(doa*180/np.pi, ".2f"),
                     refl=format_float(refl),
                     dst=format_float(dst),
                     room_size=room_size,
                     speaker_location=source_location,
+                    room_id=room_id,
+                    rir_id=done_cur_room,
                     array_location=",".join(map(format_float, [Mc, My, Mz])))
                 rir_cfg.write(rir_conf)
 
@@ -175,7 +185,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--rir-samples",
         type=int,
-        default=4096,
+        default=8000,
         help="Number samples of simulated rir")
     parser.add_argument(
         "--sample-rate",

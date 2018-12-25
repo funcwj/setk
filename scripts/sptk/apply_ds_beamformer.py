@@ -8,7 +8,7 @@ import argparse
 import numpy as np
 
 from libs.utils import istft, get_logger
-from libs.opts import get_stft_parser
+from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, WaveWriter
 from libs.beamformer import DSBeamformer
 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to apply delay and sum beamformer.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()])
+        parents=[StftParser.parser])
     parser.add_argument(
         "wav_scp", type=str, help="Rspecifier for multi-channel wave file")
     parser.add_argument(

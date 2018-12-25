@@ -8,7 +8,7 @@ import os
 import numpy as np
 
 from libs.utils import stft, istft, get_logger
-from libs.opts import get_stft_parser
+from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, NumpyReader, ScriptReader, WaveWriter
 
 logger = get_logger(__name__)
@@ -55,7 +55,7 @@ if __name__ == "__main__":
         description=
         "Command to separate target component from mixtures given Tf-masks",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()])
+        parents=[StftParser.parser])
     parser.add_argument(
         "wav_scp", type=str, help="Mixture wave scripts in kaldi format")
     parser.add_argument(

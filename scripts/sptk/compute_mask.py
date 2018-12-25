@@ -10,7 +10,7 @@ import numpy as np
 
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 from libs.utils import get_logger, cmat_abs
-from libs.opts import get_stft_parser
+from libs.opts import StftParser
 
 logger = get_logger(__name__)
 
@@ -103,7 +103,7 @@ if __name__ == "__main__":
         description="Command to compute Tf-mask(as targets for Kaldi's nnet3, "
         "only for 2 component case, egs: speech & noise)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()])
+        parents=[StftParser.parser])
     parser.add_argument(
         "speech_scp",
         type=str,

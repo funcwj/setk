@@ -1,5 +1,4 @@
 # wujian@2018
-
 """
 SI-SNR(scale-invariant SNR/SDR) measure of speech separation
 """
@@ -8,7 +7,8 @@ import numpy as np
 
 from itertools import permutations
 
-def si_snr(x, s):
+
+def si_snr(x, s, remove_dc=True):
     """
     Compute SI-SNR
     Arguments:
@@ -16,14 +16,19 @@ def si_snr(x, s):
         s: vector, reference signal(ground truth)
     """
 
-    def vec_l2normp(x):
-        return (np.linalg.norm(x, 2)**2)
+    def vec_l2norm(x):
+        return np.linalg.norm(x, 2)
 
-    # zero mean
-    x_zm = x - np.mean(x)
-    s_zm = s - np.mean(s)
-    t = np.inner(x_zm, s_zm) * s_zm / vec_l2normp(s_zm)
-    return 10 * np.log10(vec_l2normp(t) / vec_l2normp(x_zm - t))
+    # zero mean, seems do not hurt results
+    if remove_dc:
+        x_zm = x - np.mean(x)
+        s_zm = s - np.mean(s)
+        t = np.inner(x_zm, s_zm) * s_zm / vec_l2norm(s_zm)**2
+        n = x_zm - t
+    else:
+        t = np.inner(x, s) * s / vec_l2norm(s)**2
+        n = x - t
+    return 20 * np.log10(vec_l2norm(t) / vec_l2norm(n))
 
 
 def permute_si_snr(xlist, slist):

@@ -15,6 +15,7 @@ import librosa as audio_lib
 import numpy as np
 import scipy.io as sio
 
+from io import TextIOWrapper
 from . import kaldi_io as io
 from .utils import stft, read_wav, write_wav
 
@@ -71,7 +72,8 @@ def _fopen(fname, mode):
         else:
             return sys.stdin.buffer if mode == "rb" else sys.stdin
     elif fname[-1] == "|":
-        return pipe_fopen(fname[:-1], mode, background=(mode == "rb"))
+        pin = pipe_fopen(fname[:-1], mode, background=(mode == "rb"))
+        return pin if mode == "rb" else TextIOWrapper(pin)
     else:
         if mode in ["r", "rb"] and not os.path.exists(fname):
             raise FileNotFoundError(

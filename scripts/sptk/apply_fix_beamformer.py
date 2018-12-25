@@ -9,7 +9,7 @@ import numpy as np
 from scipy.io import loadmat
 
 from libs.utils import istft, get_logger
-from libs.opts import get_stft_parser
+from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, WaveWriter
 from libs.beamformer import FixedBeamformer
 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         description="Command to run fixed beamformer. Runing this command needs "
         "design fixed beamformer first.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()])
+        parents=[StftParser.parser])
     parser.add_argument(
         "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
     parser.add_argument(

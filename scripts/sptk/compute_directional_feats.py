@@ -10,7 +10,7 @@ import argparse
 import numpy as np
 
 from libs.utils import nfft, get_logger
-from libs.opts import get_stft_parser
+from libs.opts import StftParser
 from libs.spatial import directional_feats
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, ArchiveWriter
 from libs.beamformer import MvdrBeamformer
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         description=
         "Command to compute directional features, based on estimated TF-masks",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()])
+        parents=[StftParser.parser])
     parser.add_argument(
         "wav_scp", type=str, help="Multi-Channel wave scripts in kaldi format")
     parser.add_argument(

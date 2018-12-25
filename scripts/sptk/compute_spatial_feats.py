@@ -8,7 +8,7 @@ Compute some typical spatial features(SRP/IPD/MSC)
 import argparse
 
 from libs.utils import get_logger, nfft
-from libs.opts import get_stft_parser
+from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 from libs.spatial import srp_phat, ipd, msc
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         "SRP: SRP-PHAT Anguler Spectrum, MSC: Magnitude Squared Coherence, "
         "IPD: Interchannel Phase Difference)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()])
+        parents=[StftParser.parser])
 
     parser.add_argument(
         "wav_scp", type=str, help="Multi-Channel wave scripts in kaldi format")

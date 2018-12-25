@@ -15,7 +15,7 @@ import os
 import numpy as np
 
 from libs.utils import stft, istft, get_logger, write_wav, EPSILON
-from libs.opts import get_stft_parser
+from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader
 
 logger = get_logger(__name__)
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to do AuxIVA bss algorithm",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[get_stft_parser()])
+        parents=[StftParser.parser])
     parser.add_argument(
         "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
     parser.add_argument(

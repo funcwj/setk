@@ -2,11 +2,19 @@
 
 # wujian@2018
 """
-Faster CGMM Trainer
+Trainer for some classic spatial clustering algorithm
+
+CGMM Trainer
 Reference:
     Higuchi T, Ito N, Yoshioka T, et al. Robust MVDR beamforming using time-frequency masks
     for online/offline ASR in noise[C]//Acoustics, Speech and Signal Processing (ICASSP),
     2016 IEEE International Conference on. IEEE, 2016: 5210-5214.
+
+CACGMM Trainer
+Reference:
+    Nakatani T, Ito N, Higuchi T, et al. Integrating DNN-based and spatial clustering-based 
+    mask estimation for robust MVDR beamforming[C]//Acoustics, Speech and Signal Processing 
+    (ICASSP), 2017 IEEE International Conference on. IEEE, 2017: 286-290.
 """
 
 import numpy as np
@@ -14,7 +22,7 @@ from .utils import get_logger, EPSILON
 
 logger = get_logger(__name__)
 
-# profile log
+# cgmm trainer profile log
 # 424.9570s/369.6120s/333.9310s/275.4740s/12.4840s
 # faster = True
 theta = 1e-4
@@ -163,4 +171,100 @@ class CgmmTrainer(object):
             logger.info("Epoch {:02d}: Q = {:.4f} + {:.4f} = {:.4f}".format(
                 e + 1, Qn, Qs, Qn + Qs))
 
+        return ms
+
+
+def CacgLoglikelihood(Z, B):
+    """
+    Compute complex Augular Central Gaussian distribution
+    A(z, B) = (N - 1)!/[(2\\pi^N)det(B)] * 1/(z^H B^{-1} z)^N
+
+    def:
+        k = z^HB^{-1}z = trace(B^{-1}zz^H) = trace(B^{-1}Z) = trace(solve(B, Z))
+        Z \\in C^{T x N x N}
+    then:
+    A(z, B) = (N - 1)!/{(2\\pi^N) * [det(B) * k^N]}
+
+    Arguments:
+        Z: shape as T x N x N
+        B: shape as N x N
+    Return:
+        P: shape as T x 1
+    """
+    N = B.shape[0]
+    k = np.real(np.trace(np.linalg.solve(B, Z), axis1=1, axis2=2))
+    const = np.math.factorial(N - 1) / (2 * np.pi**N)
+    det = np.linalg.det(B).real
+    return const / (det * k**N)
+
+# waiting for testing
+class CacgmmTrainer(object):
+    """
+        CacgmmTrainer for two targets with initial masks: speech & noise
+    """
+
+    def __init__(self, X, Ms):
+        # normalize: N x F x T, keep only spatial cues
+        X = X / np.linalg.norm(X, axis=0)
+        # N x F x T => F x T x N
+        X = X.transpose([1, 2, 0])
+        # F x T x N x N
+        self.Rtf = np.einsum("...a,...b->...ab", X, np.conj(X))
+        # self.X = X
+        self.num_bins, self.num_frames, self.num_channels = X.shape
+        # Ms: T x F => F x T
+        self.ini_ms = Ms.T
+        self.ini_mn = 1 - self.ini_ms
+        # Bs/Bn
+        Bt = [
+            np.eye(self.num_channels, self.num_channels, dtype=np.complex)
+            for f in range(self.num_bins)
+        ]
+        self.Bs = np.array(Bt)
+        self.Bn = np.array(Bt)
+
+    def train(self, num_epoches=20):
+        """
+            Start cacgmm training for some epoches
+        """
+        # initialze speech/noise masks, F x T
+        ms = np.copy(self.ini_ms)
+        mn = 1 - ms
+        # likelihoods
+        pn = np.ones([self.num_bins, self.num_frames])
+        ps = np.ones([self.num_bins, self.num_frames])
+
+        for e in range(num_epoches):
+            for f in range(self.num_bins):
+                lambda_s, lambda_n = ms[f], mn[f]
+                # T
+                xbx_n = np.trace(
+                    np.linalg.solve(self.Bn[f], self.Rtf[f]), axis1=1, axis2=2)
+                xbx_s = np.trace(
+                    np.linalg.solve(self.Bs[f], self.Rtf[f]), axis1=1, axis2=2)
+                # N x N
+                # update B matrix
+                self.Bn[f] = self.num_channels * np.sum(
+                    self.Rtf[f] * lambda_n[:, None, None] /
+                    xbx_n[:, None, None],
+                    axis=0) / np.sum(lambda_n)
+                self.Bs[f] = self.num_channels * np.sum(
+                    self.Rtf[f] * lambda_s[:, None, None] /
+                    xbx_s[:, None, None],
+                    axis=0) / np.sum(lambda_s)
+                # update masks
+                pn[f] = self.ini_mn[f] * CacgLoglikelihood(
+                    self.Rtf[f], self.Bn[f])
+                ps[f] = self.ini_ms[f] * CacgLoglikelihood(
+                    self.Rtf[f], self.Bn[f])
+
+                mn[f] = pn[f] / (pn[f] + ps[f])
+                ms[f] = 1 - mn[f]
+
+            Qn = np.sum(
+                mn * np.log(pn + EPSILON)) / (self.num_bins * self.num_frames)
+            Qs = np.sum(
+                ms * np.log(ps + EPSILON)) / (self.num_bins * self.num_frames)
+            logger.info("Epoch {:02d}: Q = {:.4f} + {:.4f} = {:.4f}".format(
+                e + 1, Qn, Qs, Qn + Qs))
         return ms
