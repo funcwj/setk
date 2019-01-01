@@ -12,7 +12,7 @@ import tqdm
 import numpy as np
 
 from libs.scheduler import run_command
-from libs.utils import get_logger
+from libs.utils import get_logger, make_dir
 from libs.opts import StrToFloatTupleAction, str_to_float_tuple
 
 logger = get_logger(__name__)
@@ -67,8 +67,7 @@ def run(args):
     def format_float(float_n):
         return "{:.3f}".format(float_n)
 
-    if not os.path.exists(args.dump_dir):
-        os.makedirs(args.dump_dir)
+    make_dir(args.dump_dir)
 
     rir_cfg = open(args.dump_cfg, "w") if args.dump_cfg else None
 

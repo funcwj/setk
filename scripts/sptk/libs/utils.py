@@ -2,6 +2,7 @@
 # wujian@2018
 
 import os
+import errno
 import warnings
 import logging
 
@@ -14,7 +15,10 @@ import scipy as sp
 MAX_INT16 = np.iinfo(np.int16).max
 EPSILON = np.finfo(np.float32).eps
 
-__all__ = ["stft", "istft", "get_logger", "write_wav", "read_wav"]
+__all__ = [
+    "stft", "istft", "get_logger", "make_dir", "filekey", "write_wav",
+    "read_wav"
+]
 
 
 def nfft(window_size):
@@ -89,6 +93,9 @@ def stft(samps,
          apply_log=False,
          apply_pow=False,
          transpose=True):
+    """
+    STFT wrapper, using librosa
+    """
     if apply_log and not apply_abs:
         warnings.warn("Ignore apply_abs=False because apply_log=True")
         apply_abs = True
@@ -131,6 +138,9 @@ def istft(stft_mat,
           norm=None,
           power=None,
           nsamps=None):
+    """
+    iSTFT wrapper, using librosa
+    """
     if transpose:
         stft_mat = np.transpose(stft_mat)
     if window == "sqrthann":
@@ -143,7 +153,7 @@ def istft(stft_mat,
         window=window,
         center=center,
         length=nsamps)
-    # renorm, remove in the future
+    # keep same amplitude
     if norm:
         samps_norm = np.linalg.norm(samps, np.inf)
         samps = samps * norm / (samps_norm + EPSILON)
@@ -151,7 +161,6 @@ def istft(stft_mat,
     if power:
         samps_pow = np.linalg.norm(samps, 2)**2 / samps.size
         samps = samps * np.sqrt(power / samps_pow)
-    # write_wav(file, samps, fs=fs, normalize=normalize)
     return samps
 
 
@@ -192,6 +201,9 @@ def griffin_lim(magnitude,
 
 
 def filekey(path):
+    """
+    Return unique index from file name
+    """
     fname = os.path.basename(path)
     if not fname:
         raise ValueError("{}(Is directory path?)".format(path))
@@ -207,6 +219,9 @@ def get_logger(
         format_str="%(asctime)s [%(pathname)s:%(lineno)s - %(levelname)s ] %(message)s",
         date_format="%Y-%m-%d %H:%M:%S",
         file=False):
+    """
+    Return python logger instance
+    """
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
     # file or console
@@ -217,3 +232,18 @@ def get_logger(
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     return logger
+
+
+def make_dir(fdir):
+    """
+    Make directory 
+    """
+    if not fdir or os.path.exists(fdir):
+        return
+    try:
+        os.makedirs(fdir)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise RuntimeError("Error exists when mkdir -p {}".format(fdir))

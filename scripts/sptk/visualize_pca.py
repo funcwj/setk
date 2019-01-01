@@ -44,7 +44,8 @@ def run(args):
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
-    ax.scatter(pca_mat[:, 0], pca_mat[:, 1], pca_mat[:, 2])
+    x, y, z = np.split(pca_mat, 3, axis=1)
+    ax.scatter(x, y, z, s=2)
     plt.show()
 
 

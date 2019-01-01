@@ -17,7 +17,7 @@ import scipy.io as sio
 
 from io import TextIOWrapper
 from . import kaldi_io as io
-from .utils import stft, read_wav, write_wav
+from .utils import stft, read_wav, write_wav, make_dir
 
 __all__ = [
     "ArchiveReader",
@@ -426,8 +426,7 @@ class DirWriter(Writer):
     """
 
     def __init__(self, dump_dir, scp_path=None):
-        if not os.path.exists(dump_dir):
-            os.makedirs(dump_dir)
+        make_dir(dump_dir)
         super(DirWriter, self).__init__(dump_dir, scp_path)
 
 

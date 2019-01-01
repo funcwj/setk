@@ -266,59 +266,6 @@ def read_sparse_mat(fd):
     return sparse_mat
 
 
-# discard
-def uint16_to_floats(min_value, prange, pchead):
-    """ 
-        Uncompress type unsigned int16
-        see matrix/compressed-matrix.cc:
-            inline float CompressedMatrix::
-            Uint16ToFloat(const GlobalHeader &global_header, uint16 value)
-    """
-    return [
-        float(min_value + prange * 1.52590218966964e-05 * val)
-        for val in pchead
-    ]
-
-
-# discard, cause too slow
-def uint8_to_float(char, pchead):
-    """ 
-        Uncompress unsigned int8
-        see matrix/compressed-matrix.cc:
-            inline float CompressedMatrix::
-            CharToFloat(float p0, float p25, float p75, float p100, uint8 value)
-    """
-    if char <= 64:
-        return float(pchead[0] + (pchead[1] - pchead[0]) * char * (1 / 64.0))
-    elif char <= 192:
-        return float(pchead[1] +
-                     (pchead[2] - pchead[1]) * (char - 64) * (1 / 128.0))
-    else:
-        return float(pchead[2] +
-                     (pchead[3] - pchead[2]) * (char - 192) * (1 / 63.0))
-
-
-def uint8_to_float_vec(char_vec, le64_index, gt92_index, le92_index, pchead):
-    """
-        Vectorize function uint8_to_float, make faster
-    """
-    float_vec = np.zeros_like(char_vec, dtype=np.float)
-    # <= 64
-    # le64_index = (char_vec <= 64)
-    float_vec[le64_index] = pchead[0] + (
-        pchead[1] - pchead[0]) * char_vec[le64_index] / 64.0
-    # 192 < x
-    # gt92_index = char_vec > 192
-    float_vec[gt92_index] = pchead[2] + (pchead[3] - pchead[2]) * (
-        char_vec[gt92_index] - 192) / 63.0
-    # 64 < x <= 192
-    # le92_index = np.logical_not(np.logical_xor(le64_index, gt92_index))
-    float_vec[le92_index] = pchead[1] + (pchead[2] - pchead[1]) * (
-        char_vec[le92_index] - 64) / 128.0
-
-    return float_vec
-
-
 # TODO: optimize speed here, original IO 200x slower than uncompressed matrix
 #       speed up 5x, now 50x slower than uncompressed one
 def uncompress(compress_data, cps_type, head):
