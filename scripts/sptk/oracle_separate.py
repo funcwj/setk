@@ -8,7 +8,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 from libs.data_handler import SpectrogramReader
-from libs.utils import istft, get_logger, cmat_abs, write_wav
+from libs.utils import istft, get_logger, cmat_abs, write_wav, EPSILON
 from libs.opts import StftParser
 
 logger = get_logger(__name__)
@@ -29,9 +29,9 @@ def compute_mask(mixture, targets_list, mask_type):
         return [max_index == s for s in range(len(targets_list))]
 
     if mask_type == "irm":
-        denominator = sum([cmat_abs(mat) for mat in targets_list])
+        denominator = sum([cmat_abs(mat) for mat in targets_list]) + EPSILON
     else:
-        denominator = cmat_abs(mixture)
+        denominator = cmat_abs(mixture) + EPSILON
     if mask_type != "psm":
         masks = [cmat_abs(mat) / denominator for mat in targets_list]
     else:
@@ -75,8 +75,8 @@ def run(args):
         for index, mask in enumerate(spk_masks):
             samps = istft(mixture * mask, **stft_kwargs, nsamps=nsamps)
             write_wav(
-                os.path.join(args.dump_dir, "{}.s{}.wav".format(
-                    key, index + 1)),
+                os.path.join(args.dump_dir, "spk{:d}/{}.wav".format(
+                    index + 1, key)),
                 samps,
                 fs=args.fs)
     logger.info("Processed {} utterance!".format(num_utts))
