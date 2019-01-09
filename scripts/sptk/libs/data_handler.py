@@ -17,17 +17,12 @@ import scipy.io as sio
 
 from io import TextIOWrapper
 from . import kaldi_io as io
-from .utils import stft, read_wav, write_wav
+from .utils import stft, read_wav, write_wav, make_dir
 
 __all__ = [
-    "ArchiveReader",
-    "ArchiveWriter",
-    "SpectrogramReader",
-    "ScriptReader",
-    "WaveReader",
-    "NumpyReader",
-    "PickleReader",
-    "MatReader",
+    "ArchiveReader", "ArchiveWriter", "WaveWriter", "NumpyWriter",
+    "SpectrogramReader", "ScriptReader", "WaveReader", "NumpyReader",
+    "PickleReader", "MatReader", "BinaryReader"
 ]
 
 
@@ -390,6 +385,38 @@ class ScriptReader(Reader):
         return ark
 
 
+class BinaryReader(Reader):
+    """
+    Reader for binary objects(raw data)
+    """
+
+    def __init__(self, bin_scp, shape=None, data_type="float32"):
+        super(BinaryReader, self).__init__(bin_scp)
+        supported_data = {
+            "float32": np.float32,
+            "float64": np.float64,
+            "int32": np.int32,
+            "int64": np.int64
+        }
+        if data_type not in supported_data:
+            raise RuntimeError("Unsupported data type: {}".format(data_type))
+        self.fmt = supported_data[data_type]
+        if shape is not None and not isinstance(shape, tuple):
+            raise RuntimeError(
+                "Expect shape as tuple object or None, but got {}".format(
+                    type(shape)))
+        self.shape = shape
+
+    def _load(self, key):
+        with open(self.index_dict[key], "rb") as f:
+            raw = f.read()
+            obj = np.fromstring(raw, dtype=self.fmt)
+            if self.shape is not None and obj.shape != self.shape:
+                raise RuntimeError("Expect shape {}, but got {}".format(
+                    self.shape, obj.shape))
+        return obj
+
+
 class ArchiveWriter(Writer):
     """
         Writer for kaldi's scripts && archive(for BaseFloat matrix)
@@ -426,8 +453,7 @@ class DirWriter(Writer):
     """
 
     def __init__(self, dump_dir, scp_path=None):
-        if not os.path.exists(dump_dir):
-            os.makedirs(dump_dir)
+        make_dir(dump_dir)
         super(DirWriter, self).__init__(dump_dir, scp_path)
 
 
