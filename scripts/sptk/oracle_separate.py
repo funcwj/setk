@@ -48,6 +48,7 @@ def run(args):
     stft_kwargs = {
         "frame_length": args.frame_length,
         "frame_shift": args.frame_shift,
+        "round_power_of_two": args.round_power_of_two,
         "window": args.window,
         "center": args.center
     }
