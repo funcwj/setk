@@ -12,6 +12,7 @@ import numpy as np
 from libs.utils import stft, get_logger, nfft, EPSILON
 from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, ArchiveWriter
+from libs.exraw import BinaryWriter
 
 logger = get_logger(__name__)
 
@@ -41,8 +42,9 @@ def run(args):
     # N x F
     mel_weights = audio_lib.filters.mel(args.samp_freq,
                                         nfft(args.frame_length), **mel_kwargs)
+    WriterImpl = {"kaldi": ArchiveWriter, "exraw": BinaryWriter}[args.format]
 
-    with ArchiveWriter(args.dup_ark, args.scp) as writer:
+    with WriterImpl(args.dup_ark, args.scp) as writer:
         for key, spectrum in spectrogram_reader:
             # N x F * F x T = N * T => T x N
             fbank = np.transpose(
@@ -67,6 +69,12 @@ if __name__ == "__main__":
         help="Source location of wave scripts in kaldi format")
     parser.add_argument(
         "dup_ark", type=str, help="Location to dump spectrogram's features")
+    parser.add_argument(
+        "--format",
+        type=str,
+        default="kaldi",
+        choices=["kaldi", "exraw"],
+        help="Output archive format, see format in sptk/libs/exraw.py")
     parser.add_argument(
         "--scp",
         type=str,

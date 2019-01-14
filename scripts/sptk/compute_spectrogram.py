@@ -10,6 +10,7 @@ import argparse
 from libs.utils import stft, get_logger
 from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, ArchiveWriter
+from libs.exraw import BinaryWriter
 
 logger = get_logger(__name__)
 
@@ -27,8 +28,8 @@ def run(args):
         "transpose": True  # T x F
     }
     reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
-
-    with ArchiveWriter(args.dup_ark, args.scp) as writer:
+    WriterImpl = {"kaldi": ArchiveWriter, "exraw": BinaryWriter}[args.format]
+    with WriterImpl(args.dup_ark, args.scp) as writer:
         for key, feats in reader:
             # default using ch1 in multi-channel case
             writer.write(key, feats[0] if feats.ndim == 3 else feats)
@@ -53,6 +54,12 @@ if __name__ == "__main__":
         type=str,
         default="",
         help="If assigned, generate corresponding scripts for archives")
+    parser.add_argument(
+        "--format",
+        type=str,
+        default="kaldi",
+        choices=["kaldi", "exraw"],
+        help="Output archive format, see format in sptk/libs/exraw.py")
     parser.add_argument(
         "--apply-log",
         action="store_true",

@@ -11,6 +11,7 @@ import numpy as np
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 from libs.utils import get_logger, cmat_abs
 from libs.opts import StftParser
+from libs.exraw import BinaryWriter
 
 logger = get_logger(__name__)
 
@@ -66,7 +67,9 @@ def run(args):
 
     num_utts = 0
     cutoff = args.cutoff
-    with ArchiveWriter(args.mask_ark, args.scp) as writer:
+    WriterImpl = {"kaldi": ArchiveWriter, "exraw": BinaryWriter}[args.format]
+
+    with WriterImpl(args.mask_ark, args.scp) as writer:
         for key, speech in speech_reader:
             if key in denorm_reader:
                 num_utts += 1
@@ -114,6 +117,12 @@ if __name__ == "__main__":
         help="Scripts for bg-noise or mixture in Kaldi format")
     parser.add_argument(
         "mask_ark", type=str, help="Location to dump mask archives")
+    parser.add_argument(
+        "--format",
+        type=str,
+        default="kaldi",
+        choices=["kaldi", "exraw"],
+        help="Output archive format, see format in sptk/libs/exraw.py")
     parser.add_argument(
         "--scp",
         type=str,
