@@ -22,7 +22,6 @@ def run(args):
     stft_kwargs = {
         "frame_length": args.frame_length,
         "frame_shift": args.frame_shift,
-        "round_power_of_two": args.round_power_of_two,
         "window": args.window,
         "center": args.center,  # false to comparable with kaldi
         "transpose": True  # T x F
@@ -33,7 +32,10 @@ def run(args):
         "iters": args.iters,
         "psd_context": args.context
     }
-    spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
+    spectrogram_reader = SpectrogramReader(
+        args.wav_scp,
+        round_power_of_two=args.round_power_of_two,
+        **stft_kwargs)
 
     if not os.path.exists(args.dst_dir):
         os.makedirs(args.dst_dir)

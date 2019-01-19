@@ -19,7 +19,6 @@ def run(args):
     stft_kwargs = {
         "frame_length": args.frame_length,
         "frame_shift": args.frame_shift,
-        "round_power_of_two": args.round_power_of_two,
         "window": args.window,
         "center": args.center,
         "transpose": False
@@ -29,7 +28,10 @@ def run(args):
     if doa < 0 or doa > 180:
         raise RuntimeError("Illegal value for DoA: {:.2f}".format(args.doa))
 
-    spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
+    spectrogram_reader = SpectrogramReader(
+        args.wav_scp,
+        round_power_of_two=args.round_power_of_two,
+        **stft_kwargs)
     beamformer = DSBeamformer(topo)
     logger.info("Initialize {:d} channel DSBeamformer".format(len(topo)))
 

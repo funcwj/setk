@@ -20,12 +20,14 @@ def run(args):
     stft_kwargs = {
         "frame_length": args.frame_length,
         "frame_shift": args.frame_shift,
-        "round_power_of_two": args.round_power_of_two,
         "window": args.window,
         "center": args.center,
         "transpose": False
     }
-    spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
+    spectrogram_reader = SpectrogramReader(
+        args.wav_scp,
+        round_power_of_two=args.round_power_of_two,
+        **stft_kwargs)
     weights_dict = loadmat(args.weights)
     if args.weight_key not in weights_dict:
         raise KeyError("Weight key error: no \'{}\' in {}".format(

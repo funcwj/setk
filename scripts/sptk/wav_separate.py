@@ -19,11 +19,13 @@ def run(args):
     stft_kwargs = {
         "frame_length": args.frame_length,
         "frame_shift": args.frame_shift,
-        "round_power_of_two": args.round_power_of_two,
         "window": args.window,
         "center": args.center,
     }
-    spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
+    spectrogram_reader = SpectrogramReader(
+        args.wav_scp,
+        **stft_kwargs,
+        round_power_of_two=args.round_power_of_two)
     mask_reader = NumpyReader(args.mask_scp) if args.numpy else ScriptReader(
         args.mask_scp)
 

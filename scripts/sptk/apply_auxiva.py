@@ -61,14 +61,15 @@ def run(args):
     stft_kwargs = {
         "frame_length": args.frame_length,
         "frame_shift": args.frame_shift,
-        "round_power_of_two": args.round_power_of_two,
         "window": args.window,
         "center": args.center,
         "transpose": True  # F x T instead of T x F
     }
 
-    spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
-
+    spectrogram_reader = SpectrogramReader(
+        args.wav_scp,
+        round_power_of_two=args.round_power_of_two,
+        **stft_kwargs)
     for key, spectrogram in spectrogram_reader:
         logger.info("Processing utterance {}...".format(key))
         separated = auxiva(spectrogram, args.epochs)
