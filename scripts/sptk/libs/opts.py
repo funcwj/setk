@@ -64,8 +64,13 @@ class StftParser(object):
     parser.add_argument(
         "--center",
         action=StrToBoolAction,
-        default=True,
+        default="true",
         help="Value of parameter \'center\' in librosa.stft functions")
+    parser.add_argument(
+        "--round-power-of-two",
+        action=StrToBoolAction,
+        default="true",
+        help="If true, pad fft size to power of two")
     parser.add_argument(
         "--window",
         default="hann",

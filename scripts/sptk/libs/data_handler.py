@@ -179,7 +179,7 @@ class Reader(object):
 
 class Writer(object):
     """
-        Base Writer class to be implemented
+        Basic Writer class to be implemented
     """
 
     def __init__(self, obj_path_or_dir, scp_path=None):
@@ -374,15 +374,25 @@ class ScriptReader(Reader):
         super(ScriptReader, self).__init__(
             ark_scp, value_processor=addr_processor)
         self.matrix = matrix
+        self.fmgr = dict()
+
+    def __del__(self):
+        for name in self.fmgr:
+            self.fmgr[name].close()
+
+    def _open(self, obj, addr):
+        if obj not in self.fmgr:
+            self.fmgr[obj] = open(obj, "rb")
+        arkf = self.fmgr[obj]
+        arkf.seek(addr)
+        return arkf
 
     def _load(self, key):
-        path, offset = self.index_dict[key]
-        with open(path, "rb") as f:
-            f.seek(offset)
-            io.expect_binary(f)
-            ark = io.read_general_mat(f) if self.matrix else io.read_float_vec(
-                f)
-        return ark
+        path, addr = self.index_dict[key]
+        fd = self._open(path, addr)
+        io.expect_binary(fd)
+        obj = io.read_general_mat(fd) if self.matrix else io.read_float_vec(fd)
+        return obj
 
 
 class BinaryReader(Reader):
@@ -390,7 +400,7 @@ class BinaryReader(Reader):
     Reader for binary objects(raw data)
     """
 
-    def __init__(self, bin_scp, shape=None, data_type="float32"):
+    def __init__(self, bin_scp, length=None, data_type="float32"):
         super(BinaryReader, self).__init__(bin_scp)
         supported_data = {
             "float32": np.float32,
@@ -401,19 +411,13 @@ class BinaryReader(Reader):
         if data_type not in supported_data:
             raise RuntimeError("Unsupported data type: {}".format(data_type))
         self.fmt = supported_data[data_type]
-        if shape is not None and not isinstance(shape, tuple):
-            raise RuntimeError(
-                "Expect shape as tuple object or None, but got {}".format(
-                    type(shape)))
-        self.shape = shape
+        self.length = length
 
     def _load(self, key):
-        with open(self.index_dict[key], "rb") as f:
-            raw = f.read()
-            obj = np.fromstring(raw, dtype=self.fmt)
-            if self.shape is not None and obj.shape != self.shape:
-                raise RuntimeError("Expect shape {}, but got {}".format(
-                    self.shape, obj.shape))
+        obj = np.fromfile(self.index_dict[key], dtype=self.fmt)
+        if self.length is not None and obj.size != self.length:
+            raise RuntimeError("Expect length {:d}, but got {:d}".format(
+                self.length, obj.size))
         return obj
 
 
@@ -426,7 +430,7 @@ class ArchiveWriter(Writer):
         if not ark_path:
             raise RuntimeError("Seem configure path of archives as None")
         super(ArchiveWriter, self).__init__(ark_path, scp_path)
-        self.matrix = matrix
+        self.dump_func = io.write_common_mat if matrix else io.write_float_vec
 
     def write(self, key, obj):
         if not isinstance(obj, np.ndarray):
@@ -437,14 +441,12 @@ class ArchiveWriter(Writer):
         if self.path_or_dir != "-":
             offset = self.ark_file.tell()
         io.write_binary_symbol(self.ark_file)
-        if self.matrix:
-            io.write_common_mat(self.ark_file, obj)
-        else:
-            io.write_float_vec(self.ark_file, obj)
+        self.dump_func(self.ark_file, obj)
         if self.scp_file:
-            self.scp_file.write("{key}\t{path}:{offset}\n".format(
-                key=key, path=os.path.abspath(self.path_or_dir),
-                offset=offset))
+            record = "{0}\t{1}:{2}\n".format(key,
+                                             os.path.abspath(self.path_or_dir),
+                                             offset)
+            self.scp_file.write(record)
 
 
 class DirWriter(Writer):

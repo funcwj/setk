@@ -87,6 +87,7 @@ def read_wav(fname, normalize=True, return_rate=False):
 def stft(samps,
          frame_length=1024,
          frame_shift=256,
+         round_power_of_two=True,
          center=False,
          window="hann",
          apply_abs=False,
@@ -101,7 +102,8 @@ def stft(samps,
         apply_abs = True
     if samps.ndim != 1:
         raise RuntimeError("Invalid shape, librosa.stft accepts mono input")
-    n_fft = nfft(frame_length)
+    # pad fft size to power of two or left it same as frame length
+    n_fft = nfft(frame_length) if round_power_of_two else frame_length
     if window == "sqrthann":
         window = np.sqrt(sp.signal.hann(frame_length, sym=False))
     # orignal stft accept samps(vector) and return matrix shape as F x T

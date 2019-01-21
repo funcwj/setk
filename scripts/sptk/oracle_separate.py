@@ -52,7 +52,10 @@ def run(args):
         "center": args.center
     }
     logger.info("Using mask: {}".format(args.mask.upper()))
-    mixture_reader = SpectrogramReader(args.mix_scp, **stft_kwargs)
+    mixture_reader = SpectrogramReader(
+        args.mix_scp,
+        round_power_of_two=args.round_power_of_two,
+        **stft_kwargs)
     ref_scp_list = args.ref_scp.split(",")
     logger.info("Number of speakers: {:d}".format(len(ref_scp_list)))
     targets_reader = [

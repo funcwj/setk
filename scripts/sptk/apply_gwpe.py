@@ -32,7 +32,10 @@ def run(args):
         "iters": args.iters,
         "psd_context": args.context
     }
-    spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
+    spectrogram_reader = SpectrogramReader(
+        args.wav_scp,
+        round_power_of_two=args.round_power_of_two,
+        **stft_kwargs)
 
     if not os.path.exists(args.dst_dir):
         os.makedirs(args.dst_dir)

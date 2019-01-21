@@ -12,6 +12,7 @@ transpose=false
 keep_length=false
 fs=16000
 stft_conf=conf/stft.conf
+phase_ref=
 
 echo "$0 $@"
 
@@ -24,6 +25,7 @@ function usage {
   echo "  --transpose     <transpose>         # transpose TF-mask or not, (default=false)"
   echo "  --fs            <fs>                # sample frequency for output wave, (default=16000)"
   echo "  --keep-length   <true|false>        # keep same length as original or not, (default=false)"
+  echo "  --phase-ref     <phase-ref>         # use phase reference or mixture, (default="")"
 }
 
 . ./path.sh
@@ -62,6 +64,7 @@ masking_opts=$(cat $stft_conf | xargs)
 $numpy && masking_opts="$masking_opts --numpy"
 $transpose && masking_opts="$masking_opts --transpose-mask"
 $keep_length && masking_opts="$masking_opts --keep-length"
+[ ! -z $phase_ref ] && masking_opts="$masking_opts --phase-ref $phase_ref"
 
 mkdir -p $enhan_dir
 $cmd JOB=1:$nj $exp_dir/log/wav_separate.JOB.scp \

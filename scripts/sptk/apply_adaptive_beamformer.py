@@ -56,7 +56,10 @@ def run(args):
         "center": args.center,  # false to comparable with kaldi
         "transpose": False  # F x T
     }
-    spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
+    spectrogram_reader = SpectrogramReader(
+        args.wav_scp,
+        round_power_of_two=args.round_power_of_two,
+        **stft_kwargs)
     mask_reader = NumpyReader(args.mask_scp) if args.numpy else ScriptReader(
         args.mask_scp)
 

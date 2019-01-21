@@ -28,7 +28,10 @@ def run(args):
     if doa < 0 or doa > 180:
         raise RuntimeError("Illegal value for DoA: {:.2f}".format(args.doa))
 
-    spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
+    spectrogram_reader = SpectrogramReader(
+        args.wav_scp,
+        round_power_of_two=args.round_power_of_two,
+        **stft_kwargs)
     beamformer = DSBeamformer(topo)
     logger.info("Initialize {:d} channel DSBeamformer".format(len(topo)))
 

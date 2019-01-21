@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project("SETK: speech enhancement tookit on kaldi")
+project("SETK: Speech Enhancement Tookit on Kaldi")
 
 set(CMAKE_CXX_STANDARD 11)
 
