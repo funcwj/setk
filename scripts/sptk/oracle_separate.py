@@ -48,12 +48,14 @@ def run(args):
     stft_kwargs = {
         "frame_length": args.frame_length,
         "frame_shift": args.frame_shift,
-        "round_power_of_two": args.round_power_of_two,
         "window": args.window,
         "center": args.center
     }
     logger.info("Using mask: {}".format(args.mask.upper()))
-    mixture_reader = SpectrogramReader(args.mix_scp, **stft_kwargs)
+    mixture_reader = SpectrogramReader(
+        args.mix_scp,
+        round_power_of_two=args.round_power_of_two,
+        **stft_kwargs)
     ref_scp_list = args.ref_scp.split(",")
     logger.info("Number of speakers: {:d}".format(len(ref_scp_list)))
     targets_reader = [

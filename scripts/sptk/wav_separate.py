@@ -26,6 +26,13 @@ def run(args):
         args.wav_scp,
         **stft_kwargs,
         round_power_of_two=args.round_power_of_two)
+    phase_reader = None
+    if args.phase_ref:
+        phase_reader = SpectrogramReader(
+            args.phase_ref,
+            **stft_kwargs,
+            round_power_of_two=args.round_power_of_two)
+        logger.info("Using phase reference from {}".format(args.phase_ref))
     mask_reader = NumpyReader(args.mask_scp) if args.numpy else ScriptReader(
         args.mask_scp)
 
@@ -46,8 +53,18 @@ def run(args):
                 nsamps = spectrogram_reader.nsamps(
                     key) if args.keep_length else None
                 norm = spectrogram_reader.samp_norm(key)
-                samps = istft(
-                    specs * mask, **stft_kwargs, norm=norm, nsamps=nsamps)
+                # use phase from ref
+                if phase_reader is not None:
+                    angle = np.angle(phase_reader[key])
+                    phase = np.exp(angle * 1j)
+                    samps = istft(
+                        np.abs(specs) * mask * phase,
+                        **stft_kwargs,
+                        norm=norm,
+                        nsamps=nsamps)
+                else:
+                    samps = istft(
+                        specs * mask, **stft_kwargs, norm=norm, nsamps=nsamps)
                 writer.write(key, samps)
     logger.info("Processed {:d} utterances over {:d}".format(
         num_done, len(spectrogram_reader)))
@@ -74,6 +91,11 @@ if __name__ == "__main__":
         default=16000,
         dest="samp_freq",
         help="Waveform data sample frequency")
+    parser.add_argument(
+        "--phase-ref",
+        type=str,
+        default="",
+        help="If assigned, use phase of it instead of mixture")
     parser.add_argument(
         "--keep-length",
         action="store_true",
