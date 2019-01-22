@@ -119,16 +119,20 @@ def msc(spectrogram, context=1, normalize=True):
     return coh
 
 
-def ipd(si, sj, sin=False):
+def ipd(si, sj, cos=False, sin=False):
     """
-    Compute cosIPD/sinIPD spatial features
+    Compute IPD/cosIPD/sinIPD spatial features
     Arguments:
         si, sj: shape as T x F
     Return:
-        cosIPD: shape as T x F if sin=False
+        IPD:    shape as T x F if cos=False
+        cosIPD: shape as T x F if cos=True
         [cosIPD, sinIPD]: shape as T x 2F if sin=True
     """
     ipd_mat = np.angle(si) - np.angle(sj)
+    if not cos:
+        ipd_mat = np.mod(ipd_mat + np.pi, 2 * np.pi) - np.pi
+        return ipd_mat
     cos_ipd = np.cos(ipd_mat)
     if not sin:
         return cos_ipd

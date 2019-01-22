@@ -34,7 +34,7 @@ def compute_spatial_feats(args, S):
         if S.ndim < 3:
             raise ValueError("Only one-channel STFT available")
         L, R = indexes
-        return ipd(S[L], S[R], sin=args.ipd_sin)
+        return ipd(S[L], S[R], cos=args.ipd_cos, sin=args.ipd_sin)
     else:
         return msc(S, context=args.msc_ctx)
 
@@ -113,6 +113,11 @@ if __name__ == "__main__":
         dest="linear_topo",
         default="0,0.2,0.4,0.8",
         help="Topology description of microphone arrays")
+    parser.add_argument(
+        "--ipd.cos",
+        dest="ipd_cos",
+        action="store_true",
+        help="Compute cosIPD instead of IPD")
     parser.add_argument(
         "--ipd.sin",
         dest="ipd_sin",
