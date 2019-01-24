@@ -15,9 +15,10 @@ import librosa as audio_lib
 import numpy as np
 import scipy.io as sio
 
-from io import TextIOWrapper
+from io import TextIOWrapper, BytesIO
 from . import kaldi_io as io
 from .utils import stft, read_wav, write_wav, make_dir
+from .scheduler import run_command
 
 __all__ = [
     "ArchiveReader", "ArchiveWriter", "WaveWriter", "NumpyWriter",
@@ -118,15 +119,18 @@ def parse_scps(scp_path, value_processor=lambda x: x, num_tokens=2):
         for raw_line in f:
             scp_tokens = raw_line.strip().split()
             line += 1
-            if num_tokens >= 2 and len(scp_tokens) != num_tokens or len(
-                    scp_tokens) < 2:
-                raise RuntimeError(
-                    "For {}, format error in line[{:d}]: {}".format(
-                        scp_path, line, raw_line))
-            if num_tokens == 2:
-                key, value = scp_tokens
+            if scp_tokens[-1] == "|":
+                key, value = scp_tokens[0], " ".join(scp_tokens[1:])
             else:
-                key, value = scp_tokens[0], scp_tokens[1:]
+                if num_tokens >= 2 and len(scp_tokens) != num_tokens or len(
+                        scp_tokens) < 2:
+                    raise RuntimeError(
+                        "For {}, format error in line[{:d}]: {}".format(
+                            scp_path, line, raw_line))
+                if num_tokens == 2:
+                    key, value = scp_tokens
+                else:
+                    key, value = scp_tokens[0], scp_tokens[1:]
             if key in scp_dict:
                 raise ValueError("Duplicated key \'{0}\' exists in {1}".format(
                     key, scp_path))
@@ -139,8 +143,9 @@ class Reader(object):
         Base class for sequential/random accessing, to be implemented
     """
 
-    def __init__(self, scp_path, value_processor=lambda x: x):
-        self.index_dict = parse_scps(scp_path, value_processor=value_processor)
+    def __init__(self, scp_path, value_processor=lambda x: x, num_tokens=2):
+        self.index_dict = parse_scps(
+            scp_path, value_processor=value_processor, num_tokens=num_tokens)
         self.index_keys = list(self.index_dict.keys())
 
     def _load(self, key):
@@ -230,10 +235,11 @@ class WaveReader(Reader):
         Format of wav.scp follows Kaldi's definition:
             key1 /path/to/wav
             ...
-
         And /path/to/wav allowed to be a pattern, for example:
             key1 /home/data/key1.CH*.wav
-        /home/data/key1.CH*.wav matches file /home/data/key1.CH{1,2,3..}.wav 
+        /home/data/key1.CH*.wav matches file /home/data/key1.CH{1,2,3..}.wav
+        or output from commands, egs:
+            key1 sox /home/data/key1.wav -t wav - remix 1 |
     """
 
     def __init__(self, wav_scp, sample_rate=None, normalize=True):
@@ -241,12 +247,11 @@ class WaveReader(Reader):
         self.samp_rate = sample_rate
         self.normalize = normalize
 
-    def _query_flist(self, key):
-        flist = glob.glob(self.index_dict[key])
+    def _query_flist(self, pattern):
+        flist = glob.glob(pattern)
         if not len(flist):
             raise RuntimeError(
-                "Could not find file matches template \'{}\'".format(
-                    self.index_dict[key]))
+                "Could not find file matches template \'{}\'".format(pattern))
         return flist
 
     def _read_s(self, addr):
@@ -261,12 +266,20 @@ class WaveReader(Reader):
 
     def _read_m(self, key):
         # return C x N matrix or N vector
-        wav_list = self._query_flist(key)
-        if len(wav_list) == 1:
-            return self._read_s(wav_list[0])
+        fname = self.index_dict[key]
+        fname = fname.rstrip()
+        # pipe open
+        if fname[-1] == "|":
+            stdout_shell, _ = run_command(fname[:-1], wait=True)
+            return self._read_s(BytesIO(stdout_shell))
         else:
-            # in sorted order, sentitive to beamforming
-            return np.vstack([self._read_s(addr) for addr in sorted(wav_list)])
+            wav_list = self._query_flist(fname)
+            if len(wav_list) == 1:
+                return self._read_s(wav_list[0])
+            else:
+                # in sorted order, sentitive to beamforming
+                return np.vstack(
+                    [self._read_s(addr) for addr in sorted(wav_list)])
 
     def _load(self, key):
         return self._read_m(key)
@@ -475,8 +488,8 @@ class WaveWriter(DirWriter):
         obj_path = os.path.join(self.path_or_dir, "{}.wav".format(key))
         write_wav(obj_path, obj, **self.wav_kwargs)
         if self.scp_file:
-            self.scp_file.write("{key}\t{path}\n".format(
-                key=key, path=os.path.abspath(obj_path)))
+            record = "{0}\t{1}\n".format(key, os.path.abspath(obj_path))
+            self.scp_file.write(record)
 
 
 class NumpyWriter(DirWriter):

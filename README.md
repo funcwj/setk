@@ -4,15 +4,15 @@ Here are some speech enhancement tools implemented integrated with kaldi. I use 
 
 ### Finished based on Kaldi
 
-* Compute kinds of masks(ibm, irm etc)
+* Compute kinds of masks (ibm, irm etc)
 * Compute (phase angle/power&magnitude spectrogram/complex STFT results) of input wave
 * Seperate target component from input wave according to input masks
 * Estimate wave from enhanced spectrogram and reference wave
 * Complex matrix/vector class
-* MVDR/max-SNR beamformer(depend on T-F mask, may not very stable, need further debug)
+* MVDR/max-SNR beamformer (depend on T-F mask, may not very stable, need further debug)
 * Fixed beamformer
 * Compute angular spectrogram based on SRP-PHAT
-* RIR generator(reference from [RIR-Generator](https://github.com/ehabets/RIR-Generator))
+* RIR generator (reference from [RIR-Generator](https://github.com/ehabets/RIR-Generator))
 
 ***Now I mainly work on [sptk](scripts) package, development based on kaldi is stoped.***
 

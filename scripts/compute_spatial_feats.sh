@@ -12,6 +12,7 @@ stft_conf=conf/stft.conf
 feats=ipd
 # ipd cfg
 ipd_index="0,1"
+ipd_cos=true
 ipd_sin=false
 # msc cfg
 msc_ctx=1
@@ -31,7 +32,8 @@ function usage {
   echo "  --stft-conf        <stft-conf>        # stft configurations files, (default=conf/stft.conf)"
   echo "  --feats            <srp|ipd|msc>      # type of spatial features, (default=ipd)"
   echo "  --ipd-index        <ipd-index>        # channel index to compute ipd, (default=0,1)"
-  echo "  --ipd-sin          <true|false>       # paste sin(ipd) feature or not, (default=false)"
+  echo "  --ipd-cos          <true|false>       # compute cosIPD instead of raw IPD, (default=false)"
+  echo "  --ipd-sin          <true|false>       # paste sinIPD to cosIPD features or not, (default=false)"
   echo "  --msc-ctx          <msc-ctx>          # length of context for MSC computation, (default=1)"
   echo "  --srp-fs           <srp-fs>           # sample frequency for source wave, (default=16000)"
   echo "  --srp-topo         <srp-topo>         # microphone topo description, (default="")"
@@ -53,6 +55,7 @@ spatial_opts=$(cat $stft_conf | xargs)
 case $feats in 
   "ipd" )
     spatial_opts="$spatial_opts --ipd.index $ipd_index"
+    $ipd_cos && spatial_opts="$spatial_opts --ipd.cos"
     $ipd_sin && spatial_opts="$spatial_opts --ipd.sin"
     ;;
   "msc" )
