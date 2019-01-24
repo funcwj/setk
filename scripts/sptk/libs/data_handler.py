@@ -488,8 +488,8 @@ class WaveWriter(DirWriter):
         obj_path = os.path.join(self.path_or_dir, "{}.wav".format(key))
         write_wav(obj_path, obj, **self.wav_kwargs)
         if self.scp_file:
-            self.scp_file.write("{key}\t{path}\n".format(
-                key=key, path=os.path.abspath(obj_path)))
+            record = "{0}\t{1}\n".format(key, os.path.abspath(obj_path))
+            self.scp_file.write(record)
 
 
 class NumpyWriter(DirWriter):

@@ -8,10 +8,10 @@ Do GWPE Dereverbration Algorithm
 import argparse
 import os
 
-from libs.utils import get_logger, istft, write_wav
+from libs.utils import get_logger, istft
 from libs.opts import StftParser
 from libs.gwpe import wpe
-from libs.data_handler import SpectrogramReader
+from libs.data_handler import SpectrogramReader, WaveWriter
 
 import numpy as np
 
@@ -27,49 +27,51 @@ def run(args):
         "transpose": True  # T x F
     }
     wpe_kwargs = {
+        "num_iters": args.num_iters,
+        "context": args.context,
         "taps": args.taps,
-        "delay": args.delay,
-        "iters": args.iters,
-        "psd_context": args.context
+        "delay": args.delay
     }
     spectrogram_reader = SpectrogramReader(
         args.wav_scp,
         round_power_of_two=args.round_power_of_two,
         **stft_kwargs)
 
-    if not os.path.exists(args.dst_dir):
-        os.makedirs(args.dst_dir)
-
-    for key, reverbed in spectrogram_reader:
-        # N x T x F => F x N x T
-        reverbed = np.transpose(reverbed, [2, 0, 1])
-        # F x N x T
-        dereverb = wpe(reverbed, **wpe_kwargs)
-        # F x N x T => N x T x F
-        dereverb = np.transpose(dereverb, [1, 2, 0])
-        # write for each channel
-        for chid in range(dereverb.shape[0]):
-            samps = istft(dereverb[chid], **stft_kwargs)
-            write_wav(
-                os.path.join(args.dst_dir, "{}.CH{:d}.wav".format(
-                    key, chid + 1)),
-                samps,
-                fs=args.samp_freq)
-    logger.info("Processed {:d} utterances".format(len(spectrogram_reader)))
+    num_done = 0
+    with WaveWriter(args.dst_dir, fs=args.samp_fs) as writer:
+        for key, reverbed in spectrogram_reader:
+            # N x T x F => F x N x T
+            reverbed = np.transpose(reverbed, (2, 0, 1))
+            try:
+                # F x N x T
+                dereverb = wpe(reverbed, **wpe_kwargs)
+            except np.linalg.LinAlgError:
+                logger.warn("{}: Failed cause LinAlgError in wpe".format(key))
+                continue
+            # F x N x T => N x T x F
+            dereverb = np.transpose(dereverb, (1, 2, 0))
+            # dump multi-channel
+            samps = np.stack(
+                [istft(spectra, **stft_kwargs) for spectra in dereverb])
+            writer.write(key, samps)
+            # show progress cause slow speed
+            num_done += 1
+            if not num_done % 100:
+                logger.info("Processed {:d} utterances...".format(num_done))
+    logger.info("Processed {:d} utterances over {:d}".format(
+        num_done, len(spectrogram_reader)))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=
-        "Command to do GWPE dereverbration algorithm(512/128/blackman)",
+        description="Command to do GWPE dereverbration algorithm(recommended "
+        "configuration: 512/128/blackman)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument(
-        "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
+        "wav_scp", type=str, help="Multi-channel rspecifier in kaldi format")
     parser.add_argument(
-        "dst_dir",
-        type=str,
-        help="Location to dump files after dereverbration")
+        "dst_dir", type=str, help="Location to dump dereverbrated files")
     parser.add_argument(
         "--taps",
         default=10,
@@ -81,13 +83,13 @@ if __name__ == "__main__":
         type=int,
         help="Value of delay used in GWPE algorithm")
     parser.add_argument(
-        "--psd-context",
+        "--context",
         default=3,
         dest="context",
         type=int,
         help="Context value to compute PSD matrix in GWPE algorithm")
     parser.add_argument(
-        "--iters",
+        "--num-iters",
         default=3,
         type=int,
         help="Number of iterations to step in GWPE")
@@ -95,7 +97,7 @@ if __name__ == "__main__":
         "--sample-frequency",
         type=int,
         default=16000,
-        dest="samp_freq",
+        dest="samp_fs",
         help="Waveform data sample frequency")
     args = parser.parse_args()
     run(args)
