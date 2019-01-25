@@ -10,7 +10,7 @@ iters=3
 stft_conf=conf/gwpe.conf
 delay=3
 taps=10
-context=0
+context=1
 fs=16000
 
 echo "$0 $@"

@@ -27,15 +27,11 @@ class NumpyReader(object):
             yield key, np.load(path)
 
 
-def save_figure(key, mat, dest, binary=False, shift=10, frequency=16000):
+def save_figure(key, mat, dest, cmap="jet", shift=10, frequency=16000):
     num_frames, num_bins = mat.shape
     plt.figure()
     plt.imshow(
-        mat.T,
-        origin="lower",
-        cmap="jet" if not binary else "binary",
-        aspect="auto",
-        interpolation="none")
+        mat.T, origin="lower", cmap=cmap, aspect="auto", interpolation="none")
     plt.title(key)
     xp = np.linspace(0, num_frames - 1, 5)
     yp = np.linspace(0, num_bins - 1, 6)
@@ -60,15 +56,17 @@ def run(args):
     for key, mat in mat_reader:
         if args.apply_log:
             mat = np.log10(mat)
-        if args.transpose:
+        if args.trans:
             mat = np.transpose(mat)
+        if args.norm:
+            mat = mat / np.max(np.abs(mat))
         save_figure(
             key,
             mat,
             os.path.join(args.cache_dir, key.replace('.', '-')),
-            binary=args.binary,
+            cmap=args.cmap,
             shift=args.frame_shift * 1e-3,
-            frequency=16000)
+            frequency=args.frequency)
 
 
 # now support input from stdin
@@ -84,31 +82,28 @@ if __name__ == "__main__":
         type=str,
         help="Read specifier of archives or directory of ndarrays")
     parser.add_argument(
-        "--frame-shift",
-        type=int,
-        default=16,
-        help="Frame shift in ms")
+        "--frame-shift", type=int, default=16, help="Frame shift in ms")
     parser.add_argument(
-        "--frequency",
-        type=int,
-        default=16000,
-        help="Sample frequency(Hz)")
+        "--frequency", type=int, default=16000, help="Sample frequency(Hz)")
     parser.add_argument(
         "--cache-dir",
         type=str,
         default="figure",
         help="Directory to cache pictures")
     parser.add_argument(
-        "--apply-log",
-        action="store_true",
-        help="Apply log on input features")
+        "--apply-log", action="store_true", help="Apply log on input features")
     parser.add_argument(
-        "--transpose",
+        "--trans",
         action="store_true",
         help="Apply matrix transpose on input features")
     parser.add_argument(
-        "--binary",
+        "--norm",
         action="store_true",
-        help="Using binary(black->bigger) colormap instead of jet")
+        help="Normalize values in [-1, 1] before visualization")
+    parser.add_argument(
+        "--cmap",
+        choices=["binary", "jet", "hot"],
+        default="jet",
+        help="Colormap used when save figures")
     args = parser.parse_args()
     run(args)
