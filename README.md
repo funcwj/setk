@@ -16,7 +16,7 @@ Here are some speech enhancement tools implemented integrated with kaldi. I use 
 
 ***Now I mainly work on [sptk](scripts) package, development based on kaldi is stoped.***
 
-### Install
+### Compile
 Compile pass on Mac OSX, Ubuntu and RedHat.
 
 Patch `matrix/matrix-common.h` in Kaldi

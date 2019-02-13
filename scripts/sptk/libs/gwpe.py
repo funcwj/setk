@@ -60,6 +60,10 @@ def wpe(reverb, taps=10, delay=3, context=1, num_iters=3):
     """
     Arguments:
         reverb: complex spectrogram, F x N x T
+        taps: number of taps for filter matrix
+        delay: frame delay
+        context: left/right context used to compute lambda
+        num_iters: number of iterations to filter signals
     Return:
         dereverb: F x N x T
     """

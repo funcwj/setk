@@ -2,12 +2,12 @@ Some useful scripts (work with python 3.6.5+) for speech enhancement integrated 
 
 1. Supervised beamformer/Speech separation based on TF-mask
 2. Data convertion among MATLAB, Numpy and kaldi
-3. Data visualization(TF-mask, spatial/spectral features...)
+3. Data visualization (TF-mask, spatial/spectral features...)
 4. Data and IO handlers for kaldi's scripts, archives, wave, spectrogram, numpy's ndarray...
 5. Faster CGMM trainer
 6. Spatial/Spectral feature computation
 7. AuxIVA, GWPE, FB
-8. Mask computation(iam, irm, ibm, psm)
+8. Mask computation (iam, irm, ibm, psm)
 9. RIR simulation
 10. TF spectral masking, oracle speech separation
 11. Si-SDR evaluation
