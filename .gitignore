@@ -12,8 +12,6 @@ figure/
 .mypy_cache/
 # egs scp
 *.scp
-# kaldi path.sh
-path.sh
 # python tmp dir
 scripts/sptk/__pycache__/
 scripts/sptk/*.pyc

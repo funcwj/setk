@@ -84,7 +84,7 @@ if __name__ == "__main__":
         help="Value of delay used in GWPE algorithm")
     parser.add_argument(
         "--context",
-        default=3,
+        default=1,
         dest="context",
         type=int,
         help="Context value to compute PSD matrix in GWPE algorithm")
