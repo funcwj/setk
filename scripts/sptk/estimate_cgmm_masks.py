@@ -16,8 +16,8 @@ logger = get_logger(__name__)
 
 def run(args):
     stft_kwargs = {
-        "frame_length": args.frame_length,
-        "frame_shift": args.frame_shift,
+        "frame_len": args.frame_len,
+        "frame_hop": args.frame_hop,
         "round_power_of_two": args.round_power_of_two,
         "window": args.window,
         "center": args.center,

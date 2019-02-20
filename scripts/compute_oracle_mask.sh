@@ -15,12 +15,12 @@ echo "$0 $@"
 
 function usage {
   echo "Options:"
-  echo "  --nj        <nj>                  # number of jobs to run parallel, (default=40)"
-  echo "  --cmd       <run.pl|queue.pl>     # how to run jobs, (default=run.pl)"
-  echo "  --compress  <true|false>          # compress feature or not, (default=true)"
-  echo "  --stft-conf <stft-conf>           # stft configurations files, (default=conf/stft.conf)"
-  echo "  --cutoff    <cutoff>              # values to cutoff when compute iam/psm, (default=10)"
-  echo "  --mask      <ibm|iam|psm|irm|psa> # type of TF-masks to compute, (default=irm)"
+  echo "  --nj        <nj>                    # number of jobs to run parallel, (default=$nj)"
+  echo "  --cmd       <run.pl|queue.pl>       # how to run jobs, (default=$cmd)"
+  echo "  --compress  <true|false>            # compress feature or not, (default=$compress)"
+  echo "  --stft-conf <stft-conf>             # stft configurations files, (default=$stft_conf)"
+  echo "  --cutoff    <cutoff>                # values to cutoff when compute iam/psm, (default=$cutoff)"
+  echo "  --mask   <ibm|iam|psm|irm|psa|crm>  # type of TF-masks to compute, (default=$mask)"
 }
 
 . ./path.sh
@@ -33,7 +33,7 @@ mask_dir=$3
 
 denominator_scp=noise.scp
 case $mask in 
-  "iam"|"psm"|"psa" )
+  "iam"|"psm"|"psa"|"crm" )
     denominator_scp=wav.scp
     ;;
   "ibm"|"irm" )

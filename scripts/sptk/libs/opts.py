@@ -52,12 +52,12 @@ class StrToFloatTupleAction(argparse.Action):
 class StftParser(object):
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
-        "--frame-length",
+        "--frame-len",
         type=int,
         default=1024,
         help="Frame length in number of samples(related to sample frequency)")
     parser.add_argument(
-        "--frame-shift",
+        "--frame-hop",
         type=int,
         default=256,
         help="Frame shift in number of samples(related to sample frequency)")

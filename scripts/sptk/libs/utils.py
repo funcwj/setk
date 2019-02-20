@@ -85,8 +85,8 @@ def read_wav(fname, normalize=True, return_rate=False):
 
 # return F x T or T x F(tranpose=True)
 def stft(samps,
-         frame_length=1024,
-         frame_shift=256,
+         frame_len=1024,
+         frame_hop=256,
          round_power_of_two=True,
          center=False,
          window="hann",
@@ -103,9 +103,9 @@ def stft(samps,
     if samps.ndim != 1:
         raise RuntimeError("Invalid shape, librosa.stft accepts mono input")
     # pad fft size to power of two or left it same as frame length
-    n_fft = nfft(frame_length) if round_power_of_two else frame_length
+    n_fft = nfft(frame_len) if round_power_of_two else frame_len
     if window == "sqrthann":
-        window = np.sqrt(sp.signal.hann(frame_length, sym=False))
+        window = np.sqrt(sp.signal.hann(frame_len, sym=False))
     # orignal stft accept samps(vector) and return matrix shape as F x T
     # NOTE for librosa.stft:
     # 1) win_length <= n_fft
@@ -114,8 +114,8 @@ def stft(samps,
     stft_mat = audio_lib.stft(
         samps,
         n_fft,
-        frame_shift,
-        win_length=frame_length,
+        frame_hop,
+        win_length=frame_len,
         window=window,
         center=center)
     # stft_mat: F x T or N x F x T
@@ -132,8 +132,8 @@ def stft(samps,
 
 # accept F x T or T x F(tranpose=True)
 def istft(stft_mat,
-          frame_length=1024,
-          frame_shift=256,
+          frame_len=1024,
+          frame_hop=256,
           center=False,
           window="hann",
           transpose=True,
@@ -146,12 +146,12 @@ def istft(stft_mat,
     if transpose:
         stft_mat = np.transpose(stft_mat)
     if window == "sqrthann":
-        window = np.sqrt(sp.signal.hann(frame_length, sym=False))
+        window = np.sqrt(sp.signal.hann(frame_len, sym=False))
     # orignal istft accept stft result(matrix, shape as FxT)
     samps = audio_lib.istft(
         stft_mat,
-        frame_shift,
-        win_length=frame_length,
+        frame_hop,
+        win_length=frame_len,
         window=window,
         center=center,
         length=nsamps)
@@ -167,8 +167,8 @@ def istft(stft_mat,
 
 
 def griffin_lim(magnitude,
-                frame_length=1024,
-                frame_shift=256,
+                frame_len=1024,
+                frame_hop=256,
                 window="hann",
                 center=True,
                 transpose=True,
@@ -176,27 +176,18 @@ def griffin_lim(magnitude,
     # TxF -> FxT
     if transpose:
         magnitude = np.transpose(magnitude)
-    n_fft = nfft(frame_length)
+    n_fft = nfft(frame_len)
     angle = np.exp(2j * np.pi * np.random.rand(*magnitude.shape))
     samps = audio_lib.istft(
-        magnitude * angle,
-        frame_shift,
-        frame_length,
-        window=window,
-        center=center)
+        magnitude * angle, frame_hop, frame_len, window=window, center=center)
     for _ in range(epochs):
         stft_mat = audio_lib.stft(
-            samps,
-            n_fft,
-            frame_shift,
-            frame_length,
-            window=window,
-            center=center)
+            samps, n_fft, frame_hop, frame_len, window=window, center=center)
         angle = np.exp(1j * np.angle(stft_mat))
         samps = audio_lib.istft(
             magnitude * angle,
-            frame_shift,
-            frame_length,
+            frame_hop,
+            frame_len,
             window=window,
             center=center)
     return samps

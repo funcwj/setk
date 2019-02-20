@@ -10,8 +10,8 @@ sample_normalize=true
 apply_log=true
 apply_pow=false
 # egs:
-# --frame-length 1024
-# --frame-shift 256
+# --frame-len 1024
+# --frame-hop 256
 # --window hann
 # --num-bins 40
 # --sample-frequency 16000

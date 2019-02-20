@@ -11,8 +11,8 @@ sample_normalize=true
 apply_log=true
 apply_pow=false
 # egs:
-# --frame-shift 256
-# --frame-length 1024
+# --frame-len 1024
+# --frame-hop 256
 # --center true
 # --window hann
 stft_conf=conf/stft.conf

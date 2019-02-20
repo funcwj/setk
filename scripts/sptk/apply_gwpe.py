@@ -20,8 +20,8 @@ logger = get_logger(__name__)
 
 def run(args):
     stft_kwargs = {
-        "frame_length": args.frame_length,
-        "frame_shift": args.frame_shift,
+        "frame_len": args.frame_len,
+        "frame_hop": args.frame_hop,
         "window": args.window,
         "center": args.center,  # false to comparable with kaldi
         "transpose": True  # T x F
@@ -40,6 +40,7 @@ def run(args):
     num_done = 0
     with WaveWriter(args.dst_dir, fs=args.samp_fs) as writer:
         for key, reverbed in spectrogram_reader:
+            logger.info("Processing utt {}...".format(key))
             # N x T x F => F x N x T
             reverbed = np.transpose(reverbed, (2, 0, 1))
             try:

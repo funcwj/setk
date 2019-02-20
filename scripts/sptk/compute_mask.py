@@ -9,11 +9,26 @@ import argparse
 import numpy as np
 
 from libs.data_handler import SpectrogramReader, ArchiveWriter
-from libs.utils import get_logger, cmat_abs
+from libs.utils import get_logger, cmat_abs, EPSILON
 from libs.opts import StftParser
 from libs.exraw import BinaryWriter
 
 logger = get_logger(__name__)
+
+
+def sigmoid(x):
+    """
+    Use sigmoid to compress complex mask, avoid overflow
+    """
+    s = np.zeros_like(x)
+    m = (x >= 0)
+    # 1) x >= 0
+    e = np.exp(-x[m])
+    s[m] = 1 / (1 + e)
+    # 2) x < 0
+    e = np.exp(x[~m])
+    s[~m] = e / (1 + e)
+    return s
 
 
 def compute_mask(speech, noise_or_mixture, mask):
@@ -30,6 +45,8 @@ def compute_mask(speech, noise_or_mixture, mask):
         M(x1) = |f(x1)| / |f(y)| = |f(x1)| / |f(x1) + f(x2)| in [0, oo]
     for psm:
         M(x1) = |f(x1) / f(y)| = |f(x1)| * cos(delta_phase) / |f(y)|
+    for crm:
+        M(x1) = f(x1) / f(y)
     """
     if mask == "ibm":
         binary_mask = cmat_abs(speech) > cmat_abs(noise_or_mixture)
@@ -39,6 +56,8 @@ def compute_mask(speech, noise_or_mixture, mask):
         # denominator = cmat_abs(speech) + cmat_abs(noise_or_mixture)
         denominator = np.sqrt(
             cmat_abs(speech)**2 + cmat_abs(noise_or_mixture)**2)
+    elif mask == "crm":
+        denominator = noise_or_mixture + EPSILON
     else:
         denominator = cmat_abs(noise_or_mixture)
     if mask == "psm":
@@ -48,6 +67,12 @@ def compute_mask(speech, noise_or_mixture, mask):
         # keep nominator only
         return cmat_abs(speech) * np.cos(
             np.angle(noise_or_mixture) - np.angle(speech))
+    elif mask == "crm":
+        # stack real/imag part
+        cpx_mask = speech / denominator
+        return np.hstack(
+            [sigmoid(np.real(cpx_mask)),
+             sigmoid(np.imag(cpx_mask))])
     else:
         # irm/iam
         return cmat_abs(speech) / denominator
@@ -56,8 +81,8 @@ def compute_mask(speech, noise_or_mixture, mask):
 def run(args):
     # shape: T x F, complex
     stft_kwargs = {
-        "frame_length": args.frame_length,
-        "frame_shift": args.frame_shift,
+        "frame_len": args.frame_len,
+        "frame_hop": args.frame_hop,
         "round_power_of_two": args.round_power_of_two,
         "window": args.window,
         "center": args.center,  # false to comparable with kaldi
@@ -133,9 +158,9 @@ if __name__ == "__main__":
         "--mask",
         type=str,
         default="irm",
-        choices=["irm", "ibm", "iam", "psm", "psa"],
+        choices=["irm", "ibm", "iam", "psm", "psa", "crm"],
         help=
-        "Type of masks(irm/ibm/iam(FFT-mask,smm)/psm/psa) to compute. \'psa\' "
+        "Type of masks(irm/ibm/iam(FFT-mask,smm)/psm/psa/crm) to compute. \'psa\' "
         "is not a real mask(nominator of psm), but could compute using this "
         "command. Noted that if iam/psm assigned, second .scp is expected "
         "to be noisy component.")

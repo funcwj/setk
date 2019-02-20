@@ -50,8 +50,8 @@ def do_online_beamform(beamformer, speech_mask, stft_mat, args):
 
 def run(args):
     stft_kwargs = {
-        "frame_length": args.frame_length,
-        "frame_shift": args.frame_shift,
+        "frame_len": args.frame_len,
+        "frame_hop": args.frame_hop,
         "window": args.window,
         "center": args.center,  # false to comparable with kaldi
         "transpose": False  # F x T
@@ -64,7 +64,7 @@ def run(args):
         args.mask_scp)
 
     online = False
-    num_bins = nfft(args.frame_length) // 2 + 1
+    num_bins = nfft(args.frame_len) // 2 + 1
 
     supported_beamformer = {
         "mvdr": MvdrBeamformer(num_bins),

@@ -61,6 +61,7 @@ class Report(object):
 def run(args):
     single_speaker = len(args.sep_scp.split(",")) == 1
     reporter = Report(args.spk2gender)
+    details = open(args.details, "w") if args.details else None
 
     if single_speaker:
         sep_reader = WaveReader(args.sep_scp)
@@ -73,6 +74,8 @@ def run(args):
                 ref = ref[:end]
             snr = si_snr(sep, ref)
             reporter.add(key, snr)
+            if details:
+                details.write("{}\t{:.2f}\n".format(key, snr))
     else:
         sep_reader = SpeakersReader(args.sep_scp)
         ref_reader = SpeakersReader(args.ref_scp)
@@ -84,7 +87,10 @@ def run(args):
                 ref_list = [s[:end] for s in ref_list]
             snr = permute_si_snr(sep_list, ref_list)
             reporter.add(key, snr)
+            if details:
+                details.write("{}\t{:.2f}\n".format(key, snr))
     reporter.report()
+    details.close()
 
 
 if __name__ == "__main__":
@@ -101,11 +107,16 @@ if __name__ == "__main__":
         "ref_scp",
         type=str,
         help="Reference speech scripts, as ground truth for"
-        " SI-SDR computation")
+        " Si-SDR computation")
     parser.add_argument(
         "--spk2gender",
         type=str,
         default="",
         help="If assigned, report results per gender")
+    parser.add_argument(
+        "--details",
+        type=str,
+        default="",
+        help="If assigned, report snr improvement for each utterance")
     args = parser.parse_args()
     run(args)
