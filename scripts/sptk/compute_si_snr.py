@@ -2,7 +2,7 @@
 
 # wujian@2018
 """
-Compute SI-SDR as the evaluation metric
+Compute Si-SDR as the evaluation metric
 """
 
 import argparse
@@ -90,7 +90,8 @@ def run(args):
             if details:
                 details.write("{}\t{:.2f}\n".format(key, snr))
     reporter.report()
-    details.close()
+    if details:
+        details.close()
 
 
 if __name__ == "__main__":
