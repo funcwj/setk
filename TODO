@@ -1,6 +1,7 @@
-TODO next:
+TODO:
 
 1. FastICA/SNMF(Sparse Non-negative Matrix Factor) algorithm
-2. Beamformer debug and pipeline
+2. Some pipeline based on this tookit
 3. Generalized localization algorithm
-4. ...
+4. Signal processing methods for enhancement/separation tasks
+5. ...

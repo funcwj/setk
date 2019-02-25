@@ -25,8 +25,8 @@ def run(args):
         "htk": True
     }
     stft_kwargs = {
-        "frame_length": args.frame_length,
-        "frame_shift": args.frame_shift,
+        "frame_len": args.frame_len,
+        "frame_hop": args.frame_hop,
         "round_power_of_two": args.round_power_of_two,
         "window": args.window,
         "center": args.center,  # false to comparable with kaldi
@@ -41,8 +41,10 @@ def run(args):
         raise RuntimeError("Max frequency for mel exceeds sample frequency")
     spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
     # N x F
-    mel_weights = audio_lib.filters.mel(args.samp_freq,
-                                        nfft(args.frame_length), **mel_kwargs)
+    mel_weights = audio_lib.filters.mel(
+        args.samp_freq,
+        nfft(args.frame_len) if args.round_power_of_two else args.frame_len,
+        **mel_kwargs)
     WriterImpl = {"kaldi": ArchiveWriter, "exraw": BinaryWriter}[args.format]
 
     with WriterImpl(args.dup_ark, args.scp) as writer:
