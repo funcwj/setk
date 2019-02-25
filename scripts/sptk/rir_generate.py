@@ -10,6 +10,7 @@ import random
 import argparse
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from libs.scheduler import run_command
 from libs.utils import get_logger, make_dir
@@ -37,10 +38,11 @@ class Room(object):
 
     def __init__(self, l, w, h, rt60=None, refl=None):
         self.size = (l, w, h)
-        ffloat = lambda f: "{:.2f}".format(f)
-        self.beta = ffloat(rt60) if rt60 is not None else [ffloat(refl)] * 6
+        self.beta = rt60 if rt60 is not None else [refl] * 6
+        self.memo = "{}={:.2f}".format("RT60" if rt60 is not None else "Refl",
+                                       rt60 if rt60 is not None else refl)
 
-    def set_mic(self, topo, center):
+    def set_mic(self, topo, center, vertical=False):
         """
         Place microphone array
         topo: tuple like (x1, x2, ...)
@@ -48,8 +50,12 @@ class Room(object):
         """
         Mx, My, Mz = center
         Mc = (topo[-1] - topo[0]) / 2
-        self.rpos = [(Mx - Mc + x, My, Mz) for x in topo]
+        if not vertical:
+            self.rpos = [(Mx - Mc + x, My, Mz) for x in topo]
+        else:
+            self.rpos = [(Mx, My - Mc + x, Mz) for x in topo]
         self.topo = topo
+        self.rcen = (Mx, My)
 
     def set_spk(self, pos):
         """
@@ -61,21 +67,52 @@ class Room(object):
         """
         Return configure of room (exclude sound sources)
         """
+        Rf = lambda f: round(f, 3)
         return {
-            "beta": self.beta,
-            "receiver_location": self.rpos,
-            "room_size": self.size,
-            "receiver_geometric": self.topo
+            "beta": [Rf(f) for f in self.beta]
+            if isinstance(self.beta, list) else Rf(self.beta),
+            "receiver_location": [tuple(Rf(n) for n in p) for p in self.rpos],
+            "room_size": [Rf(n) for n in self.size],
+            "receiver_geometric":
+            self.topo
         }
+
+    def plot(self, scfg, fig, room_id):
+        """
+        Visualize microphone array and speakers in current room
+        """
+        plt.figure()
+        # constraint length and width
+        l, w, _ = self.size
+        plt.xlim((0, l))
+        plt.ylim((0, w))
+        # draw microphone array
+        plt.plot([p[0] for p in self.rpos], [p[1] for p in self.rpos], "k.")
+        plt.plot([self.rcen[0]], [self.rcen[1]], "ro")
+        # draw each speaker
+        for cfg in scfg:
+            x, y, _ = cfg["pos"]
+            plt.plot([x], [y], "k+")
+            plt.annotate(
+                "({:.2f}, {:.2f})".format(cfg["doa"], cfg["dst"]),
+                xy=(x, y),
+                xytext=(x + 0.1, y + 0.1))
+        plt.xlabel("Length(m)")
+        plt.ylabel("Width(m)")
+        plt.title("{0}({1})".format(room_id, self.memo))
+        plt.savefig(fig)
+        plt.close()
 
     def rir(self, dump_dest, fs=16000, rir_nsamps=4096, v=340):
         """
         Generate rir for current settings
         """
         # format float
-        ffloat = lambda f: "{:.2f}".format(f)
+        ffloat = lambda f: "{:.3f}".format(f)
         # location for each microphone
         loc_for_each_channel = [",".join(map(ffloat, p)) for p in self.rpos]
+        beta = ",".join(map(ffloat, self.beta)) if isinstance(
+            self.beta, list) else round(self.beta, 3)
         run_command(
             "rir-simulate --sound-velocity={v} --samp-frequency={sample_rate} "
             "--hp-filter=true --number-samples={rir_samples} --beta={beta} "
@@ -85,7 +122,7 @@ class Room(object):
                 sample_rate=fs,
                 rir_samples=rir_nsamps,
                 room_size=",".join(map(ffloat, self.size)),
-                beta=self.beta,
+                beta=beta,
                 receiver_location=";".join(loc_for_each_channel),
                 source_location=",".join(map(ffloat, self.spos)),
                 dump_dest=dump_dest))
@@ -147,10 +184,15 @@ class RirSimulator(object):
     def __init__(self, args):
         # make dump dir
         make_dir(args.dump_dir)
-        self.rir_cfg = open(args.dump_cfg, "w+") if args.dump_cfg else None
+        if args.dump_dir:
+            rir_json = os.path.join(args.dump_dir, "rir.json")
+            self.rir_cfg = open(rir_json, "w+")
+        else:
+            self.rir_cfg = None
         self.room_generator = RoomGenerator(args.rt60, args.abs_range,
                                             args.room_dim)
         self.mx, self.my = args.array_relx, args.array_rely
+        self.vertical = args.vertical
         self.args = args
 
     def _place_mic(self, room):
@@ -161,7 +203,8 @@ class RirSimulator(object):
         my = random.uniform(*(y * v for v in self.my))
         mz = random.uniform(*self.args.array_height)
         # place array
-        room.set_mic(self.args.array_topo, (mx, my, mz))
+        room.set_mic(
+            self.args.array_topo, (mx, my, mz), vertical=self.vertical)
         return (mx, my), room
 
     def _place_spk(self, center, room):
@@ -171,6 +214,8 @@ class RirSimulator(object):
         rx, ry, rz = room.size
         max_retry = self.args.retry * num_rirs
         stats = []
+
+        Rf = lambda f: round(f, 3)
         while True:
             ntry += 1
             if ntry > max_retry:
@@ -182,13 +227,21 @@ class RirSimulator(object):
             dst = random.uniform(*args.src_dist)
             # sample from 0-180
             doa = random.uniform(0, np.pi)
-            sx = mx + np.cos(doa) * dst
-            sy = my + np.sin(doa) * dst
+            if not self.vertical:
+                sx = mx + np.cos(doa) * dst
+                sy = my + np.sin(doa) * dst
+            else:
+                sx = my - np.cos(doa) * dst
+                sy = mx + np.sin(doa) * dst
             # check speaker location
             if 0 > sx or sx > rx or 0 > sy or sy > ry:
                 continue
             done += 1
-            stat = {"pos": (sx, sy, sz), "doa": doa * 180 / np.pi, "dst": dst}
+            stat = {
+                "pos": (Rf(sx), Rf(sy), Rf(sz)),
+                "doa": Rf(doa * 180 / np.pi),
+                "dst": Rf(dst)
+            }
             stats.append(stat)
             if done == num_rirs:
                 break
@@ -204,13 +257,17 @@ class RirSimulator(object):
             for idx, stat in enumerate(scfg):
                 # place spk and generate rir
                 room.set_spk(stat["pos"])
+                rir_loc = "{0}/Room{1}-{2}.wav".format(self.args.dump_dir,
+                                                       room_id, idx + 1)
                 room.rir(
-                    "{0}/Room{1}-{2}.wav".format(self.args.dump_dir, room_id,
-                                                 idx + 1),
+                    rir_loc,
                     fs=self.args.sample_rate,
                     rir_nsamps=self.args.rir_samples,
                     v=self.args.speed)
-                scfg[idx]["id"] = "Room{0}-{1}".format(room_id, idx + 1)
+                scfg[idx]["loc"] = rir_loc
+            # plot room
+            room.plot(scfg, "{0}/Room{1}.png".format(
+                self.args.dump_dir, room_id), "Room{:d}".format(room_id))
             rcfg["spk"] = scfg
             if self.rir_cfg:
                 json.dump(rcfg, self.rir_cfg, indent=2)
@@ -239,6 +296,24 @@ def run(args):
     simulator.run()
 
 
+"""
+Run egs:
+$cmd JOB=1:$nj ./exp/rir_simu/rir_generate.JOB.log \
+  ./scripts/sptk/rir_generate.py \
+    --num-rirs $num_rirs \
+    --dump-dir $dump_dir/JOB \
+    --array-topo "0,0.05,0.1,0.15,0.2,0.25" \
+    --array-height "1.2,1.8" \
+    --room-dim "4,6\;8,10\;2.4,3" \
+    --rt60 "0.2,0.7" \
+    --array-relx "0.4,0.6" \
+    --array-rely "0.05,0.1" \
+    --speaker-height "1,2" \
+    --source-distance "1,4" \
+    --rir-samples 4096 \
+    --dump-cfg \
+    $num_room
+"""
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=
@@ -256,9 +331,8 @@ if __name__ == "__main__":
         help="Number of rirs to simulate for each room")
     parser.add_argument(
         "--dump-cfg",
-        type=str,
-        default="",
-        help="If not None, dump rir configures out")
+        action="store_true",
+        help="If true, dump rir configures out in json format")
     parser.add_argument(
         "--rir-samples",
         type=int,
@@ -279,6 +353,11 @@ if __name__ == "__main__":
         type=str,
         default="7,10;7,10;3,4",
         help="Constraint for room length/width/height, separated by semicolon")
+    parser.add_argument(
+        "--vertical-oriented",
+        action="store_true",
+        dest="vertical",
+        help="Orientation to place microphone array (vertical or horizontal)")
     parser.add_argument(
         "--array-height",
         action=StrToFloatTupleAction,
