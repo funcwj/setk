@@ -90,13 +90,11 @@ class Room(object):
         plt.plot([p[0] for p in self.rpos], [p[1] for p in self.rpos], "k.")
         plt.plot([self.rcen[0]], [self.rcen[1]], "ro")
         # draw each speaker
-        for cfg in scfg:
+        for idx, cfg in enumerate(scfg):
             x, y, _ = cfg["pos"]
             plt.plot([x], [y], "k+")
-            plt.annotate(
-                "({:.2f}, {:.2f})".format(cfg["doa"], cfg["dst"]),
-                xy=(x, y),
-                xytext=(x + 0.1, y + 0.1))
+            # "({:.2f}, {:.2f})".format(cfg["doa"], cfg["dst"])
+            plt.annotate(str(idx + 1), xy=(x, y), xytext=(x + 0.1, y + 0.1))
         plt.xlabel("Length(m)")
         plt.ylabel("Width(m)")
         plt.title("{0}({1})".format(room_id, self.memo))
@@ -184,11 +182,7 @@ class RirSimulator(object):
     def __init__(self, args):
         # make dump dir
         make_dir(args.dump_dir)
-        if args.dump_dir:
-            rir_json = os.path.join(args.dump_dir, "rir.json")
-            self.rir_cfg = open(rir_json, "w+")
-        else:
-            self.rir_cfg = None
+        self.rirs_cfg = []
         self.room_generator = RoomGenerator(args.rt60, args.abs_range,
                                             args.room_dim)
         self.mx, self.my = args.array_relx, args.array_rely
@@ -269,8 +263,7 @@ class RirSimulator(object):
             room.plot(scfg, "{0}/Room{1}.png".format(
                 self.args.dump_dir, room_id), "Room{:d}".format(room_id))
             rcfg["spk"] = scfg
-            if self.rir_cfg:
-                json.dump(rcfg, self.rir_cfg, indent=2)
+            self.rirs_cfg.append(rcfg)
         return succ
 
     def run(self):
@@ -286,6 +279,9 @@ class RirSimulator(object):
                 done += 1
             if done == num_rooms:
                 break
+        # dump rir configurations
+        with open(os.path.join(args.dump_dir, "rir.json"), "w") as f:
+            json.dump(self.rirs_cfg, f, indent=2)
         logger.info("Generate {:d} rirs, {:d} rooms done, "
                     "retry = {:d}".format(self.args.num_rirs * num_rooms, done,
                                           max_retry))
