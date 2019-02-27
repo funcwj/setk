@@ -2,6 +2,13 @@
 bin/
 lib/
 build/
+# egs
+egs/*/nnet/__pycache__/
+egs/*/exp/
+egs/*/sps/
+egs/*/data/
+egs/*/stft/
+egs/*/mask/
 # figure dir
 figure/
 # vscode configure
