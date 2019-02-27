@@ -2,8 +2,6 @@
 bin/
 lib/
 build/
-# sample dir
-egs/
 # figure dir
 figure/
 # vscode configure
