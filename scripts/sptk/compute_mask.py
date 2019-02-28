@@ -16,18 +16,41 @@ from libs.exraw import BinaryWriter
 logger = get_logger(__name__)
 
 
-def sigmoid(x):
+def sigmoid(x, a=1, b=0):
     """
     Use sigmoid to compress complex mask, avoid overflow
+    To uncompress:
+    def sigmoid_inv(m, a=1, b=0):
+        m = np.maximum(m, EPSILON)
+        x = np.maximum(1 / m - 1, EPSILON)
+        return (b - np.log(x)) / a
     """
     s = np.zeros_like(x)
     m = (x >= 0)
     # 1) x >= 0
-    e = np.exp(-x[m])
+    e = np.exp(-x[m] * a + b)
     s[m] = 1 / (1 + e)
     # 2) x < 0
-    e = np.exp(x[~m])
+    e = np.exp(x[~m] * a + b)
     s[~m] = e / (1 + e)
+    return s
+
+def tangent(x, K=10, C=0.1):
+    """
+    Use tangent to compress complex mask, avoid overflow
+    To uncompress:
+    def tangent_inv(m, K=10, C=0.1):
+        x = (K - m) / np.maximum(EPSILON, K + m)
+        return -np.log(np.maximum(x, EPSILON)) / C
+    """
+    s = np.zeros_like(x)
+    m = (x >= 0)
+    # 1) x >= 0
+    e = np.exp(-x[m] * C)
+    s[m] = K * (1 - e) / (1 + e)
+    # 2) x < 0
+    e = np.exp(x[~m] * C)
+    s[~m] = K * (e - 1) / (e + 1)
     return s
 
 
@@ -71,8 +94,8 @@ def compute_mask(speech, noise_or_mixture, mask):
         # stack real/imag part
         cpx_mask = speech / denominator
         return np.hstack(
-            [sigmoid(np.real(cpx_mask)),
-             sigmoid(np.imag(cpx_mask))])
+            [tangent(np.real(cpx_mask)),
+             tangent(np.imag(cpx_mask))])
     else:
         # irm/iam
         return cmat_abs(speech) / denominator
