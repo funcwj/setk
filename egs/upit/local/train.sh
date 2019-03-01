@@ -12,7 +12,7 @@ echo "$0 $@"
 . ./utils/parse_options.sh || exit 1
 
 
-[ $# -ne 3 ] && echo "Script format error: $0 <exp-id> <gpu-id>" && exit 1
+[ $# -ne 2 ] && echo "Script format error: $0 <exp-id> <gpu-id>" && exit 1
 
 # export setk into PATH
 export PATH=$PWD/../../bin:$PATH

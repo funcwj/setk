@@ -33,7 +33,7 @@ for dir in train dev test; do
   [ -d $data_dir/$dir ] && echo "$0: clean $dir..." && rm -rf $data_dir/$dir
 
   for x in mix spk{1..2}; do 
-    [ ! -d $data_dir/$dir/$x ] && echo "$0: missing dir $data_dir/$dir/$x" && exit 1
+    [ ! -d $simu_dir/$dir/$x ] && echo "$0: missing dir $data_dir/$dir/$x" && exit 1
   done
 
   mkdir -p $data_dir/$dir/mix

@@ -41,9 +41,7 @@ feats_conf = {
     "apply_log": False,
     "norm_means": True,
     "norm_vars": True,
-    "cmvn": "data/2spk/train/mix/gcmvn.mat",
-    "lctx": 0,
-    "rctx": 0
+    "cmvn": "data/2spk/train/mix/gcmvn.mat"
 }
 
 train_dir = "data/2spk/train/"

@@ -34,7 +34,7 @@ if [ $stage -le 2 ]; then
     ./scripts/run_tf_masking.sh \
       --keep-length true \
       --numpy true \
-      --stft-conf conf/stft.conf \
+      --stft-conf conf/16k.stft.conf \
       --nj $nj \
       $data_dir/test/mix/wav.scp \
       $enhan_dir/$spk \
