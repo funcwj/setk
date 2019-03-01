@@ -26,6 +26,4 @@ exp=$(basename $data_dir)
   --checkpoint exp/$exp/$exp_id \
   --batch-size $batch_size \
   --epochs $epochs \
-  --train-feats $data_dir/train/mix/feats.scp \
-  --dev-feats $data_dir/dev/mix/feats.scp \
   > $exp.$exp_id.train.log 2>&1

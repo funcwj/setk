@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# for 2spk upit usage
+# for 3spk upit usage
 # wujian@2018
 
 set -eu

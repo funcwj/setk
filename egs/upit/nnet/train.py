@@ -28,10 +28,13 @@ def run(args):
 
     feats_conf["shuf"] = True
     train_loader = make_pitloader(
-        args.train_feats, feats_conf, train_data, num_utts=args.batch_size)
+        train_data["linear_x"],
+        feats_conf,
+        train_data,
+        num_utts=args.batch_size)
     feats_conf["shuf"] = False
     dev_loader = make_pitloader(
-        args.dev_feats, feats_conf, dev_data, num_utts=args.batch_size)
+        dev_data["linear_x"], feats_conf, dev_data, num_utts=args.batch_size)
 
     trainer.run(train_loader, dev_loader, num_epochs=args.epochs)
 
@@ -55,16 +58,6 @@ if __name__ == "__main__":
         type=int,
         default=16,
         help="Number of utterances in each batch")
-    parser.add_argument(
-        "--train-feats",
-        required=True,
-        type=str,
-        help="Feature script for training")
-    parser.add_argument(
-        "--dev-feats",
-        required=True,
-        type=str,
-        help="Feature script for evaluation")
     args = parser.parse_args()
     logger.info("Arguments in command:\n{}".format(pprint.pformat(vars(args))))
     run(args)

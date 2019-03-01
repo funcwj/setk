@@ -41,6 +41,7 @@ feats_conf = {
     "apply_log": False,
     "norm_means": True,
     "norm_vars": True,
+    # linear cmvn here if apply_log = False
     "cmvn": "data/2spk/train/mix/gcmvn.mat"
 }
 
