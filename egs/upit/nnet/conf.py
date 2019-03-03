@@ -6,7 +6,7 @@ num_spks = 2
 lstm_conf = {
     "rnn": "lstm",
     "num_layers": 3,
-    "hidden_size": 896,
+    "hidden_size": 600,
     "dropout": 0.5,
     "bidirectional": True
 }
@@ -29,7 +29,7 @@ adam_kwargs = {
 trainer_conf = {
     "optimizer": "adam",
     "optimizer_kwargs": adam_kwargs,
-    "clip_norm": 100,
+    "clip_norm": 10,
     "min_lr": 1e-8,
     "patience": 0,
     "factor": 0.5,

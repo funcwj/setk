@@ -7,6 +7,8 @@ Compute some typical spatial features(SRP/IPD/MSC)
 
 import argparse
 
+import numpy as np
+
 from libs.utils import get_logger, nfft
 from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, ArchiveWriter
@@ -20,21 +22,28 @@ def compute_spatial_feats(args, S):
         srp_kwargs = {
             "sample_frequency": args.samp_frequency,
             "num_doa": args.num_doa,
-            "num_bins": nfft(args.frame_length) // 2 + 1,
+            "num_bins": nfft(args.frame_len) // 2 + 1,
             "samp_doa": not args.samp_tdoa
         }
         linear_topo = list(map(float, args.linear_topo.split(",")))
         return srp_phat(S, linear_topo, **srp_kwargs)
     elif args.type == "ipd":
-        indexes = list(map(int, args.ipd_index.split(",")))
-        if len(indexes) != 2:
-            raise ValueError(
-                "Invalid --ipd.index configuration detected: {}".format(
-                    args.ipd_index))
         if S.ndim < 3:
             raise ValueError("Only one-channel STFT available")
-        L, R = indexes
-        return ipd(S[L], S[R], cos=args.ipd_cos, sin=args.ipd_sin)
+        ipd_list = []
+        for p in args.ipd_index.split(";"):
+            indexes = list(map(int, p.split(",")))
+            if len(indexes) != 2:
+                raise ValueError(
+                    "Invalid --ipd.index configuration detected: {}".format(
+                        args.ipd_index))
+            L, R = indexes
+            if R > S.shape[0]:
+                raise RuntimeError("Could not access channel {:d}".format(R))
+            ipd_mat = ipd(S[L], S[R], cos=args.ipd_cos, sin=args.ipd_sin)
+            ipd_list.append(ipd_mat)
+        # concat along frequency axis
+        return np.hstack(ipd_list)
     else:
         return msc(S, context=args.msc_ctx)
 
@@ -128,7 +137,8 @@ if __name__ == "__main__":
         type=str,
         dest="ipd_index",
         default="0,1",
-        help="Given two channels to compute IPD spatial features")
+        help="Given several channel index pairs to compute "
+        "IPD spatial features, separated by semicolon, egs: 0,3;1,4")
     parser.add_argument(
         "--msc.ctx",
         type=int,

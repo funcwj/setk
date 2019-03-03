@@ -14,6 +14,9 @@ spatial=""
 
 [ $# -ne 3 ] && echo "Script format error: $0 <cpt-dir> <gpu-id> <enhan-dir>" && exit 1
 
+# export setk into PATH
+export PATH=$PWD/../../bin:$PATH
+
 cpt_dir=$1
 gpu_id=$2
 enhan_dir=$3
