@@ -3,6 +3,7 @@
 set -eu
 
 epochs=80
+# smaller batch-size brings better performance
 batch_size=16
 data_dir=$PWD/data/2spk
 
@@ -14,7 +15,7 @@ echo "$0 $@"
 
 [ $# -ne 2 ] && echo "Script format error: $0 <exp-id> <gpu-id>" && exit 1
 
-# export setk into PATH
+# modifiy to PATH of SETK
 export PATH=$PWD/../../bin:$PATH
 
 exp_id=$1

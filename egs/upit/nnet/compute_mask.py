@@ -48,10 +48,10 @@ def run(args):
     computer = NnetComputer(args.checkpoint, args.gpu)
     num_done = 0
     feats_conf = load_json(args.checkpoint, "feats.json")
-    feats_eval = Processor(args.feats, **feats_conf)
+    spectra = Processor(args.spectra, **feats_conf)
     spatial = ScriptReader(args.spatial) if args.spatial else None
 
-    for key, feats in feats_eval:
+    for key, feats in spectra:
         logger.info("Compute on utterance {}...".format(key))
         if spatial:
             spa = spatial[key]
@@ -71,9 +71,12 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("checkpoint", type=str, help="Directory of checkpoint")
     parser.add_argument(
-        "--feats", type=str, required=True, help="Script for input features")
+        "--spectra",
+        type=str,
+        required=True,
+        help="Script for input spectra features")
     parser.add_argument(
-        "--spatial", type=str, help="Script for spatial features")
+        "--spatial", type=str, default="", help="Script for spatial features")
     parser.add_argument(
         "--gpu",
         type=int,
