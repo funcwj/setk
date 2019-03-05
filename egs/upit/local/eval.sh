@@ -9,7 +9,6 @@ stage=1
 data_dir=$PWD/data/2spk
 spatial=""
 
-. ./path.sh
 . ./utils/parse_options.sh || exit 1
 
 [ $# -ne 3 ] && echo "Script format error: $0 <cpt-dir> <gpu-id> <enhan-dir>" && exit 1
@@ -25,7 +24,7 @@ exp_id=$(basename $cpt_dir)
 
 if [ $stage -le 1 ]; then
   ./nnet/compute_mask.py $cpt_dir \
-    --feats $data_dir/test/mix/feats.scp \
+    --spectra $data_dir/test/mix/feats.scp \
     --gpu $gpu_id \
     --spatial "$spatial" \
     --dump-dir $enhan_dir \
@@ -47,5 +46,5 @@ fi
 
 # generate sps/2spk/spk{1,2}.scp and eval in si-snr
 # ./scripts/sptk/compute_si_snr.py \
-#   data/2spk_ch1/test/spk1/clean.scp,data/2spk_ch1/test/spk2/clean.scp \
+#   data/2spk/test/spk1/clean.scp,data/2spk/test/spk2/clean.scp \
 #   sps/2spk/spk1.scp,sps/2spk/spk2.scp

@@ -31,12 +31,13 @@ trainer_conf = {
     "optimizer_kwargs": adam_kwargs,
     "clip_norm": 10,
     "min_lr": 1e-8,
-    "patience": 0,
+    "patience": 1,
     "factor": 0.5,
     "logging_period": 200  # batch number
 }
 
 # feature config
+# linear spectrogram with cmvn seems better
 feats_conf = {
     "apply_log": False,
     "norm_means": True,

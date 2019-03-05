@@ -70,7 +70,7 @@ $cmd JOB=1:$nj $exp_dir/log/compute_df_$dir.JOB.log \
   $exp_dir/masks.scp - \| copy-feats --compress=$compress ark:- \
   ark,scp:$dst_dir/$dir.$name.JOB.ark,$dst_dir/$dir.$name.JOB.scp
 
-cat $dst_dir/$dir.$name.*.scp | sort -k1 > $src_dir/feats.scp
+cat $dst_dir/$dir.$name.*.scp | sort -k1 > $src_dir/df.scp
 
 echo "$0: Compute directional features done"
 

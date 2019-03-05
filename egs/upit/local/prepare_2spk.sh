@@ -33,7 +33,7 @@ for dir in train dev test; do
   [ -d $data_dir/$dir ] && echo "$0: clean $dir..." && rm -rf $data_dir/$dir
 
   for x in mix spk{1..2}; do 
-    [ ! -d $simu_dir/$dir/$x ] && echo "$0: missing dir $data_dir/$dir/$x" && exit 1
+    [ ! -d $simu_dir/$dir/$x ] && echo "$0: missing dir $simu_dir/$dir/$x" && exit 1
   done
 
   mkdir -p $data_dir/$dir/mix
@@ -43,7 +43,7 @@ for dir in train dev test; do
 
   for spk in mix; do
     echo "$0: prepare features $dir - $spk ..."
-    # features
+    # log spectrogram
     ./scripts/compute_librosa_spectrogram.sh \
       --nj $nj \
       --compress false \
@@ -54,6 +54,7 @@ for dir in train dev test; do
       ./stft/2spk_upit/$dir/$spk
     # compute global cmvn for log-spectrum
     compute-cmvn-stats scp:$data_dir/$dir/mix/feats.scp $data_dir/$dir/mix/log_gcmvn.mat
+    # linear spectrogram
     ./scripts/compute_librosa_spectrogram.sh \
       --nj $nj \
       --compress false \
@@ -70,6 +71,7 @@ for dir in train dev test; do
   if $use_psa; then
     prepare_wav $simu_dir/$dir/spk1 > $data_dir/$dir/spk1/clean.scp 
     prepare_wav $simu_dir/$dir/spk2 > $data_dir/$dir/spk2/clean.scp
+    # phase sensitive amplitude
     for spk in spk1 spk2; do
       echo "$0: prepare psa $dir - $spk ..."
       cp $data_dir/$dir/mix/wav.scp $data_dir/$dir/$spk/
@@ -86,6 +88,7 @@ for dir in train dev test; do
   else
     prepare_wav $simu_dir/$dir/spk1 > $data_dir/$dir/spk1/wav.scp
     prepare_wav $simu_dir/$dir/spk2 > $data_dir/$dir/spk2/wav.scp
+    # linear spectrogram
     for spk in spk1 spk2; do
       echo "$0: prepare spectogram $dir - $spk ..."
       ./scripts/compute_librosa_spectrogram.sh \

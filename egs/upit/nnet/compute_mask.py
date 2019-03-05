@@ -8,10 +8,11 @@ import argparse
 import torch as th
 import numpy as np
 
-from utils import load_json, get_logger, make_dir
-from nnet import UpitNet
-from loader import Processor
+from nnet import Nnet
 from kaldi_python_io import ScriptReader
+
+from libs.utils import load_json, get_logger, make_dir
+from libs.dataset import Processor
 
 logger = get_logger(__name__)
 
@@ -20,7 +21,7 @@ class NnetComputer(object):
     def __init__(self, cpt_dir, gpuid):
         # load nnet conf
         nnet_conf = load_json(cpt_dir, "mdl.json")
-        nnet = UpitNet(**nnet_conf)
+        nnet = Nnet(**nnet_conf)
         # load checkpoint
         cpt_fname = os.path.join(cpt_dir, "best.pt.tar")
         cpt = th.load(cpt_fname, map_location="cpu")

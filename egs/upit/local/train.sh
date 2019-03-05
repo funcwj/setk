@@ -5,6 +5,7 @@ set -eu
 epochs=80
 # smaller batch-size brings better performance
 batch_size=16
+cache_size=8
 data_dir=$PWD/data/2spk
 
 echo "$0 $@"
@@ -26,5 +27,6 @@ exp=$(basename $data_dir)
   --gpu $gpu_id \
   --checkpoint exp/$exp/$exp_id \
   --batch-size $batch_size \
+  --cache-size $cache_size \
   --epochs $epochs \
   > $exp.$exp_id.train.log 2>&1

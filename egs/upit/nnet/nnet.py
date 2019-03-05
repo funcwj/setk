@@ -3,10 +3,11 @@
 # wujian@2018
 
 import torch as th
-import torch.nn as nn 
+import torch.nn as nn
 import torch.nn.functional as F
 
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
+
 
 class TorchRNN(nn.Module):
     def __init__(self,
@@ -52,7 +53,8 @@ class TorchRNN(nn.Module):
             x = th.squeeze(x)
         return x
 
-class UpitNet(th.nn.Module):
+
+class Nnet(th.nn.Module):
     def __init__(self,
                  feats_dim,
                  num_bins=257,
@@ -60,7 +62,7 @@ class UpitNet(th.nn.Module):
                  rnn_conf=None,
                  non_linear="relu",
                  dropout=0.0):
-        super(UpitNet, self).__init__()
+        super(Nnet, self).__init__()
         if non_linear not in ["relu", "sigmoid", "tanh"]:
             raise ValueError(
                 "Unsupported non-linear type:{}".format(non_linear))
