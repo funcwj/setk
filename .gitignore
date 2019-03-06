@@ -2,8 +2,10 @@
 bin/
 lib/
 build/
+# python cache
+__pycache__/
+*.py[cod]
 # egs
-egs/*/nnet/__pycache__/
 egs/*/exp/
 egs/*/sps/
 egs/*/data/
@@ -17,14 +19,11 @@ figure/
 .mypy_cache/
 # egs scp
 *.scp
+*.log
 # python tmp dir
-scripts/sptk/__pycache__/
-scripts/sptk/*.pyc
 scripts/sptk/create_*
 scripts/sptk/test_*
 scripts/sptk/\.*.py
-scripts/sptk/libs/__pycache__/
-scripts/sptk/libs/*.pyc
 
 # clang format
 .clang-format

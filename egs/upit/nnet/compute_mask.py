@@ -8,10 +8,11 @@ import argparse
 import torch as th
 import numpy as np
 
-from utils import load_json, get_logger, make_dir
-from nnet import UpitNet
-from loader import Processor
+from nnet import Nnet
 from kaldi_python_io import ScriptReader
+
+from libs.utils import load_json, get_logger, make_dir
+from libs.dataset import Processor
 
 logger = get_logger(__name__)
 
@@ -20,7 +21,7 @@ class NnetComputer(object):
     def __init__(self, cpt_dir, gpuid):
         # load nnet conf
         nnet_conf = load_json(cpt_dir, "mdl.json")
-        nnet = UpitNet(**nnet_conf)
+        nnet = Nnet(**nnet_conf)
         # load checkpoint
         cpt_fname = os.path.join(cpt_dir, "best.pt.tar")
         cpt = th.load(cpt_fname, map_location="cpu")
@@ -48,10 +49,10 @@ def run(args):
     computer = NnetComputer(args.checkpoint, args.gpu)
     num_done = 0
     feats_conf = load_json(args.checkpoint, "feats.json")
-    feats_eval = Processor(args.feats, **feats_conf)
+    spectra = Processor(args.spectra, **feats_conf)
     spatial = ScriptReader(args.spatial) if args.spatial else None
 
-    for key, feats in feats_eval:
+    for key, feats in spectra:
         logger.info("Compute on utterance {}...".format(key))
         if spatial:
             spa = spatial[key]
@@ -71,9 +72,12 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("checkpoint", type=str, help="Directory of checkpoint")
     parser.add_argument(
-        "--feats", type=str, required=True, help="Script for input features")
+        "--spectra",
+        type=str,
+        required=True,
+        help="Script for input spectra features")
     parser.add_argument(
-        "--spatial", type=str, help="Script for spatial features")
+        "--spatial", type=str, default="", help="Script for spatial features")
     parser.add_argument(
         "--gpu",
         type=int,

@@ -87,7 +87,7 @@ $cmd JOB=1:$nj $exp_dir/log/compute_$feats.JOB.log \
   copy-feats --compress=$compress ark:- \
   ark,scp:$dst_dir/$name.$feats.JOB.ark,$dst_dir/$name.$feats.JOB.scp
 
-cat $dst_dir/$name.$feats.*.scp | sort -k1 > $src_dir/feats.scp
+cat $dst_dir/$name.$feats.*.scp | sort -k1 > $src_dir/$feats.scp
 
 echo "$0: Compute $feats spatial features done"
 
