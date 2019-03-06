@@ -268,7 +268,7 @@ def read_sparse_mat(fd):
 
 # TODO: optimize speed here, original IO 200x slower than uncompressed matrix
 #       speed up 5x, now 50x slower than uncompressed one
-def uncompress(compress_data, cps_type, head):
+def uncompress(cdata, cps_type, head):
     """ 
         In format CM(kOneByteWithColHeaders):
         PerColHeader, ...(x C), ... uint8 sequence ...
@@ -280,62 +280,44 @@ def uncompress(compress_data, cps_type, head):
         In format CM3(kOneByte):
         ...uint8 sequence...
     """
-    min_value, prange, num_rows, num_cols = head
+    min_val, prange, num_rows, num_cols = head
     # mat = np.zeros([num_rows, num_cols])
     print_info('\tUncompress to matrix {} X {}'.format(num_rows, num_cols))
     if cps_type == 'CM':
         # checking compressed data size, 8 is the sizeof PerColHeader
-        assert len(compress_data) == num_cols * (8 + num_rows)
+        assert len(cdata) == num_cols * (8 + num_rows)
+        chead, cmain = cdata[:8 * num_cols], cdata[8 * num_cols:]
         # type uint16
-        phead_seq = struct.unpack('{}H'.format(4 * num_cols),
-                                  compress_data[:8 * num_cols])
-        phead_seq = np.array(phead_seq, dtype=np.float).reshape(num_cols, 4)
-        # pchead: min_value + prange * 1.52590218966964e-05 * val
-        pchead = np.transpose(phead_seq * 1.52590218966964e-05 * prange +
-                              min_value)
+        pch = np.array(
+            struct.unpack('{}H'.format(4 * num_cols), chead), dtype=np.float32)
+        pch = np.transpose(
+            pch.reshape(num_cols, 4) * prange / 65535.0 + min_val)
         # type uint8
-        uint8_seq = struct.unpack('{}B'.format(num_rows * num_cols),
-                                  compress_data[8 * num_cols:])
-        uint8_seq = np.array(
-            uint8_seq, dtype=np.float).reshape(num_cols, num_rows)
-        uint8_seq = np.transpose(uint8_seq)
-        mat = np.zeros_like(uint8_seq)
+        uint8 = np.array(
+            struct.unpack('{}B'.format(num_rows * num_cols), cmain),
+            dtype=np.float32)
+        uint8 = uint8.reshape(num_cols, num_rows)
+        uint8 = np.transpose(uint8)
         # precompute index
-        le64_index = uint8_seq <= 64
-        gt92_index = uint8_seq >= 193
-        le92_index = np.logical_not(np.logical_xor(le64_index, gt92_index))
-        # p[0] + (p[1] - p[0]) * c[le64_index] * (1 / 64.0)
-        mat[le64_index] = (
-            uint8_seq * (pchead[1] - pchead[0]) / 64.0 + pchead[0])[le64_index]
-        # p[2] + (p[3] - p[2]) * (c[gt92_index] - 192) / 63.0
-        mat[gt92_index] = ((uint8_seq - 192) * (pchead[3] - pchead[2]) / 63.0 +
-                           pchead[2])[gt92_index]
-        # p[1] + (p[2] - p[1]) * (c[le92_index] - 64) / 128.0
-        mat[le92_index] = ((uint8_seq - 64) * (pchead[2] - pchead[1]) / 128.0 +
-                           pchead[1])[le92_index]
-        # for i in range(num_cols):
-        #     # 1)    250x slower
-        #     # pchead = uint16_to_floats(min_value, prange,
-        #     #                           phead_seq[i * 4:i * 4 + 4])
-        #     # for j in range(num_rows):
-        #     #     mat[j, i] = uint8_to_float(uint8_seq[i, j], pchead)
-        #     # 2)    70x slower
-        #     uint8_seq[i] = uint8_to_float_vec(uint8_seq[i], le64_index[i],
-        #                                       gt92_index[i], le92_index[i],
-        #                                       pchead[i])
-        # mat = np.transpose(uint8_seq)
+        le64_index = uint8 <= 64
+        gt92_index = uint8 >= 193
+        # le92_index = np.logical_not(np.logical_xor(le64_index, gt92_index))
+        return np.where(
+            le64_index,
+            uint8 * (pch[1] - pch[0]) / 64.0 + pch[0],
+            np.where(gt92_index,
+                     (uint8 - 192) * (pch[3] - pch[2]) / 63.0 + pch[2],
+                     (uint8 - 64) * (pch[2] - pch[1]) / 128.0 + pch[1]))
     else:
         if cps_type == 'CM2':
             inc = float(prange / 65535.0)
-            uint_seq = struct.unpack('{}H'.format(num_rows * num_cols),
-                                     compress_data)
+            uint_seq = struct.unpack('{}H'.format(num_rows * num_cols), cdata)
         else:
             inc = float(prange / 255.0)
-            uint_seq = struct.unpack('{}B'.format(num_rows * num_cols),
-                                     compress_data)
+            uint_seq = struct.unpack('{}B'.format(num_rows * num_cols), cdata)
         uint_seq = np.array(
-            uint_seq, dtype=np.float).reshape(num_rows, num_cols)
-        mat = min_value + uint_seq * inc
+            uint_seq, dtype=np.float32).reshape(num_rows, num_cols)
+        mat = min_val + uint_seq * inc
 
     return mat
 

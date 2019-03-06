@@ -45,7 +45,7 @@ class SimpleTimer(object):
         self.start = time.time()
 
     def elapsed(self):
-        return time.time() - self.start
+        return (time.time() - self.start) / 60
 
 
 class ProgressReporter(object):
@@ -252,7 +252,6 @@ class Trainer(object):
             sys.stdout.flush()
             # save checkpoint
             self.cur_epoch += 1
-            self.save_checkpoint(best=False)
             if no_impr == self.no_impr:
                 self.logger.info(
                     "Stop training cause no impr for {:d} epochs".format(
