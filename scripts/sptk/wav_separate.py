@@ -33,16 +33,19 @@ def run(args):
             **stft_kwargs,
             round_power_of_two=args.round_power_of_two)
         logger.info("Using phase reference from {}".format(args.phase_ref))
-    mask_reader = NumpyReader(args.mask_scp) if args.numpy else ScriptReader(
-        args.mask_scp)
+    MaskReader = {"numpy": NumpyReader, "kaldi": ScriptReader}
+    mask_reader = MaskReader[args.fmt](args.mask_scp)
 
     num_done = 0
     with WaveWriter(args.dst_dir, fs=args.samp_freq) as writer:
         for key, specs in spectrogram_reader:
+            # specs: T x F
             if key in mask_reader:
                 num_done += 1
                 mask = mask_reader[key]
-                if args.transpose:
+                # mask sure mask in T x F
+                _, F = specs.shape
+                if mask.shape[0] == F:
                     mask = np.transpose(mask)
                 logger.info("Processing utterance {}...".format(key))
                 if mask.shape != specs.shape:
@@ -97,18 +100,14 @@ if __name__ == "__main__":
         default="",
         help="If assigned, use phase of it instead of mixture")
     parser.add_argument(
+        "--mask-format",
+        dest="fmt",
+        choices=["kaldi", "numpy"],
+        default="kaldi",
+        help="Define type of masks, kaldi's archives or numpy's ndarray")
+    parser.add_argument(
         "--keep-length",
         action="store_true",
         help="If ture, keep result the same length as orginal")
-    parser.add_argument(
-        "--numpy",
-        action="store_true",
-        help="Define type of masks in numpy.ndarray instead of "
-        "kaldi's archives")
-    parser.add_argument(
-        "--transpose-mask",
-        dest="transpose",
-        action="store_true",
-        help="Transpose mask from FxT to TxF(T: num_frames, F: num_bins)")
     args = parser.parse_args()
     run(args)

@@ -60,8 +60,8 @@ def run(args):
         args.wav_scp,
         round_power_of_two=args.round_power_of_two,
         **stft_kwargs)
-    mask_reader = NumpyReader(args.mask_scp) if args.numpy else ScriptReader(
-        args.mask_scp)
+    MaskReader = {"numpy": NumpyReader, "kaldi": ScriptReader}
+    mask_reader = MaskReader[args.fmt](args.mask_scp)
 
     online = False
     num_bins = nfft(args.frame_len) // 2 + 1
@@ -101,7 +101,10 @@ def run(args):
                 speech_mask = mask_reader[key]
                 # constraint [0, 1]
                 speech_mask = np.minimum(speech_mask, 1)
-                if args.trans:
+                # make sure speech_mask at shape T x F
+                _, F, _ = stft_mat.shape
+                # if in F x T
+                if speech_mask.shape[0] == F:
                     speech_mask = np.transpose(speech_mask)
                 # stft_enh, stft_mat: (N) x F x T
                 if not online:
@@ -134,10 +137,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "dst_dir", type=str, help="Location to dump enhanced wave files")
     parser.add_argument(
-        "--numpy",
-        action="store_true",
-        help="Define type of masks in numpy.ndarray instead of "
-        "kaldi's archives")
+        "--mask-format",
+        dest="fmt",
+        choices=["kaldi", "numpy"],
+        default="kaldi",
+        help="Define type of masks, kaldi's archives or numpy's ndarray")
     parser.add_argument(
         "--beamformer",
         type=str,
@@ -151,21 +155,15 @@ if __name__ == "__main__":
         dest="samp_freq",
         help="Waveform data sample frequency")
     parser.add_argument(
-        "--transpose-mask",
-        dest="trans",
-        action="store_true",
-        help="If true, reshape mask from FxT to TxF"
-        "(T: num_frames, F: num_bins)")
-    parser.add_argument(
         "--post-filter",
         dest="ban",
         action="store_true",
         help="Do Blind Analytical Normalization(BAN) or not")
     parser.add_argument(
-        "--masking",
+        "--post-mask",
         dest="mask",
         action="store_true",
-        help="If true, masking enhanced spectrogram after beamforming")
+        help="Masking enhanced spectrogram after beamforming or not")
     parser.add_argument(
         "--online.alpha",
         default=0.8,
