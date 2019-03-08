@@ -18,9 +18,8 @@ class SpeakersReader(object):
     def __init__(self, scps):
         split_scps = scps.split(",")
         if len(split_scps) == 1:
-            raise RuntimeError(
-                "Construct SpeakersReader need more than one script, got {}".
-                format(scps))
+            raise RuntimeError("Construct SpeakersReader need more "
+                               "than one script, got {}".format(scps))
         self.readers = [WaveReader(scp) for scp in split_scps]
 
     def __len__(self):
@@ -37,30 +36,33 @@ class SpeakersReader(object):
 
 
 class Report(object):
-    def __init__(self, spk2gender=None):
-        self.s2g = parse_scps(spk2gender) if spk2gender else None
+    def __init__(self, spk2class=None):
+        self.s2c = parse_scps(spk2class) if spk2class else None
         self.snr = defaultdict(float)
         self.cnt = defaultdict(int)
 
     def add(self, key, val):
-        gender = "NG"
-        if self.s2g:
-            gender = self.s2g[key]
-        self.snr[gender] += val
-        self.cnt[gender] += 1
+        cls_str = "NG"
+        if self.s2c:
+            cls_str = self.s2c[key]
+        self.snr[cls_str] += val
+        self.cnt[cls_str] += 1
 
     def report(self):
         print("SI-SDR(dB) Report: ")
-        for gender in self.snr:
-            tot_snrs = self.snr[gender]
-            num_utts = self.cnt[gender]
-            print("{}: {:d}/{:.3f}".format(gender, num_utts,
-                                           tot_snrs / num_utts))
+        tot_utt = sum([self.cnt[cls_str] for cls_str in self.cnt])
+        tot_snr = sum([self.snr[cls_str] for cls_str in self.snr])
+        print("Total: {:d}/{:.3f}".format(tot_utt, tot_snr / tot_utt))
+        for cls_str in self.snr:
+            cls_snr = self.snr[cls_str]
+            num_utt = self.cnt[cls_str]
+            print("\t{}: {:d}/{:.3f}".format(cls_str, num_utt,
+                                             cls_snr / num_utt))
 
 
 def run(args):
     single_speaker = len(args.sep_scp.split(",")) == 1
-    reporter = Report(args.spk2gender)
+    reporter = Report(args.spk2class)
     details = open(args.details, "w") if args.details else None
 
     if single_speaker:
@@ -110,10 +112,10 @@ if __name__ == "__main__":
         help="Reference speech scripts, as ground truth for"
         " Si-SDR computation")
     parser.add_argument(
-        "--spk2gender",
+        "--spk2class",
         type=str,
         default="",
-        help="If assigned, report results per gender")
+        help="If assigned, report results per class (gender or degree)")
     parser.add_argument(
         "--details",
         type=str,

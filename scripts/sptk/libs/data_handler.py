@@ -335,17 +335,15 @@ class MatReader(Reader):
 
     def __init__(self, mat_scp, key):
         super(MatReader, self).__init__(mat_scp)
-        self.matrix_key = key
+        self.key = key
 
     def _load(self, key):
         mat_path = self.index_dict[key]
-        with open(mat_path, "rb") as mat_dict:
-            if self.matrix_key not in mat_dict:
-                raise KeyError(
-                    "Could not find \'{}\' in matrix dictionary".format(
-                        self.matrix_key))
-            mat = mat_dict[self.matrix_key]
-        return mat
+        mat_dict = sio.loadmat(mat_path)
+        if self.key not in mat_dict:
+            raise KeyError("Could not find \'{}\' in python "
+                           "dictionary".format(self.key))
+        return mat_dict[self.key]
 
 
 class SpectrogramReader(WaveReader):
@@ -388,10 +386,6 @@ class ScriptReader(Reader):
             ark_scp, value_processor=addr_processor)
         self.matrix = matrix
         self.fmgr = dict()
-
-    def __del__(self):
-        for name in self.fmgr:
-            self.fmgr[name].close()
 
     def _open(self, obj, addr):
         if obj not in self.fmgr:
@@ -508,6 +502,25 @@ class NumpyWriter(DirWriter):
         np.save(obj_path, obj)
         if self.scp_file:
             self.scp_file.write("{key}\t{path}.npy\n".format(
+                key=key, path=os.path.abspath(obj_path)))
+
+
+class MatWriter(DirWriter):
+    """
+        Writer for Matlab's matrix
+    """
+
+    def __init__(self, dump_dir, scp_path=None):
+        super(MatWriter, self).__init__(dump_dir, scp_path)
+
+    def write(self, key, obj):
+        if not isinstance(obj, np.ndarray):
+            raise RuntimeError("Expect np.ndarray object, but got {}".format(
+                type(obj)))
+        obj_path = os.path.join(self.path_or_dir, "{}".format(key))
+        sio.savemat(obj_path, {"data": obj})
+        if self.scp_file:
+            self.scp_file.write("{key}\t{path}.mat\n".format(
                 key=key, path=os.path.abspath(obj_path)))
 
 

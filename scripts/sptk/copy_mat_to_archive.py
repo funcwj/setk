@@ -12,33 +12,42 @@ from libs.data_handler import ArchiveWriter, NumpyReader, MatReader
 
 logger = get_logger(__name__)
 
+supported_op = ["trans", "log", "minus", "stack"]
+
 
 def run(args):
-    src_reader = NumpyReader(args.src_scp) if not args.matlab else MatReader(
+    src_reader = NumpyReader(args.src_scp) if args.src == "npy" else MatReader(
         args.src_scp, args.key)
     num_mat = 0
     mat_list = []
-    with ArchiveWriter(
-            args.dst_ark, args.scp, matrix=(not args.vector)) as writer:
+    mat = (args.output == "matrix")
+    ops = args.op.split(",")
+    for op in ops:
+        if op and op not in supported_op:
+            raise RuntimeError("Unknown operation: {}".format(op))
+    stack = "stack" in ops
+    with ArchiveWriter(args.dst_ark, args.scp, matrix=mat) as writer:
         for key, mat in src_reader:
-            if args.transpose:
-                mat = np.transpose(mat)
-            if args.apply_log:
-                mat = np.log(np.maximum(mat, EPSILON))
-            if args.minus:
-                mat = 1 - mat
-            if not args.merge:
-                writer.write(key, mat)
-            else:
+            for op in ops:
+                if op == "trans":
+                    mat = np.transpose(mat)
+                elif op == "log":
+                    mat = np.log(np.maximum(mat, EPSILON))
+                elif op == "minus":
+                    mat = 1 - mat
+                else:
+                    pass
+            if stack:
                 mat_list.append(mat)
+            else:
+                writer.write(key, mat)
             num_mat += 1
-        if args.merge:
-            mat = np.vstack(mat_list)
-            writer.write(filekey(args.dst_ark), mat)
-            logger.info(
-                "Merge {0} matrix into archive {1}, shape as {2[0]}x{2[1]}".
-                format(num_mat, args.dst_ark, mat.shape))
-    if not args.merge:
+        if stack:
+            writer.write(filekey(args.dst_ark), np.vstack(mat_list))
+            logger.info("Merge {0} matrix into archive {1}, shape as "
+                        "{2[0]}x{2[1]}".format(num_mat, args.dst_ark,
+                                               mat.shape))
+    if not stack:
         logger.info("Copy {0} matrix into archive {1}".format(
             num_mat, args.dst_ark))
 
@@ -59,36 +68,30 @@ if __name__ == "__main__":
         default=None,
         help="If assigned, generate corresponding .scp for archives")
     parser.add_argument(
-        "--matlab.key",
+        "--mat-index",
         type=str,
         dest="key",
+        default="data",
+        help="A string to index data in MATLAB's .mat file")
+    parser.add_argument(
+        "--op",
+        type=str,
+        default="",
+        help="Operations to applied on source "
+        "matrix/vector, separated by \",\", now support"
+        "trans/log/minus/stack")
+    parser.add_argument(
+        "--src-format",
+        type=str,
+        dest="src",
+        choices=["npy", "mat"],
+        default="npy",
+        help="Data format in the input rspecifier")
+    parser.add_argument(
+        "--output",
+        type=str,
+        choices=["matrix", "vector"],
         default="matrix",
-        help="String key to index matrix in MATLAB's .mat file")
-    parser.add_argument(
-        "--transpose",
-        action="store_true",
-        help="If true, transpose matrix before write to archives")
-    parser.add_argument(
-        "--apply-log",
-        action="store_true",
-        help="If true, apply log before write to archives")
-    parser.add_argument(
-        "--matlab",
-        action="store_true",
-        help="If true, treat src_scp as object of .mat files")
-    parser.add_argument(
-        "--merge",
-        action="store_true",
-        help="If true, write src_scp in one matrix in final archives")
-    parser.add_argument(
-        "--minus-by-one",
-        action="store_true",
-        dest="minus",
-        help="If true,  write (1 - matrix) to archives")
-    parser.add_argument(
-        "--input-vector",
-        action="store_true",
-        dest="vector",
-        help="If true, dump vectors out")
+        help="Type of the data to dump in archives")
     args = parser.parse_args()
     run(args)
