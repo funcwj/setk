@@ -80,12 +80,21 @@ for n in $(seq $nj); do wav_split_scp="$wav_split_scp $exp_dir/wav.$n.scp"; done
 ./utils/split_scp.pl $src_dir/wav.scp $wav_split_scp || exit 1
 
 name=$(basename $src_dir)
-$cmd JOB=1:$nj $exp_dir/log/compute_$feats.JOB.log \
-  ./scripts/sptk/compute_spatial_feats.py \
-  --type $feats $spatial_opts \
-  $exp_dir/wav.JOB.scp - \| \
-  copy-feats --compress=$compress ark:- \
-  ark,scp:$dst_dir/$name.$feats.JOB.ark,$dst_dir/$name.$feats.JOB.scp
+
+if $compress ; then
+  $cmd JOB=1:$nj $exp_dir/log/compute_$feats.JOB.log \
+    ./scripts/sptk/compute_spatial_feats.py \
+    --type $feats $spatial_opts \
+    $exp_dir/wav.JOB.scp - \| \
+    copy-feats --compress=$compress ark:- \
+    ark,scp:$dst_dir/$name.$feats.JOB.ark,$dst_dir/$name.$feats.JOB.scp
+else
+  $cmd JOB=1:$nj $exp_dir/log/compute_$feats.JOB.log \
+    ./scripts/sptk/compute_spatial_feats.py \
+    --type $feats $spatial_opts \
+    --scp $dst_dir/$name.$feats.JOB.scp \
+    $exp_dir/wav.JOB.scp $name.$feats.JOB.ark
+fi 
 
 cat $dst_dir/$name.$feats.*.scp | sort -k1 > $src_dir/$feats.scp
 

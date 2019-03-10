@@ -59,11 +59,19 @@ dir=$(basename $src_dir)
 df_opts=$(cat $stft_conf | xargs)
 df_opts="$df_opts --mask-format $mask_format"
 
-$cmd JOB=1:$nj $exp_dir/log/compute_df_$dir.JOB.log \
-  ./scripts/sptk/compute_directional_feats.py \
-  $df_opts $exp_dir/wav.JOB.scp \
-  $exp_dir/masks.scp - \| copy-feats --compress=$compress ark:- \
-  ark,scp:$dst_dir/$dir.$name.JOB.ark,$dst_dir/$dir.$name.JOB.scp
+if $compress ; then
+  $cmd JOB=1:$nj $exp_dir/log/compute_df_$dir.JOB.log \
+    ./scripts/sptk/compute_directional_feats.py \
+    $df_opts $exp_dir/wav.JOB.scp \
+    $exp_dir/masks.scp - \| copy-feats --compress=$compress ark:- \
+    ark,scp:$dst_dir/$dir.$name.JOB.ark,$dst_dir/$dir.$name.JOB.scp
+else
+  $cmd JOB=1:$nj $exp_dir/log/compute_df_$dir.JOB.log \
+    ./scripts/sptk/compute_directional_feats.py $df_opts \
+    --scp $dst_dir/$dir.$name.JOB.scp \
+    $exp_dir/wav.JOB.scp $exp_dir/masks.scp \
+    $dst_dir/$dir.$name.JOB.ark
+fi
 
 cat $dst_dir/$dir.$name.*.scp | sort -k1 > $src_dir/df.scp
 

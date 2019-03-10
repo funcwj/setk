@@ -65,7 +65,7 @@ wav_split_scp="" && for n in $(seq $nj); do wav_split_scp="$wav_split_scp $exp_d
 stft_opts=$(cat $stft_conf | xargs)
 beamformer_opts="$stft_opts --beamformer $beamformer --mask-format $mask_format"
 $normalize && beamformer_opts="$beamformer_opts --post-filter"
-$masking && beamformer_opts="$beamformer_opts --post-mask"
+$post_mask && beamformer_opts="$beamformer_opts --post-mask"
 
 if [ $chunk_size -gt 0 ]; then
   beamformer_opts="$beamformer_opts --online.alpha $alpha --online.chunk-size $chunk_size --online.channels $channels"
