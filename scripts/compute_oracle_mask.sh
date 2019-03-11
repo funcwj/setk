@@ -59,11 +59,19 @@ mask_opts=$(cat $stft_conf | xargs)
 mask_opts="$mask_opts --mask $mask"
 name=$(basename $data_dir)
 
-$cmd JOB=1:$nj $exp_dir/log/compute_mask_$name.JOB.log \
-  ./scripts/sptk/compute_mask.py $mask_opts --cutoff $cutoff \
-  $exp_dir/clean.JOB.scp $data_dir/$denominator_scp - \| \
-  copy-feats --compress=$compress ark:- \
-  ark,scp:$mask_dir/$name.$mask.JOB.ark,$mask_dir/$name.$mask.JOB.scp
+if $compress ; then
+  $cmd JOB=1:$nj $exp_dir/log/compute_mask_$name.JOB.log \
+    ./scripts/sptk/compute_mask.py $mask_opts --cutoff $cutoff \
+    $exp_dir/clean.JOB.scp $data_dir/$denominator_scp - \| \
+    copy-feats --compress=$compress ark:- \
+    ark,scp:$mask_dir/$name.$mask.JOB.ark,$mask_dir/$name.$mask.JOB.scp
+else
+  $cmd JOB=1:$nj $exp_dir/log/compute_mask_$name.JOB.log \
+    ./scripts/sptk/compute_mask.py $mask_opts --cutoff $cutoff \
+    --scp $mask_dir/$name.$mask.JOB.scp \
+    $exp_dir/clean.JOB.scp $data_dir/$denominator_scp \
+    $mask_dir/$name.$mask.JOB.ark
+fi
 
 cat $mask_dir/$name.$mask.*.scp | sort -k1 > $data_dir/mask.scp
 

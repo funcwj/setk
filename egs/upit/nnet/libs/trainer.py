@@ -225,9 +225,10 @@ class Trainer(object):
         # make sure not inf
         self.scheduler.best = best_loss
         while self.cur_epoch < num_epochs:
+            self.cur_epoch += 1
             cur_lr = self.optimizer.param_groups[0]["lr"]
             memo["title"] = "Loss(time/N, lr={:.3e}) - Epoch {:2d}:".format(
-                cur_lr, self.cur_epoch + 1)
+                cur_lr, self.cur_epoch)
 
             tr = self.train(train_loader)
             memo["tr"] = "train = {:+.4f}({:.2f}m/{:d})".format(
@@ -250,8 +251,8 @@ class Trainer(object):
             self.scheduler.step(cv["loss"])
             # flush scheduler info
             sys.stdout.flush()
-            # save checkpoint
-            self.cur_epoch += 1
+            # save last checkpoint
+            self.save_checkpoint(best=False)
             if no_impr == self.no_impr:
                 self.logger.info(
                     "Stop training cause no impr for {:d} epochs".format(

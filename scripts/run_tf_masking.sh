@@ -7,8 +7,7 @@ set -eu
 nj=40
 cmd="run.pl"
 
-numpy=false
-transpose=false
+mask_format="numpy"
 keep_length=false
 fs=16000
 stft_conf=conf/stft.conf
@@ -18,14 +17,13 @@ echo "$0 $@"
 
 function usage {
   echo "Options:"
-  echo "  --nj            <nj>                # number of jobs to run parallel, (default=40)"
-  echo "  --cmd           <run.pl|queue.pl>   # how to run jobs, (default=run.pl)"
-  echo "  --stft-conf     <stft-conf>         # stft configurations files, (default=conf/stft.conf)"
-  echo "  --numpy         <numpy>             # load masks from np.ndarray instead, (default=false)"
-  echo "  --transpose     <transpose>         # transpose TF-mask or not, (default=false)"
-  echo "  --fs            <fs>                # sample frequency for output wave, (default=16000)"
-  echo "  --keep-length   <true|false>        # keep same length as original or not, (default=false)"
-  echo "  --phase-ref     <phase-ref>         # use phase reference or mixture, (default="")"
+  echo "  --nj            <nj>                # number of jobs to run parallel, (default=$nj)"
+  echo "  --cmd           <run.pl|queue.pl>   # how to run jobs, (default=$cmd)"
+  echo "  --stft-conf     <stft-conf>         # stft configurations files, (default=$stft_conf)"
+  echo "  --mask-format   <kaldi|numpy>       # load masks from np.ndarray instead, (default=$mask_format)"
+  echo "  --keep-length   <true|false>        # keep same length as original or not, (default=$keep_length)"
+  echo "  --phase-ref     <phase-ref>         # use phase reference or mixture, (default=$phase_ref)"
+  echo "  --fs            <fs>                # sample frequency for output wave, (default=$fs)"
 }
 
 . ./path.sh
@@ -41,14 +39,13 @@ for x in $wav_scp $stft_conf; do [ ! -f $x ] && echo "$0: missing file: $x" && e
 dirname=$(basename $enhan_dir)
 exp_dir=exp/tf_masking/$dirname && mkdir -p $exp_dir
 
-# if numpy=true, prepare mask.scp first
-if $numpy; then
-  [ ! -d $2 ] && echo "$0: $2 is expected to be directory" && exit 1
+# if second parameter is a directory
+if [ -d $2 ]; then
+  [ $mask_format != "numpy" ] && echo "$0: $2 is a directory, expected to set --mask-format numpy" && exit 1
   find $2 -name "*.npy" | awk -F '/' '{printf("%s\t%s\n", $NF, $0)}' | \
     sed 's:\.npy::' | sort -k1 > $exp_dir/masks.scp
   echo "$0: Got $(cat $exp_dir/masks.scp | wc -l) numpy's masks"
 else
-  [ -d $2 ] && echo "$0: $2 is a directory, expected .scp" && exit 1
   cp $2 $exp_dir/masks.scp
 fi
 
@@ -60,17 +57,16 @@ for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_dir/wav.$n.scp"; done
 
 ./utils/split_scp.pl $wav_scp $split_wav_scp || exit 1
 
-masking_opts=$(cat $stft_conf | xargs)
-$numpy && masking_opts="$masking_opts --numpy"
-$transpose && masking_opts="$masking_opts --transpose-mask"
-$keep_length && masking_opts="$masking_opts --keep-length"
-[ ! -z $phase_ref ] && masking_opts="$masking_opts --phase-ref $phase_ref"
+mask_opts=$(cat $stft_conf | xargs)
+$keep_length && mask_opts="$mask_opts --keep-length"
+[ ! -z $phase_ref ] && mask_opts="$mask_opts --phase-ref $phase_ref"
 
 mkdir -p $enhan_dir
 $cmd JOB=1:$nj $exp_dir/log/wav_separate.JOB.scp \
   ./scripts/sptk/wav_separate.py \
   --sample-frequency $fs \
-  $masking_opts \
+  --mask-format $mask_format \
+  $mask_opts \
   $exp_dir/wav.JOB.scp \
   $exp_dir/masks.scp \
   $enhan_dir 

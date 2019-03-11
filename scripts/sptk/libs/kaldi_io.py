@@ -29,18 +29,14 @@ def peek_char(fd):
     # fd.seek(-1, 1)
     # see https://stackoverflow.com/questions/25070952/python-why-does-peek1-return-8k-bytes-instead-of-1-byte
     peek_c = fd.peek(1)[:1]
-    if type(peek_c) == bytes:
-        peek_c = bytes.decode(peek_c)
-    return peek_c
+    return bytes.decode(peek_c)
 
 
 def expect_space(fd):
     """ 
         Generally, there is a space following the string token, we need to consume it
     """
-    space = fd.read(1)
-    if type(space) == bytes:
-        space = bytes.decode(space)
+    space = bytes.decode(fd.read(1))
     throw_on_error(space == ' ', 'Expect space, but gets {}'.format(space))
 
 
@@ -48,10 +44,7 @@ def expect_binary(fd):
     """ 
         Read the binary flags in kaldi, the scripts only support reading egs in binary format
     """
-    flags = fd.read(2)
-    if type(flags) == bytes:
-        flags = bytes.decode(flags)
-    # throw_on_error(flags == '\0B', 'Expect binary flags \'B\', but gets {}'.format(flags))
+    flags = bytes.decode(fd.read(2))
     throw_on_error(flags == '\0B',
                    'Expect binary flags \'\\0B\', but gets {}'.format(flags))
 
@@ -62,9 +55,7 @@ def read_token(fd):
     """
     key = ''
     while True:
-        c = fd.read(1)
-        if type(c) == bytes:
-            c = bytes.decode(c)
+        c = bytes.decode(fd.read(1))
         if c == ' ' or c == '':
             break
         key += c
@@ -75,10 +66,7 @@ def write_token(fd, token):
     """
         Write a string token, following a space symbol
     """
-    if type(token) == str:
-        token = str.encode(token)
-    fd.write(token)
-    fd.write(str.encode(' '))
+    fd.write(str.encode(token + " "))
 
 
 def expect_token(fd, ref):
@@ -111,9 +99,9 @@ def write_bytes(fd, np_obj):
     """
         Write np.ndarray's raw data out
     """
-    if not isinstance(np_obj, np.ndarray):
-        raise RuntimeError("write_bytes expected ndarray, but got {}".format(
-            type(np_obj)))
+    throw_on_error(
+        isinstance(np_obj, np.ndarray),
+        "write_bytes expected ndarray, but got {}".format(type(np_obj)))
     fd.write(np_obj.tobytes())
 
 
@@ -121,9 +109,7 @@ def read_int32(fd):
     """ 
         Read a value in type 'int32' in kaldi setup
     """
-    int_size = fd.read(1)
-    if type(int_size) == bytes:
-        int_size = bytes.decode(int_size)
+    int_size = bytes.decode(fd.read(1))
     throw_on_error(int_size == '\04',
                    'Expect \'\\04\', but gets {}'.format(int_size))
     int_str = fd.read(4)
@@ -144,10 +130,7 @@ def read_float32(fd):
     """ 
         Read a value in type 'BaseFloat' in kaldi setup
     """
-    float_size = fd.read(1)
-    # throw_on_error(float_size == '\04')
-    if type(float_size) == bytes:
-        float_size = bytes.decode(float_size)
+    float_size = bytes.decode(fd.read(1))
     throw_on_error(float_size == '\04',
                    'Expect \'\\04\', but gets {}'.format(float_size))
     float_str = fd.read(4)
@@ -164,6 +147,8 @@ def read_common_mat(fd):
     """
     mat_type = read_token(fd)
     print_info('\tType of the common matrix: {}'.format(mat_type))
+    throw_on_error(mat_type in ['FM', 'DM'],
+                   "Unknown matrix type: {}".format(mat_type))
     float_size = 4 if mat_type == 'FM' else 8
     float_type = np.float32 if mat_type == 'FM' else np.float64
     num_rows = read_int32(fd)
@@ -182,8 +167,8 @@ def write_common_mat(fd, mat):
     assert mat.dtype == np.float32 or mat.dtype == np.float64
     mat_type = 'FM' if mat.dtype == np.float32 else 'DM'
     write_token(fd, mat_type)
-    if mat.ndim != 2:
-        raise RuntimeError("write_common_mat expect 2D-array")
+    throw_on_error(mat.ndim == 2, "Only support 2D matrix, "
+                   "but got {:d}".format(mat.ndim))
     num_rows, num_cols = mat.shape
     write_int32(fd, num_rows)
     write_int32(fd, num_cols)
@@ -229,6 +214,8 @@ def read_float_vec(fd):
         see matrix/kaldi-vector.cc
     """
     vec_type = read_token(fd)
+    throw_on_error(vec_type in ['FV', 'DV'],
+                   "Unknown vector type: {}".format(vec_type))
     print_info('\tType of the common vector: {}'.format(vec_type))
     float_size = 4 if vec_type == 'FV' else 8
     float_type = np.float32 if vec_type == 'FV' else np.float64
@@ -245,8 +232,9 @@ def write_float_vec(fd, vec):
     assert vec.dtype == np.float32 or vec.dtype == np.float64
     vec_type = 'FV' if vec.dtype == np.float32 else 'DV'
     write_token(fd, vec_type)
-    if vec.ndim != 1:
-        raise RuntimeError("write_float_vec expect 1D-vector")
+    throw_on_error(
+        vec.ndim == 1, "Only support vector, but got "
+        "{:d}D matrix".format(vec.ndim))
     dim = vec.size
     write_int32(fd, dim)
     write_bytes(fd, vec)

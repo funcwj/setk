@@ -62,11 +62,18 @@ for n in $(seq $nj); do wav_split_scp="$wav_split_scp $exp_dir/wav.$n.scp"; done
 name="fbank"
 dir=$(basename $src_dir)
 
-$cmd JOB=1:$nj $exp_dir/log/compute_fbank_$dir.JOB.log \
-  ./scripts/sptk/compute_fbank.py \
-  $fbank_opts $exp_dir/wav.JOB.scp - \| \
-  copy-feats --compress=$compress ark:- \
-  ark,scp:$dst_dir/$dir.$name.JOB.ark,$dst_dir/$dir.$name.JOB.scp 
+if $compress ; then
+  $cmd JOB=1:$nj $exp_dir/log/compute_fbank_$dir.JOB.log \
+    ./scripts/sptk/compute_fbank.py \
+    $fbank_opts $exp_dir/wav.JOB.scp - \| \
+    copy-feats --compress=$compress ark:- \
+    ark,scp:$dst_dir/$dir.$name.JOB.ark,$dst_dir/$dir.$name.JOB.scp
+else
+  $cmd JOB=1:$nj $exp_dir/log/compute_fbank_$dir.JOB.log \
+    ./scripts/sptk/compute_fbank.py $fbank_opts \
+    --scp $dst_dir/$dir.$name.JOB.scp \
+    $exp_dir/wav.JOB.scp $dst_dir/$dir.$name.JOB.ark
+fi
 
 cat $dst_dir/$dir.$name.*.scp | sort -k1 > $src_dir/feats.scp
 
