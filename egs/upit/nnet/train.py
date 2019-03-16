@@ -23,8 +23,11 @@ def run(args):
     trainer = PermutationTrainer(
         nnet, gpuid=args.gpu, checkpoint=args.checkpoint, **trainer_conf)
 
-    for conf, fname in zip([nnet_conf, feats_conf, trainer_conf],
-                           ["mdl.json", "feats.json", "trainer.json"]):
+    data_conf = {"train_data": train_data, "dev_data": dev_data}
+    confs = [nnet_conf, feats_conf, trainer_conf, data_conf]
+    names = ["mdl.json", "feats.json", "trainer.json", "data.conf"]
+
+    for conf, fname in zip(confs, names):
         dump_json(conf, args.checkpoint, fname)
 
     feats_conf["shuf"] = True

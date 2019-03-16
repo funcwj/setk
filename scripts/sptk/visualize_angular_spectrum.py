@@ -58,16 +58,16 @@ if __name__ == '__main__':
         "egs: ./visualize_angular_spectrum.py a.ark --cache-dir demo",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        'srp_ark',
+        "srp_ark",
         type=str,
         help="Path of augular spectrum in kaldi\'s archive format")
     parser.add_argument(
-        '--frame-shift',
+        "--frame-hop",
         type=int,
         default=16,
         help="Frame shift in ms")
     parser.add_argument(
-        '--cache-dir',
+        "--cache-dir",
         type=str,
         default="figure",
         help="Location to dump pictures")

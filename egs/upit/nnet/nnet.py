@@ -63,22 +63,24 @@ class Nnet(th.nn.Module):
                  non_linear="relu",
                  dropout=0.0):
         super(Nnet, self).__init__()
-        if non_linear not in ["relu", "sigmoid", "tanh"]:
+        support_non_linear = {
+            "relu": F.relu,
+            "sigmoid": th.sigmoid,
+            "tanh": th.tanh
+        }
+        if non_linear not in support_non_linear:
             raise ValueError(
                 "Unsupported non-linear type:{}".format(non_linear))
         self.num_spks = num_spks
+        self.num_bins = num_bins
+
         self.rnn = TorchRNN(feats_dim, **rnn_conf)
         self.drops = th.nn.Dropout(p=dropout)
         self.linear = th.nn.ModuleList([
             th.nn.Linear(self.rnn.output_dim, num_bins)
             for _ in range(self.num_spks)
         ])
-        self.non_linear = {
-            "relu": F.relu,
-            "sigmoid": F.sigmoid,
-            "tanh": F.tanh
-        }[non_linear]
-        self.num_bins = num_bins
+        self.non_linear = support_non_linear[non_linear]
 
     def forward(self, x, train=True):
         x = self.rnn(x)

@@ -82,7 +82,7 @@ if __name__ == "__main__":
         type=str,
         help="Read specifier of archives or directory of ndarrays")
     parser.add_argument(
-        "--frame-shift", type=int, default=16, help="Frame shift in ms")
+        "--frame-hop", type=int, default=16, help="Frame shift in ms")
     parser.add_argument(
         "--frequency", type=int, default=16000, help="Sample frequency(Hz)")
     parser.add_argument(

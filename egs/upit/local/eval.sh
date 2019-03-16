@@ -36,7 +36,7 @@ if [ $stage -le 2 ]; then
   for spk in $(ls $enhan_dir); do
     ./scripts/run_tf_masking.sh \
       --keep-length true \
-      --numpy true \
+      --mask-format numpy \
       --stft-conf conf/16k.stft.conf \
       --nj $nj \
       $data_dir/test/mix/wav.scp \
