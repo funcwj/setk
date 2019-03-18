@@ -27,7 +27,7 @@ class NumpyReader(object):
             yield key, np.load(path)
 
 
-def save_figure(key, mat, dest, cmap="jet", shift=10, frequency=16000):
+def save_figure(key, mat, dest, cmap="jet", hop=10, frequency=16000):
     num_frames, num_bins = mat.shape
     plt.figure()
     plt.imshow(
@@ -35,7 +35,7 @@ def save_figure(key, mat, dest, cmap="jet", shift=10, frequency=16000):
     plt.title(key)
     xp = np.linspace(0, num_frames - 1, 5)
     yp = np.linspace(0, num_bins - 1, 6)
-    plt.xticks(xp, ["{:.2f}".format(t) for t in (xp * shift)])
+    plt.xticks(xp, ["{:.2f}".format(t) for t in (xp * hop)])
     plt.yticks(
         yp,
         ["{:.1f}".format(t) for t in np.linspace(0, frequency / 2, 6) / 1000])
@@ -65,7 +65,7 @@ def run(args):
             mat,
             os.path.join(args.cache_dir, key.replace('.', '-')),
             cmap=args.cmap,
-            shift=args.frame_shift * 1e-3,
+            hop=args.frame_hop * 1e-3,
             frequency=args.frequency)
 
 

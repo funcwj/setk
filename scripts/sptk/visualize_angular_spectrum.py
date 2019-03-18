@@ -15,7 +15,7 @@ from libs.utils import get_logger
 logger = get_logger(__name__)
 
 
-def save_figure(key, mat, dest, shift=16, samp_tdoa=False):
+def save_figure(key, mat, dest, hop=16, samp_tdoa=False):
     num_frames, num_doas = mat.shape
     plt.figure()
     # binary: black -> higher
@@ -29,7 +29,7 @@ def save_figure(key, mat, dest, shift=16, samp_tdoa=False):
     plt.colorbar()
     xp = np.linspace(0, num_frames - 1, 5)
     yp = np.linspace(0, num_doas - 1, 7)
-    plt.xticks(xp, ["{:.02f}".format(t) for t in (xp * shift)])
+    plt.xticks(xp, ["{:.02f}".format(t) for t in (xp * hop)])
     plt.yticks(yp, ["%d" % d for d in yp])
     plt.xlabel("Time(s)")
     plt.ylabel("DoA" if not samp_tdoa else "TDoA Index")
@@ -49,7 +49,7 @@ def run(args):
             key,
             mat,
             dst,
-            shift=args.frame_shift * 1e-3,
+            hop=args.frame_hop * 1e-3,
             samp_tdoa=args.samp_tdoa)
 
 if __name__ == '__main__':
