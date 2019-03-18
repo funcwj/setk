@@ -65,7 +65,7 @@ if __name__ == "__main__":
         type=str,
         default="vector",
         choices=["matrix", "vector"],
-        help="If true, treat input as matrix archives")
+        help="Input data type")
     parser.add_argument(
         "--dim",
         type=int,

@@ -433,10 +433,11 @@ class ArchiveWriter(Writer):
         Writer for kaldi's scripts && archive(for BaseFloat matrix)
     """
 
-    def __init__(self, ark_path, scp_path=None, matrix=True):
+    def __init__(self, ark_path, scp_path=None, matrix=True, dtype=np.float32):
         if not ark_path:
             raise RuntimeError("Seem configure path of archives as None")
         super(ArchiveWriter, self).__init__(ark_path, scp_path)
+        self.dtype = dtype
         self.dump_func = io.write_common_mat if matrix else io.write_float_vec
 
     def write(self, key, obj):
@@ -448,6 +449,8 @@ class ArchiveWriter(Writer):
         if self.path_or_dir != "-":
             offset = self.ark_file.tell()
         io.write_binary_symbol(self.ark_file)
+        # cast to target type
+        obj = obj.astype(self.dtype)
         self.dump_func(self.ark_file, obj)
         if self.scp_file:
             record = "{0}\t{1}:{2}\n".format(key,
