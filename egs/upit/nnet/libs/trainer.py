@@ -148,6 +148,7 @@ class PermutationTrainer(object):
         self.logger.info("Model summary:\n{}".format(nnet))
         self.logger.info("Loading model to GPUs:{}, #param: {:.2f}M".format(
             gpuid, self.num_params))
+        self.logger.info("Use {} loss".format(objf))
         if clip_norm:
             self.logger.info(
                 "Gradient clipping by {}, default L2".format(clip_norm))

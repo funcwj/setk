@@ -3,7 +3,7 @@ num_bins = 257
 feats_dim = num_bins
 num_spks = 2
 
-lstm_conf = {
+rnn_conf = {
     "rnn": "lstm",
     "num_layers": 3,
     "hidden_size": 600,
@@ -15,7 +15,7 @@ nnet_conf = {
     "feats_dim": feats_dim,
     "num_bins": num_bins,
     "num_spks": num_spks,
-    "rnn_conf": lstm_conf,
+    "rnn_conf": rnn_conf,
     "non_linear": "relu",
     "dropout": 0.0
 }

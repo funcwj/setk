@@ -46,11 +46,8 @@ def run(args):
     for key, mat in ark_reader:
         dst = os.path.join(args.cache_dir, key.replace('.', '-'))
         save_figure(
-            key,
-            mat,
-            dst,
-            hop=args.frame_hop * 1e-3,
-            samp_tdoa=args.samp_tdoa)
+            key, mat, dst, hop=args.frame_hop * 1e-3, samp_tdoa=args.tdoa)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -62,10 +59,7 @@ if __name__ == '__main__':
         type=str,
         help="Path of augular spectrum in kaldi\'s archive format")
     parser.add_argument(
-        "--frame-hop",
-        type=int,
-        default=16,
-        help="Frame shift in ms")
+        "--frame-hop", type=int, default=16, help="Frame shift in ms")
     parser.add_argument(
         "--cache-dir",
         type=str,
@@ -73,7 +67,7 @@ if __name__ == '__main__':
         help="Location to dump pictures")
     parser.add_argument(
         "--sample-tdoa",
-        dest="samp_tdoa",
+        dest="tdoa",
         action="store_true",
         help="Sample TDoA instead of DoA when computing spectrum")
     args = parser.parse_args()

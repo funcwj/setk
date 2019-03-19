@@ -19,6 +19,16 @@ logger = get_logger(__name__)
 
 class NnetComputer(object):
     def __init__(self, cpt_dir, gpuid):
+        # handle device
+        self.device = th.device(
+            "cpu" if gpuid < 0 else "cuda:{}".format(gpuid))
+        # load nnet
+        nnet = self._load_nnet(cpt_dir)
+        self.nnet = nnet.to(self.device) if gpuid >= 0 else nnet
+        # set eval model
+        self.nnet.eval()
+
+    def _load_nnet(self, cpt_dir):
         # load nnet conf
         nnet_conf = load_json(cpt_dir, "mdl.json")
         nnet = Nnet(**nnet_conf)
@@ -28,20 +38,14 @@ class NnetComputer(object):
         nnet.load_state_dict(cpt["model_state_dict"])
         logger.info("Load checkpoint from {}, epoch {:d}".format(
             cpt_fname, cpt["epoch"]))
-        # handle device
-        self.device = th.device(
-            "cpu" if gpuid < 0 else "cuda:{}".format(gpuid))
-        self.nnet = nnet.to(self.device) if gpuid >= 0 else nnet
-        # set eval model
-        self.nnet.eval()
+        return nnet
 
     def compute(self, feats):
         def tensor(mat):
             return th.tensor(mat, dtype=th.float32, device=self.device)
 
         with th.no_grad():
-            feats = tensor(feats)
-            spk_masks = self.nnet(feats, train=False)
+            spk_masks = self.nnet(tensor(feats), train=False)
             return [m.detach().cpu().numpy() for m in spk_masks]
 
 

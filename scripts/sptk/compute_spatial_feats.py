@@ -12,21 +12,23 @@ import numpy as np
 from libs.utils import get_logger, nfft
 from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, ArchiveWriter
-from libs.spatial import srp_phat, ipd, msc
+from libs.spatial import srp_phat_linear, ipd, msc
 
 logger = get_logger(__name__)
 
 
 def compute_spatial_feats(args, S):
     if args.type == "srp":
+        num_ffts = nfft(
+            args.frame_len) if args.round_power_of_two else args.frame_len
         srp_kwargs = {
             "sample_frequency": args.samp_frequency,
             "num_doa": args.num_doa,
-            "num_bins": nfft(args.frame_len) // 2 + 1,
+            "num_bins": num_ffts // 2 + 1,
             "samp_doa": not args.samp_tdoa
         }
         linear_topo = list(map(float, args.linear_topo.split(",")))
-        return srp_phat(S, linear_topo, **srp_kwargs)
+        return srp_phat_linear(S, linear_topo, **srp_kwargs)
     elif args.type == "ipd":
         if S.ndim < 3:
             raise ValueError("Only one-channel STFT available")

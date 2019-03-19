@@ -5,6 +5,8 @@ Some functions for spatial feature computation
 """
 import numpy as np
 
+from .utils import EPSILON
+
 
 def linear_tdoa_grid(dist,
                      speed=340,
@@ -14,7 +16,7 @@ def linear_tdoa_grid(dist,
                      num_doa=181,
                      max_doa=np.pi):
     """
-    Construct transform matrix T:
+    Construct transform matrix T for linear array:
         T_{ij} = 2 pi omega_i tau_j
         where i = 0..F j == 0..D-1
     """
@@ -22,18 +24,19 @@ def linear_tdoa_grid(dist,
     if samp_doa:
         # sample doa from 0 to pi
         doa_samp = np.linspace(0, max_doa, num_doa)
-        tdoa = np.cos(doa_samp) * dist / speed
+        tau = np.cos(doa_samp) * dist / speed
     else:
         # sample tdoa
         max_tdoa = dist / speed
-        tdoa = np.linspace(max_tdoa, -max_tdoa, num_doa)
-    omega = np.linspace(0, sample_frequency / 2, num_bins)
-    return np.exp(np.outer(2j * np.pi * omega, tdoa))
+        tau = np.linspace(max_tdoa, -max_tdoa, num_doa)
+    # omega = 2 * pi * fk
+    omega = np.linspace(0, sample_frequency / 2, num_bins) * 2 * np.pi
+    return np.exp(1j * np.outer(omega, tau))
 
 
-def gcc_phat(si, sj, dij, normalize=True, apply_floor=True, **kwargs):
+def gcc_phat_linear(si, sj, dij, normalize=True, apply_floor=True, **kwargs):
     """
-    SRP-PHAT algorithm
+    GCC-PHAT algorithm for linear array
     Arguments:
         si, sj: shape as T x F
         dij: distance between microphone i and j
@@ -41,20 +44,21 @@ def gcc_phat(si, sj, dij, normalize=True, apply_floor=True, **kwargs):
     Return:
         shape as T x D
     """
-    coherence = si * sj.conj() / (np.abs(si) * np.abs(sj))
+    # NOTE: equal to
+    # coherence = si * sj.conj() / (np.maximum(np.abs(si) * np.abs(sj), EPSILON))
+    coherence = np.exp(1j * (np.angle(si) - np.angle(sj)))
     # transform: F x D
     transform = linear_tdoa_grid(dij, **kwargs)
     spectrum = np.real(coherence @ transform)
     if normalize:
-        spectrum = spectrum / np.max(np.abs(spectrum))
+        spectrum = spectrum / np.max(np.maximum(np.abs(spectrum), EPSILON))
     if apply_floor:
         spectrum = np.maximum(spectrum, 0)
     return spectrum
 
-
-def srp_phat(S, d, normalize=True, apply_floor=True, **kwargs):
+def srp_phat_linear(S, d, normalize=True, apply_floor=True, **kwargs):
     """
-    SRP-PHAT algorithm
+    SRP-PHAT algorithm for linear array
     Arguments:
         S: multi-channel STFT, shape as N x T x F
         d: topology for linear microphone arrays
@@ -71,14 +75,14 @@ def srp_phat(S, d, normalize=True, apply_floor=True, **kwargs):
                 len(d), N))
     if S.ndim == 2:
         raise ValueError("Only one-channel STFT available")
-    gcc = gcc_phat(S[0], S[1], d[1] - d[0], **kwargs)
+    gcc = gcc_phat_linear(S[0], S[1], d[1] - d[0], **kwargs)
     if N == 2:
         return gcc
     srp = np.zeros_like(gcc)
     for i in range(N - 1):
         for j in range(i, N - 1):
-            srp += gcc_phat(S[i], S[j], d[j] - d[i], normalize, apply_floor,
-                            **kwargs)
+            srp += gcc_phat_linear(S[i], S[j], d[j] - d[i], normalize,
+                                   apply_floor, **kwargs)
     return srp * 2 / (N * (N - 1))
 
 

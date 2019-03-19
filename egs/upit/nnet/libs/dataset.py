@@ -112,8 +112,8 @@ class PITLoader(object):
             eg = self._make_egs(uttid)
             if eg is not None:
                 if self.spatial:
-                    spatial = self.spatial[uttid]
-                    feats = np.hstack([feats, spatial])
+                    spa = self.spatial[uttid]
+                    feats = np.hstack([feats, spa])
                 eg["feats"] = feats
                 yield eg
 
