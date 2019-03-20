@@ -27,23 +27,23 @@ class NumpyReader(object):
             yield key, np.load(path)
 
 
-def save_figure(key, mat, dest, cmap="jet", hop=10, frequency=16000):
+def save_figure(key, mat, dest, cmap="jet", hop=10, sr=16000, size=4):
     num_frames, num_bins = mat.shape
-    plt.figure()
+    # plt.figure(figsize=(size * t2f, size) if t2f <= 1 else (size, size / t2f))
+    plt.figure(figsize=(max(size * num_frames / num_bins, size) + 2, size + 2))
     plt.imshow(
         mat.T, origin="lower", cmap=cmap, aspect="auto", interpolation="none")
     plt.title(key)
     xp = np.linspace(0, num_frames - 1, 5)
     yp = np.linspace(0, num_bins - 1, 6)
     plt.xticks(xp, ["{:.2f}".format(t) for t in (xp * hop)])
-    plt.yticks(
-        yp,
-        ["{:.1f}".format(t) for t in np.linspace(0, frequency / 2, 6) / 1000])
-    plt.xlabel('Time(s)')
-    plt.ylabel('Frequency(kHz)')
+    plt.yticks(yp,
+               ["{:.1f}".format(t) for t in np.linspace(0, sr / 2, 6) / 1000])
+    plt.xlabel("Time(s)")
+    plt.ylabel("Frequency(kHz)")
     plt.savefig(dest)
     plt.close()
-    logger.info('Save utterance {} to {}.png'.format(key, dest))
+    logger.info("Save utterance {} to {}.png".format(key, dest))
 
 
 def run(args):
@@ -66,7 +66,7 @@ def run(args):
             os.path.join(args.cache_dir, key.replace('.', '-')),
             cmap=args.cmap,
             hop=args.frame_hop * 1e-3,
-            frequency=args.frequency)
+            sr=args.sr)
 
 
 # now support input from stdin
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--frame-hop", type=int, default=16, help="Frame shift in ms")
     parser.add_argument(
-        "--frequency", type=int, default=16000, help="Sample frequency(Hz)")
+        "--sr", type=int, default=16000, help="Sample frequency (Hz)")
     parser.add_argument(
         "--cache-dir",
         type=str,

@@ -15,9 +15,9 @@ from libs.utils import get_logger
 logger = get_logger(__name__)
 
 
-def save_figure(key, mat, dest, hop=16, samp_tdoa=False):
+def save_figure(key, mat, dest, hop=16, samp_tdoa=False, size=3):
     num_frames, num_doas = mat.shape
-    plt.figure()
+    plt.figure(figsize=(max(size * num_frames / num_doas, size + 2), size + 2))
     # binary: black -> higher
     plt.imshow(
         mat.T,
@@ -26,7 +26,7 @@ def save_figure(key, mat, dest, hop=16, samp_tdoa=False):
         aspect="auto",
         interpolation="none")
     plt.title(key)
-    plt.colorbar()
+    # plt.colorbar()
     xp = np.linspace(0, num_frames - 1, 5)
     yp = np.linspace(0, num_doas - 1, 7)
     plt.xticks(xp, ["{:.02f}".format(t) for t in (xp * hop)])
