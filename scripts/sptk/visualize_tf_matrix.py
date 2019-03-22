@@ -27,7 +27,7 @@ class NumpyReader(object):
             yield key, np.load(path)
 
 
-def save_figure(key, mat, dest, cmap="jet", hop=10, sr=16000, size=4):
+def save_figure(key, mat, dest, cmap="jet", hop=10, sr=16000, size=3):
     num_frames, num_bins = mat.shape
     # plt.figure(figsize=(size * t2f, size) if t2f <= 1 else (size, size / t2f))
     plt.figure(figsize=(max(size * num_frames / num_bins, size) + 2, size + 2))
@@ -66,7 +66,8 @@ def run(args):
             os.path.join(args.cache_dir, key.replace('.', '-')),
             cmap=args.cmap,
             hop=args.frame_hop * 1e-3,
-            sr=args.sr)
+            sr=args.sr,
+            size=args.size)
 
 
 # now support input from stdin
@@ -105,5 +106,10 @@ if __name__ == "__main__":
         choices=["binary", "jet", "hot"],
         default="jet",
         help="Colormap used when save figures")
+    parser.add_argument(
+        "--size",
+        type=int,
+        default=3,
+        help="Minimum height of images (in inches)")
     args = parser.parse_args()
     run(args)

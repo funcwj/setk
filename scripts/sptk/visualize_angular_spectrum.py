@@ -46,7 +46,12 @@ def run(args):
     for key, mat in ark_reader:
         dst = os.path.join(args.cache_dir, key.replace('.', '-'))
         save_figure(
-            key, mat, dst, hop=args.frame_hop * 1e-3, samp_tdoa=args.tdoa)
+            key,
+            mat,
+            dst,
+            hop=args.frame_hop * 1e-3,
+            samp_tdoa=args.tdoa,
+            size=args.size)
 
 
 if __name__ == '__main__':
@@ -70,5 +75,10 @@ if __name__ == '__main__':
         dest="tdoa",
         action="store_true",
         help="Sample TDoA instead of DoA when computing spectrum")
+    parser.add_argument(
+        "--size",
+        type=int,
+        default=3,
+        help="Minimum height of images (in inches)")
     args = parser.parse_args()
     run(args)
