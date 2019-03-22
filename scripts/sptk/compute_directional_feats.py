@@ -31,7 +31,7 @@ def run(args):
     MaskReader = {"numpy": NumpyReader, "kaldi": ScriptReader}
     mask_reader = MaskReader[args.fmt](args.mask_scp)
 
-    num_bins = nfft(args.frame_length) // 2 + 1
+    num_bins = nfft(args.frame_len) // 2 + 1
     beamformer = MvdrBeamformer(num_bins)
 
     num_done = 0

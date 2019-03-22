@@ -93,7 +93,7 @@ else
     ./scripts/sptk/compute_spatial_feats.py \
     --type $feats $spatial_opts \
     --scp $dst_dir/$name.$feats.JOB.scp \
-    $exp_dir/wav.JOB.scp $name.$feats.JOB.ark
+    $exp_dir/wav.JOB.scp $dst_dir/$name.$feats.JOB.ark
 fi 
 
 cat $dst_dir/$name.$feats.*.scp | sort -k1 > $src_dir/$feats.scp

@@ -34,7 +34,8 @@ def run(args):
     samples = []
     feats_reader = ArchiveReader(
         args.rspec_or_dir,
-        matrix=(args.matrix)) if not is_dir else NumpyReader(args.rspec_or_dir)
+        matrix=(args.input == "matrix")) if not is_dir else NumpyReader(
+            args.rspec_or_dir)
     for _, feats in feats_reader:
         if feats.ndim != 1:
             feats = np.average(feats, 0)
@@ -52,17 +53,19 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=
-        "Command to visualize embeddings(egs: ivector/xvector/dvector) using PCA transform",
+        "Command to visualize embeddings (egs: ivector/xvector/dvector) "
+        "using PCA transform",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "rspec_or_dir",
         type=str,
         help="Read specifier of archives/Directory of ndarrays")
     parser.add_argument(
-        "--input-matrix",
-        action="store_true",
-        dest="matrix",
-        help="If true, treat input as matrix archives")
+        "--input",
+        type=str,
+        default="vector",
+        choices=["matrix", "vector"],
+        help="Input data type")
     parser.add_argument(
         "--dim",
         type=int,

@@ -35,6 +35,7 @@ def sigmoid(x, a=1, b=0):
     s[~m] = e / (1 + e)
     return s
 
+
 def tangent(x, K=10, C=0.1):
     """
     Use tangent to compress complex mask, avoid overflow

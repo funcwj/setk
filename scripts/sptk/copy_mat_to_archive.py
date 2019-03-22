@@ -43,7 +43,8 @@ def run(args):
                 writer.write(key, mat)
             num_mat += 1
         if stack:
-            writer.write(filekey(args.dst_ark), np.vstack(mat_list))
+            mat = np.vstack(mat_list)
+            writer.write(filekey(args.dst_ark), mat)
             logger.info("Merge {0} matrix into archive {1}, shape as "
                         "{2[0]}x{2[1]}".format(num_mat, args.dst_ark,
                                                mat.shape))
@@ -78,7 +79,7 @@ if __name__ == "__main__":
         type=str,
         default="",
         help="Operations to applied on source "
-        "matrix/vector, separated by \",\", now support"
+        "matrix/vector, separated by \",\", now support "
         "trans/log/minus/stack")
     parser.add_argument(
         "--src-format",

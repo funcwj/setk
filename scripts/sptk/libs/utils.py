@@ -2,6 +2,7 @@
 # wujian@2018
 
 import os
+import math
 import errno
 import warnings
 import logging
@@ -9,8 +10,9 @@ import logging
 import librosa as audio_lib
 # using wf to handle wave IO because it support better than librosa
 import scipy.io.wavfile as wf
+import scipy.signal as ss
+
 import numpy as np
-import scipy as sp
 
 MAX_INT16 = np.iinfo(np.int16).max
 EPSILON = np.finfo(np.float32).eps
@@ -23,7 +25,7 @@ __all__ = [
 
 def nfft(window_size):
     # nextpow2
-    return int(2**np.ceil(np.log2(window_size)))
+    return 2**math.ceil(math.log2(window_size))
 
 
 def cmat_abs(cmat):
@@ -105,7 +107,7 @@ def stft(samps,
     # pad fft size to power of two or left it same as frame length
     n_fft = nfft(frame_len) if round_power_of_two else frame_len
     if window == "sqrthann":
-        window = np.sqrt(sp.signal.hann(frame_len, sym=False))
+        window = ss.hann(frame_len, sym=False)**0.5
     # orignal stft accept samps(vector) and return matrix shape as F x T
     # NOTE for librosa.stft:
     # 1) win_length <= n_fft
@@ -146,7 +148,7 @@ def istft(stft_mat,
     if transpose:
         stft_mat = np.transpose(stft_mat)
     if window == "sqrthann":
-        window = np.sqrt(sp.signal.hann(frame_len, sym=False))
+        window = ss.hann(frame_len, sym=False)**0.5
     # orignal istft accept stft result(matrix, shape as FxT)
     samps = audio_lib.istft(
         stft_mat,

@@ -81,8 +81,14 @@ class PITLoader(object):
     A spectial PeruttLoader designed for PIT
     """
 
-    def __init__(self, processor, linear_x="", spatial="", linear_y=None):
+    def __init__(self,
+                 processor,
+                 linear_x="",
+                 spatial="",
+                 linear_y=None,
+                 truncated=False):
         self.processor = processor
+        self.truncated = truncated
         self.linear_x = ScriptReader(linear_x)
         self.linear_y = [ScriptReader(ly) for ly in linear_y]
         self.spatial = ScriptReader(spatial) if spatial else None
@@ -95,6 +101,9 @@ class PITLoader(object):
         if uttid in self.linear_x:
             eg["lx"] = self.linear_x[uttid]
             eg["ly"] = [reader[uttid] for reader in self.linear_y]
+            # truncated PSA
+            if self.truncated:
+                eg["ly"] = [np.minimum(eg["lx"], mat) for mat in eg["ly"]]
             return eg
         return None
 
@@ -103,8 +112,8 @@ class PITLoader(object):
             eg = self._make_egs(uttid)
             if eg is not None:
                 if self.spatial:
-                    spatial = self.spatial[uttid]
-                    feats = np.hstack([feats, spatial])
+                    spa = self.spatial[uttid]
+                    feats = np.hstack([feats, spa])
                 eg["feats"] = feats
                 yield eg
 
@@ -150,7 +159,7 @@ class UttLoader(object):
         Make one egs from a list of nnet example
         """
         egs = self.collate(eg_list)
-        egs["xlen"] = self.collate([len(eg) for eg in eg_list])
+        egs["tlen"] = self.collate([len(eg) for eg in eg_list])
         return egs
 
     def fetch_batch(self, drop_last=False):

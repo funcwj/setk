@@ -15,9 +15,9 @@ from libs.utils import get_logger
 logger = get_logger(__name__)
 
 
-def save_figure(key, mat, dest, shift=16, samp_tdoa=False):
+def save_figure(key, mat, dest, hop=16, samp_tdoa=False, size=3):
     num_frames, num_doas = mat.shape
-    plt.figure()
+    plt.figure(figsize=(max(size * num_frames / num_doas, size + 2), size + 2))
     # binary: black -> higher
     plt.imshow(
         mat.T,
@@ -26,10 +26,10 @@ def save_figure(key, mat, dest, shift=16, samp_tdoa=False):
         aspect="auto",
         interpolation="none")
     plt.title(key)
-    plt.colorbar()
+    # plt.colorbar()
     xp = np.linspace(0, num_frames - 1, 5)
     yp = np.linspace(0, num_doas - 1, 7)
-    plt.xticks(xp, ["{:.02f}".format(t) for t in (xp * shift)])
+    plt.xticks(xp, ["{:.02f}".format(t) for t in (xp * hop)])
     plt.yticks(yp, ["%d" % d for d in yp])
     plt.xlabel("Time(s)")
     plt.ylabel("DoA" if not samp_tdoa else "TDoA Index")
@@ -49,8 +49,10 @@ def run(args):
             key,
             mat,
             dst,
-            shift=args.frame_shift * 1e-3,
-            samp_tdoa=args.samp_tdoa)
+            hop=args.frame_hop * 1e-3,
+            samp_tdoa=args.tdoa,
+            size=args.size)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -58,23 +60,25 @@ if __name__ == '__main__':
         "egs: ./visualize_angular_spectrum.py a.ark --cache-dir demo",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        'srp_ark',
+        "srp_ark",
         type=str,
         help="Path of augular spectrum in kaldi\'s archive format")
     parser.add_argument(
-        '--frame-shift',
-        type=int,
-        default=16,
-        help="Frame shift in ms")
+        "--frame-hop", type=int, default=16, help="Frame shift in ms")
     parser.add_argument(
-        '--cache-dir',
+        "--cache-dir",
         type=str,
         default="figure",
         help="Location to dump pictures")
     parser.add_argument(
         "--sample-tdoa",
-        dest="samp_tdoa",
+        dest="tdoa",
         action="store_true",
         help="Sample TDoA instead of DoA when computing spectrum")
+    parser.add_argument(
+        "--size",
+        type=int,
+        default=3,
+        help="Minimum height of images (in inches)")
     args = parser.parse_args()
     run(args)

@@ -79,7 +79,11 @@ class ProgressReporter(object):
         }
 
 
-class Trainer(object):
+class PermutationTrainer(object):
+    """
+    Trainer on utterance-level PIT loss
+    """
+
     def __init__(self,
                  nnet,
                  checkpoint="checkpoint",
@@ -92,11 +96,14 @@ class Trainer(object):
                  factor=0.5,
                  logging_period=100,
                  resume=None,
+                 objf="L2",
                  no_impr=8):
         if not th.cuda.is_available():
             raise RuntimeError("CUDA device unavailable...exist")
         if not isinstance(gpuid, tuple):
             gpuid = (gpuid, )
+        if objf not in ["L2", "L1"]:
+            raise RuntimeError("Unknown loss: {}".format(objf))
         self.device = th.device("cuda:{}".format(gpuid[0]))
         self.gpuid = gpuid
         if checkpoint and not os.path.exists(checkpoint):
@@ -109,6 +116,7 @@ class Trainer(object):
         self.logging_period = logging_period
         self.cur_epoch = 0  # zero based
         self.no_impr = no_impr  # early stop
+        self.objf = F.mse_loss if objf == "L2" else F.l1_loss
 
         if resume:
             if not os.path.exists(resume):
@@ -140,6 +148,7 @@ class Trainer(object):
         self.logger.info("Model summary:\n{}".format(nnet))
         self.logger.info("Loading model to GPUs:{}, #param: {:.2f}M".format(
             gpuid, self.num_params))
+        self.logger.info("Use {} loss".format(objf))
         if clip_norm:
             self.logger.info(
                 "Gradient clipping by {}, default L2".format(clip_norm))
@@ -175,7 +184,36 @@ class Trainer(object):
         return opt
 
     def compute_loss(self, egs):
-        raise NotImplementedError
+        """
+        For permutation invariant trainer, egs contains:
+            tlen: length of each utterance
+            feats: features that feed networks
+            lx: linear spectrogram of mixture
+            ly: linear spectrogram/phase sensitive magnitude of reference speakers
+        """
+        spk_masks = th.nn.parallel.data_parallel(
+            self.nnet, egs["feats"], device_ids=self.gpuid)
+
+        num_spks = len(egs["ly"])
+        num_utts = egs["tlen"].size(0)
+        utt_tlen = egs["tlen"].type_as(egs["feats"])
+
+        def loss(permute):
+            loss_for_permute = []
+            for s, t in enumerate(permute):
+                # L1 or L2, return N x T x F
+                mat_loss = self.objf(
+                    spk_masks[s] * egs["lx"], egs["ly"][t], reduction="none")
+                utt_loss = th.sum(mat_loss, (1, 2))
+                loss_for_permute.append(utt_loss)
+            loss_perutt = sum(loss_for_permute) / utt_tlen
+            return loss_perutt
+
+        # O(N!), could be optimized
+        # P x N
+        pscore = th.stack([loss(p) for p in permutations(range(num_spks))])
+        min_perutt, _ = th.min(pscore, dim=0)
+        return th.sum(min_perutt) / (num_spks * num_utts)
 
     def train(self, data_loader):
         self.nnet.train()
@@ -260,46 +298,3 @@ class Trainer(object):
                 break
         self.logger.info("Training for {:d}/{:d} epoches done!".format(
             self.cur_epoch, num_epochs))
-
-
-class PermutationTrainer(Trainer):
-    """
-    Trainer on utterance-level PIT loss
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(PermutationTrainer, self).__init__(*args, **kwargs)
-
-    def compute_loss(self, egs):
-        """
-        For permutation invariant trainer, egs contains:
-            xlen: length of each utterance
-            feats: features that feed networks
-            lx: linear spectrogram of mixture
-            ly: linear spectrogram/phase sensitive magnitude of reference speakers
-        """
-        spk_masks = th.nn.parallel.data_parallel(
-            self.nnet, egs["feats"], device_ids=self.gpuid)
-
-        num_utts = egs["xlen"].size(0)
-        num_spks = len(egs["ly"])
-        utt_xlen = egs["xlen"].type_as(egs["feats"])
-
-        def loss(permute):
-            loss_for_permute = []
-            for s, t in enumerate(permute):
-                ly = egs["ly"][t]
-                lx = spk_masks[s] * egs["lx"]
-                # N x T x F
-                mat_loss = F.mse_loss(lx, ly, reduction="none")
-                # N x 1
-                utt_loss = th.sum(mat_loss, (1, 2))
-                loss_for_permute.append(utt_loss)
-            loss_perutt = sum(loss_for_permute) / utt_xlen
-            return loss_perutt
-
-        # O(N!), could be optimized
-        # P x N
-        pscore = th.stack([loss(p) for p in permutations(range(num_spks))])
-        min_perutt, _ = th.min(pscore, dim=0)
-        return th.sum(min_perutt) / (num_spks * num_utts)

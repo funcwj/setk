@@ -31,8 +31,8 @@ def run(args):
         "window": args.window,
         "center": args.center,  # false to comparable with kaldi
         "apply_log": False,
-        "apply_pow": args.apply_pow,
-        "normalize": args.normalize,
+        "apply_pow": False,
+        "normalize": args.norm,
         "apply_abs": True,
         "transpose": False  # F x T
     }
@@ -53,7 +53,7 @@ def run(args):
             fbank = np.transpose(
                 np.dot(mel_weights,
                        spectrum[0] if spectrum.ndim == 3 else spectrum))
-            if args.apply_log:
+            if args.log:
                 fbank = np.log(np.maximum(fbank, EPSILON))
             writer.write(key, fbank)
     logger.info("Process {:d} utterances".format(len(spectrogram_reader)))
@@ -62,7 +62,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=
-        "Command to extract melspectrogram/fbank features(using sptk's librosa kernels) "
+        "Command to extract mel-spectrogram/fbank features(using sptk's librosa kernels) "
         "and write as kaldi's archives",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
@@ -92,15 +92,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--apply-log",
         action="store_true",
+        dest="log",
         help="If true, using log mel-spectrogram instead of linear")
-    parser.add_argument(
-        "--apply-pow",
-        action="store_true",
-        help="If true, extract power spectrum instead of magnitude spectrum")
     parser.add_argument(
         "--normalize-samples",
         action="store_true",
-        dest="normalize",
+        dest="norm",
         help="If true, normalize sample values between [-1, 1]")
     parser.add_argument(
         "--num-bins",
