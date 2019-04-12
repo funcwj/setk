@@ -103,7 +103,10 @@ if __name__ == "__main__":
     parser.add_argument("wav_scp", type=str, help="Input wav scripts")
     parser.add_argument("dst_dir", type=str, help="Output wav directory")
     parser.add_argument(
-        "--mode", type=int, default=2, help="Vad mode used in webrtc")
+        "--mode",
+        type=int,
+        default=2,
+        help="Vad mode used in webrtc (0->3 less->more aggressive)")
     parser.add_argument(
         "--chunk-size", type=int, default=20, help="Chunk size in ms(x10)")
     parser.add_argument(

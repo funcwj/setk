@@ -17,7 +17,7 @@ function usage {
   echo "  --nj          <nj>                 # number of jobs to run parallel, (default=40)"
   echo "  --cmd         <run.pl|queue.pl>    # how to run jobs, (default=run.pl)"
   echo "  --fs          <fs>                 # sample rate for input wave, (default=16000)"
-  echo "  --mode        <0-3>                # vad mode used in webrtc, (default=3)"
+  echo "  --mode        <0-3>                # vad mode (0->3 less->more aggressive) used in webrtc, (default=3)"
   echo "  --chunk-size  <chunk-size>         # frame length in ms, must be x10, (default=20)"
   echo "  --cache-size  <cache-size>         # number of frames remembered in history, (default=5)"
 }

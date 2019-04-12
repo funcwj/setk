@@ -1,6 +1,6 @@
 ## SETK: Speech Enhancement Tools integrated with Kaldi
 
-Here are some speech enhancement tools implemented integrated with kaldi. I use them for quick validation.
+Here are some speech enhancement tools integrated with kaldi. I use them for quick validation.
 
 ### Finished based on Kaldi
 
