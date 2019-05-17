@@ -382,16 +382,16 @@ if __name__ == "__main__":
                         type=str,
                         default="rir",
                         help="Directory to dump generated rirs")
-    parser.add_argument(
-        "--room-dim",
-        type=str,
-        default="7,10;7,10;3,4",
-        help="Constraint for room length/width/height, separated by semicolon")
-    parser.add_argument(
-        "--vertical-oriented",
-        action="store_true",
-        dest="vertical",
-        help="Orientation to place microphone array (vertical or horizontal)")
+    parser.add_argument("--room-dim",
+                        type=str,
+                        default="7,10;7,10;3,4",
+                        help="Constraint for room length/width/height, "
+                        "separated by semicolon")
+    parser.add_argument("--vertical-oriented",
+                        action="store_true",
+                        dest="vertical",
+                        help="Orientation to place microphone "
+                        "array (vertical or horizontal)")
     parser.add_argument("--array-height",
                         action=StrToFloatTupleAction,
                         default=(1, 2),
@@ -414,20 +414,21 @@ if __name__ == "__main__":
                         action=StrToFloatTupleAction,
                         default=(0, 0.1, 0.2, 0.3),
                         help="Linear topology for microphone arrays.")
-    parser.add_argument(
-        "--absorption-coefficient-range",
-        action=StrToFloatTupleAction,
-        dest="abs_range",
-        default=(0.2, 0.8),
-        help="Range of absorption coefficient of the room material. "
-        "Absorption coefficient is located between 0 and 1, if a material "
-        "offers no reflection, the absorption coefficient is close to 1.")
-    parser.add_argument(
-        "--rt60",
-        type=str,
-        default="0.2,0.7",
-        help="Range of RT60, this option has higher priority than "
-        "--absorption-coefficient-range")
+    parser.add_argument("--absorption-coefficient-range",
+                        action=StrToFloatTupleAction,
+                        dest="abs_range",
+                        default=(0.2, 0.8),
+                        help="Range of absorption coefficient "
+                        "of the room material. Absorption coefficient "
+                        "is located between 0 and 1, if a material "
+                        "offers no reflection, the absorption "
+                        "coefficient is close to 1.")
+    parser.add_argument("--rt60",
+                        type=str,
+                        default="0.2,0.7",
+                        help="Range of RT60, this option has "
+                        "higher priority than "
+                        "--absorption-coefficient-range")
     parser.add_argument("--sound-speed",
                         type=float,
                         dest="speed",
@@ -438,11 +439,11 @@ if __name__ == "__main__":
                         default=5,
                         help="Max number of times tried to generate rirs "
                         "for a specific room (retry * num_rirs)")
-    parser.add_argument(
-        "--source-distance",
-        action=StrToFloatTupleAction,
-        dest="src_dist",
-        default=(1, 3),
-        help="Range of distance between microphone arrays and speakers")
+    parser.add_argument("--source-distance",
+                        action=StrToFloatTupleAction,
+                        dest="src_dist",
+                        default=(1, 3),
+                        help="Range of distance between "
+                        "microphone arrays and speakers")
     args = parser.parse_args()
     run(args)

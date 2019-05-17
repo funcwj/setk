@@ -407,14 +407,15 @@ if __name__ == "__main__":
                         "-0.03,0.05196;-0.06,0;"
                         "-0.03,-0.05196;0.03,0.05196",
                         help="Linear topology for microphone arrays.")
-    parser.add_argument(
-        "--absorption-coefficient-range",
-        action=StrToFloatTupleAction,
-        dest="abs_range",
-        default=(0.2, 0.8),
-        help="Range of absorption coefficient of the room material. "
-        "Absorption coefficient is located between 0 and 1, if a material "
-        "offers no reflection, the absorption coefficient is close to 1.")
+    parser.add_argument("--absorption-coefficient-range",
+                        action=StrToFloatTupleAction,
+                        dest="abs_range",
+                        default=(0.2, 0.8),
+                        help="Range of absorption coefficient "
+                        "of the room material. Absorption coefficient "
+                        "is located between 0 and 1, if a material "
+                        "offers no reflection, the absorption "
+                        "coefficient is close to 1.")
     parser.add_argument("--rt60",
                         type=str,
                         default="0.2,0.7",
