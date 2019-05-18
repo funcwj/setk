@@ -2,10 +2,13 @@
 
 # wujian@2018
 """
-Generate scripts for RIR simulation which use rir-simulate (see src/rir-simulate.cc)
+Generate scripts for RIR simulation which use
+    1) rir-simulate (see src/rir-simulate.cc)
+    2) pyrirgen (see https://github.com/Marvin182/rir-generator)
 """
 import os
 import json
+import shutil
 import random
 import argparse
 
@@ -13,8 +16,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from libs.scheduler import run_command
-from libs.utils import get_logger, make_dir
+from libs.utils import get_logger, make_dir, write_wav
 from libs.opts import StrToFloatTupleAction, str_to_float_tuple
+
+try:
+    import pyrirgen
+    pyrirgen_available = True
+except ImportError:
+    pyrirgen_available = False
 
 logger = get_logger(__name__)
 
@@ -81,7 +90,8 @@ class Room(object):
         """
         Visualize microphone array and speakers in current room
         """
-        plt.figure()
+        ax = plt.subplot(111)
+        ax.set_aspect("equal", "box")
         # constraint length and width
         l, w, _ = self.size
         plt.xlim((0, l))
@@ -101,29 +111,49 @@ class Room(object):
         plt.savefig(fig)
         plt.close()
 
-    def rir(self, dump_dest, fs=16000, rir_nsamps=4096, v=340):
+    def rir(self, fname, fs=16000, rir_nsamps=4096, v=340):
         """
         Generate rir for current settings
         """
-        # format float
-        ffloat = lambda f: "{:.3f}".format(f)
-        # location for each microphone
-        loc_for_each_channel = [",".join(map(ffloat, p)) for p in self.rpos]
-        beta = ",".join(map(ffloat, self.beta)) if isinstance(
-            self.beta, list) else round(self.beta, 3)
-        run_command(
-            "rir-simulate --sound-velocity={v} --samp-frequency={sample_rate} "
-            "--hp-filter=true --number-samples={rir_samples} --beta={beta} "
-            "--room-topo={room_size} --receiver-location=\"{receiver_location}\" "
-            "--source-location={source_location} {dump_dest}".format(
-                v=v,
-                sample_rate=fs,
-                rir_samples=rir_nsamps,
-                room_size=",".join(map(ffloat, self.size)),
-                beta=beta,
-                receiver_location=";".join(loc_for_each_channel),
-                source_location=",".join(map(ffloat, self.spos)),
-                dump_dest=dump_dest))
+        if shutil.which("rir-simulate"):
+            # format float
+            ffloat = lambda f: "{:.3f}".format(f)
+            # location for each microphone
+            loc_for_each_channel = [
+                ",".join(map(ffloat, p)) for p in self.rpos
+            ]
+            beta = ",".join(map(ffloat, self.beta)) if isinstance(
+                self.beta, list) else round(self.beta, 3)
+            run_command(
+                "rir-simulate --sound-velocity={v} --samp-frequency={sample_rate} "
+                "--hp-filter=true --number-samples={rir_samples} --beta={beta} "
+                "--room-topo={room_size} --receiver-location=\"{receiver_location}\" "
+                "--source-location={source_location} {dump_dest}".format(
+                    v=v,
+                    sample_rate=fs,
+                    rir_samples=rir_nsamps,
+                    room_size=",".join(map(ffloat, self.size)),
+                    beta=beta,
+                    receiver_location=";".join(loc_for_each_channel),
+                    source_location=",".join(map(ffloat, self.spos)),
+                    dump_dest=fname))
+        elif pyrirgen_available:
+            rir = pyrirgen.generateRir(self.size,
+                                       self.spos,
+                                       self.rpos,
+                                       soundVelocity=v,
+                                       fs=fs,
+                                       nDim=3,
+                                       nSamples=rir_nsamps,
+                                       nOrder=-1,
+                                       reverbTime=self.beta,
+                                       micType="omnidirectional",
+                                       isHighPassFilter=True)
+            if isinstance(rir, list):
+                rir = np.stack(rir)
+            write_wav(fname, rir, fs=fs)
+        else:
+            raise RuntimeError("Both rir-simulate and pyrirgen unavailable")
 
 
 class RoomGenerator(object):
@@ -162,10 +192,11 @@ class RoomGenerator(object):
                 # sabine formula
                 rt60_min = 24 * V * np.log(10) / (v * S)
                 if rt60_min >= self.rt60.max:
-                    raise RuntimeError(
-                        "Configuration error in rt60: {}, minimum {:.2f} "
-                        "required with ({:.2f}x{:.2f}x{:.2f})".format(
-                            self.rt60_opt, rt60_min, l, w, h))
+                    return None
+                    # raise RuntimeError(
+                    #     "Configuration error in rt60: {}, minimum {:.2f} "
+                    #     "required with ({:.2f}x{:.2f}x{:.2f})".format(
+                    #         self.rt60_opt, rt60_min, l, w, h))
                 else:
                     rt60 = random.uniform(rt60_min, self.rt60.max)
                     return Room(l, w, h, rt60=rt60)
@@ -197,9 +228,16 @@ class RirSimulator(object):
         my = random.uniform(*(y * v for v in self.my))
         mz = random.uniform(*self.args.array_height)
         # place array
-        room.set_mic(
-            self.args.array_topo, (mx, my, mz), vertical=self.vertical)
+        room.set_mic(self.args.array_topo, (mx, my, mz),
+                     vertical=self.vertical)
         return (mx, my), room
+
+    def _max_src_dist(self, rpos_2d, room_size_2d):
+        mx, my = rpos_2d
+        rx, ry = room_size_2d
+        bound = [(0, 0), (0, ry), (rx, 0), (rx, ry)]
+        dist = [((mx - x)**2 + (my - y)**2)**0.5 for (x, y) in bound]
+        return max(dist)
 
     def _place_spk(self, center, room):
         num_rirs = self.args.num_rirs
@@ -209,6 +247,9 @@ class RirSimulator(object):
         max_retry = self.args.retry * num_rirs
         stats = []
 
+        min_src_dist, max_src_dist = args.src_dist
+        max_src_dist = min(max_src_dist, self._max_src_dist((mx, my),
+                                                            (rx, ry)))
         Rf = lambda f: round(f, 3)
         while True:
             ntry += 1
@@ -218,7 +259,7 @@ class RirSimulator(object):
             if sz >= rz:
                 continue
             # speaker distance
-            dst = random.uniform(*args.src_dist)
+            dst = random.uniform(min_src_dist, max_src_dist)
             # sample from 0-180
             doa = random.uniform(0, np.pi)
             if not self.vertical:
@@ -243,7 +284,9 @@ class RirSimulator(object):
         return done == num_rirs, stats
 
     def run_for_instance(self, room_id):
-        room = self.room_generator.generate(v=self.args.speed)
+        room = None
+        while not room:
+            room = self.room_generator.generate(v=self.args.speed)
         rpos, room = self._place_mic(room)
         succ, scfg = self._place_spk(rpos, room)
         if succ:
@@ -253,15 +296,15 @@ class RirSimulator(object):
                 room.set_spk(stat["pos"])
                 rir_loc = "{0}/Room{1}-{2}.wav".format(self.args.dump_dir,
                                                        room_id, idx + 1)
-                room.rir(
-                    rir_loc,
-                    fs=self.args.sample_rate,
-                    rir_nsamps=self.args.rir_samples,
-                    v=self.args.speed)
+                room.rir(rir_loc,
+                         fs=self.args.sample_rate,
+                         rir_nsamps=self.args.rir_samples,
+                         v=self.args.speed)
                 scfg[idx]["loc"] = rir_loc
             # plot room
-            room.plot(scfg, "{0}/Room{1}.png".format(
-                self.args.dump_dir, room_id), "Room{:d}".format(room_id))
+            room.plot(scfg, "{0}/Room{1}.png".format(self.args.dump_dir,
+                                                     room_id),
+                      "Room{:d}".format(room_id))
             rcfg["spk"] = scfg
             self.rirs_cfg.append(rcfg)
         return succ
@@ -294,8 +337,8 @@ def run(args):
 
 """
 Run egs:
-$cmd JOB=1:$nj ./exp/rir_simu/rir_generate.JOB.log \
-  ./scripts/sptk/rir_generate.py \
+$cmd JOB=1:$nj ./exp/rir_simu/rir_generate_1d.JOB.log \
+  ./scripts/sptk/rir_generate_1d.py \
     --num-rirs $num_rirs \
     --dump-dir $dump_dir/JOB \
     --array-topo "0,0.05,0.1,0.15,0.2,0.25" \
@@ -312,106 +355,95 @@ $cmd JOB=1:$nj ./exp/rir_simu/rir_generate.JOB.log \
 """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=
-        "Command to generate single/multi-channel RIRs by calling rir-simulate"
-        "(Please export $PATH to enable rir-simulate found by system environment)"
+        description="Command to generate single/multi-channel RIRs"
+        "(using rir-simulate or pyrirgen from https://github.com/Marvin182/rir-generator)"
         "In this command, we will simulate several rirs for each room, which is "
         "configured using --num-rirs",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "num_rooms", type=int, help="Total number of rooms to simulate")
-    parser.add_argument(
-        "--num-rirs",
-        type=int,
-        default=1,
-        help="Number of rirs to simulate for each room")
-    parser.add_argument(
-        "--dump-cfg",
-        action="store_true",
-        help="If true, dump rir configures out in json format")
-    parser.add_argument(
-        "--rir-samples",
-        type=int,
-        default=8000,
-        help="Number samples of simulated rir")
-    parser.add_argument(
-        "--sample-rate",
-        type=int,
-        default=16000,
-        help="Sample rate of simulated signal")
-    parser.add_argument(
-        "--dump-dir",
-        type=str,
-        default="rir",
-        help="Directory to dump generated rirs")
-    parser.add_argument(
-        "--room-dim",
-        type=str,
-        default="7,10;7,10;3,4",
-        help="Constraint for room length/width/height, separated by semicolon")
-    parser.add_argument(
-        "--vertical-oriented",
-        action="store_true",
-        dest="vertical",
-        help="Orientation to place microphone array (vertical or horizontal)")
-    parser.add_argument(
-        "--array-height",
-        action=StrToFloatTupleAction,
-        default=(1, 2),
-        help="Range of array's height")
-    parser.add_argument(
-        "--array-relx",
-        action=StrToFloatTupleAction,
-        default=(0.4, 0.6),
-        help="Area of room to place microphone array randomly"
-        "(relative values to room's length)")
-    parser.add_argument(
-        "--array-rely",
-        action=StrToFloatTupleAction,
-        default=(0.05, 0.1),
-        help="Area of room to place microphone array randomly"
-        "(relative values to room's width)")
-    parser.add_argument(
-        "--speaker-height",
-        action=StrToFloatTupleAction,
-        default=(1.6, 2),
-        help="Range of speaker's height")
-    parser.add_argument(
-        "--array-topo",
-        action=StrToFloatTupleAction,
-        default=(0, 0.1, 0.2, 0.3),
-        help="Linear topology for microphone arrays.")
-    parser.add_argument(
-        "--absorption-coefficient-range",
-        action=StrToFloatTupleAction,
-        dest="abs_range",
-        default=(0.2, 0.8),
-        help="Range of absorption coefficient of the room material. "
-        "Absorption coefficient is located between 0 and 1, if a material "
-        "offers no reflection, the absorption coefficient is close to 1.")
-    parser.add_argument(
-        "--rt60",
-        type=str,
-        default="0.2,0.7",
-        help="Range of RT60, this option has higher priority than "
-        "--absorption-coefficient-range")
-    parser.add_argument(
-        "--sound-speed",
-        type=float,
-        dest="speed",
-        default=340,
-        help="Speed of sound")
-    parser.add_argument(
-        "--retry",
-        type=int,
-        default=5,
-        help="Max number of times tried to generate rirs "
-        "for a specific room (retry * num_rirs)")
-    parser.add_argument(
-        "--source-distance",
-        action=StrToFloatTupleAction,
-        dest="src_dist",
-        default=(1, 3),
-        help="Range of distance between microphone arrays and speakers")
+    parser.add_argument("num_rooms",
+                        type=int,
+                        help="Total number of rooms to simulate")
+    parser.add_argument("--num-rirs",
+                        type=int,
+                        default=1,
+                        help="Number of rirs to simulate for each room")
+    parser.add_argument("--dump-cfg",
+                        action="store_true",
+                        help="If true, dump rir configures out in json format")
+    parser.add_argument("--rir-samples",
+                        type=int,
+                        default=8000,
+                        help="Number samples of simulated rir")
+    parser.add_argument("--sample-rate",
+                        type=int,
+                        default=16000,
+                        help="Sample rate of simulated signal")
+    parser.add_argument("--dump-dir",
+                        type=str,
+                        default="rir",
+                        help="Directory to dump generated rirs")
+    parser.add_argument("--room-dim",
+                        type=str,
+                        default="7,10;7,10;3,4",
+                        help="Constraint for room length/width/height, "
+                        "separated by semicolon")
+    parser.add_argument("--vertical-oriented",
+                        action="store_true",
+                        dest="vertical",
+                        help="Orientation to place microphone "
+                        "array (vertical or horizontal)")
+    parser.add_argument("--array-height",
+                        action=StrToFloatTupleAction,
+                        default=(1, 2),
+                        help="Range of array's height")
+    parser.add_argument("--array-relx",
+                        action=StrToFloatTupleAction,
+                        default=(0.4, 0.6),
+                        help="Area of room to place microphone array randomly"
+                        "(relative values to room's length)")
+    parser.add_argument("--array-rely",
+                        action=StrToFloatTupleAction,
+                        default=(0.05, 0.1),
+                        help="Area of room to place microphone array randomly"
+                        "(relative values to room's width)")
+    parser.add_argument("--speaker-height",
+                        action=StrToFloatTupleAction,
+                        default=(1.6, 2),
+                        help="Range of speaker's height")
+    parser.add_argument("--array-topo",
+                        action=StrToFloatTupleAction,
+                        default=(0, 0.1, 0.2, 0.3),
+                        help="Linear topology for microphone arrays.")
+    parser.add_argument("--absorption-coefficient-range",
+                        action=StrToFloatTupleAction,
+                        dest="abs_range",
+                        default=(0.2, 0.8),
+                        help="Range of absorption coefficient "
+                        "of the room material. Absorption coefficient "
+                        "is located between 0 and 1, if a material "
+                        "offers no reflection, the absorption "
+                        "coefficient is close to 1.")
+    parser.add_argument("--rt60",
+                        type=str,
+                        default="0.2,0.7",
+                        help="Range of RT60, this option has "
+                        "higher priority than "
+                        "--absorption-coefficient-range")
+    parser.add_argument("--sound-speed",
+                        type=float,
+                        dest="speed",
+                        default=340,
+                        help="Speed of sound")
+    parser.add_argument("--retry",
+                        type=int,
+                        default=5,
+                        help="Max number of times tried to generate rirs "
+                        "for a specific room (retry * num_rirs)")
+    parser.add_argument("--source-distance",
+                        action=StrToFloatTupleAction,
+                        dest="src_dist",
+                        default=(1, 3),
+                        help="Range of distance between "
+                        "microphone arrays and speakers")
     args = parser.parse_args()
     run(args)

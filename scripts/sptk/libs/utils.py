@@ -113,13 +113,12 @@ def stft(samps,
     # 1) win_length <= n_fft
     # 2) if win_length is None, win_length = n_fft
     # 3) if win_length < n_fft, pad window to n_fft
-    stft_mat = audio_lib.stft(
-        samps,
-        n_fft,
-        frame_hop,
-        win_length=frame_len,
-        window=window,
-        center=center)
+    stft_mat = audio_lib.stft(samps,
+                              n_fft,
+                              frame_hop,
+                              win_length=frame_len,
+                              window=window,
+                              center=center)
     # stft_mat: F x T or N x F x T
     if apply_abs:
         stft_mat = cmat_abs(stft_mat)
@@ -150,13 +149,12 @@ def istft(stft_mat,
     if window == "sqrthann":
         window = ss.hann(frame_len, sym=False)**0.5
     # orignal istft accept stft result(matrix, shape as FxT)
-    samps = audio_lib.istft(
-        stft_mat,
-        frame_hop,
-        win_length=frame_len,
-        window=window,
-        center=center,
-        length=nsamps)
+    samps = audio_lib.istft(stft_mat,
+                            frame_hop,
+                            win_length=frame_len,
+                            window=window,
+                            center=center,
+                            length=nsamps)
     # keep same amplitude
     if norm:
         samps_norm = np.linalg.norm(samps, np.inf)
@@ -180,18 +178,24 @@ def griffin_lim(magnitude,
         magnitude = np.transpose(magnitude)
     n_fft = nfft(frame_len)
     angle = np.exp(2j * np.pi * np.random.rand(*magnitude.shape))
-    samps = audio_lib.istft(
-        magnitude * angle, frame_hop, frame_len, window=window, center=center)
+    samps = audio_lib.istft(magnitude * angle,
+                            frame_hop,
+                            frame_len,
+                            window=window,
+                            center=center)
     for _ in range(epochs):
-        stft_mat = audio_lib.stft(
-            samps, n_fft, frame_hop, frame_len, window=window, center=center)
+        stft_mat = audio_lib.stft(samps,
+                                  n_fft,
+                                  frame_hop,
+                                  frame_len,
+                                  window=window,
+                                  center=center)
         angle = np.exp(1j * np.angle(stft_mat))
-        samps = audio_lib.istft(
-            magnitude * angle,
-            frame_hop,
-            frame_len,
-            window=window,
-            center=center)
+        samps = audio_lib.istft(magnitude * angle,
+                                frame_hop,
+                                frame_len,
+                                window=window,
+                                center=center)
     return samps
 
 
@@ -215,17 +219,21 @@ def get_logger(
         date_format="%Y-%m-%d %H:%M:%S",
         file=False):
     """
-    Return python logger instance
+    Get logger instance
     """
+
+    def get_handler(handler):
+        handler.setLevel(logging.INFO)
+        formatter = logging.Formatter(fmt=format_str, datefmt=date_format)
+        handler.setFormatter(formatter)
+        return handler
+
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
-    # file or console
-    handler = logging.StreamHandler() if not file else logging.FileHandler(
-        name)
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter(fmt=format_str, datefmt=date_format)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    if file:
+        logger.addHandler(get_handler(logging.FileHandler(name)))
+    else:
+        logger.addHandler(logging.StreamHandler())
     return logger
 
 
