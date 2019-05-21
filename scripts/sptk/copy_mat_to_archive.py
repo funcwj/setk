@@ -59,40 +59,38 @@ if __name__ == "__main__":
         "Command to copy MATLAB's .mat or Python's .npy (real)matrix "
         "to kaldi's archives",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "src_scp", type=str, help="Source scripts for .mat/.npy files")
-    parser.add_argument(
-        "dst_ark", type=str, help="Location to dump kaldi's archives")
-    parser.add_argument(
-        "--scp",
-        type=str,
-        default=None,
-        help="If assigned, generate corresponding .scp for archives")
-    parser.add_argument(
-        "--mat-index",
-        type=str,
-        dest="key",
-        default="data",
-        help="A string to index data in MATLAB's .mat file")
-    parser.add_argument(
-        "--op",
-        type=str,
-        default="",
-        help="Operations to applied on source "
-        "matrix/vector, separated by \",\", now support "
-        "trans/log/minus/stack")
-    parser.add_argument(
-        "--src-format",
-        type=str,
-        dest="src",
-        choices=["npy", "mat"],
-        default="npy",
-        help="Data format in the input rspecifier")
-    parser.add_argument(
-        "--output",
-        type=str,
-        choices=["matrix", "vector"],
-        default="matrix",
-        help="Type of the data to dump in archives")
+    parser.add_argument("src_scp",
+                        type=str,
+                        help="Source scripts for .mat/.npy files")
+    parser.add_argument("dst_ark",
+                        type=str,
+                        help="Location to dump kaldi's archives")
+    parser.add_argument("--scp",
+                        type=str,
+                        default=None,
+                        help="If assigned, generate corresponding "
+                        ".scp for archives")
+    parser.add_argument("--mat-index",
+                        type=str,
+                        dest="key",
+                        default="data",
+                        help="A string to index data in MATLAB's .mat file")
+    parser.add_argument("--op",
+                        type=str,
+                        default="",
+                        help="Operations to applied on source "
+                        "matrix/vector, separated by \",\", now support "
+                        "trans/log/minus/stack")
+    parser.add_argument("--src-format",
+                        type=str,
+                        dest="src",
+                        choices=["npy", "mat"],
+                        default="npy",
+                        help="Data format in the input rspecifier")
+    parser.add_argument("--output",
+                        type=str,
+                        choices=["matrix", "vector"],
+                        default="matrix",
+                        help="Type of the data to dump in archives")
     args = parser.parse_args()
     run(args)

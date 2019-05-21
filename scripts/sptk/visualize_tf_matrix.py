@@ -31,8 +31,11 @@ def save_figure(key, mat, dest, cmap="jet", hop=10, sr=16000, size=3):
     num_frames, num_bins = mat.shape
     # plt.figure(figsize=(size * t2f, size) if t2f <= 1 else (size, size / t2f))
     plt.figure(figsize=(max(size * num_frames / num_bins, size) + 2, size + 2))
-    plt.imshow(
-        mat.T, origin="lower", cmap=cmap, aspect="auto", interpolation="none")
+    plt.imshow(mat.T,
+               origin="lower",
+               cmap=cmap,
+               aspect="auto",
+               interpolation="none")
     plt.title(key)
     xp = np.linspace(0, num_frames - 1, 5)
     yp = np.linspace(0, num_bins - 1, 6)
@@ -60,14 +63,13 @@ def run(args):
             mat = np.transpose(mat)
         if args.norm:
             mat = mat / np.max(np.abs(mat))
-        save_figure(
-            key,
-            mat,
-            os.path.join(args.cache_dir, key.replace('.', '-')),
-            cmap=args.cmap,
-            hop=args.frame_hop * 1e-3,
-            sr=args.sr,
-            size=args.size)
+        save_figure(key,
+                    mat,
+                    os.path.join(args.cache_dir, key.replace('.', '-')),
+                    cmap=args.cmap,
+                    hop=args.frame_hop * 1e-3,
+                    sr=args.sr,
+                    size=args.size)
 
 
 # now support input from stdin
@@ -78,38 +80,39 @@ if __name__ == "__main__":
         "Command to visualize kaldi's features/numpy's ndarray on T-F domain. "
         "egs: spectral/spatial features or T-F mask. ",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "rspec_or_dir",
-        type=str,
-        help="Read specifier of archives or directory of ndarrays")
-    parser.add_argument(
-        "--frame-hop", type=int, default=16, help="Frame shift in ms")
-    parser.add_argument(
-        "--sr", type=int, default=16000, help="Sample frequency (Hz)")
-    parser.add_argument(
-        "--cache-dir",
-        type=str,
-        default="figure",
-        help="Directory to cache pictures")
-    parser.add_argument(
-        "--apply-log", action="store_true", help="Apply log on input features")
-    parser.add_argument(
-        "--trans",
-        action="store_true",
-        help="Apply matrix transpose on input features")
-    parser.add_argument(
-        "--norm",
-        action="store_true",
-        help="Normalize values in [-1, 1] before visualization")
-    parser.add_argument(
-        "--cmap",
-        choices=["binary", "jet", "hot"],
-        default="jet",
-        help="Colormap used when save figures")
-    parser.add_argument(
-        "--size",
-        type=int,
-        default=3,
-        help="Minimum height of images (in inches)")
+    parser.add_argument("rspec_or_dir",
+                        type=str,
+                        help="Read specifier of archives "
+                        "or directory of ndarrays")
+    parser.add_argument("--frame-hop",
+                        type=int,
+                        default=16,
+                        help="Frame shift in ms")
+    parser.add_argument("--sr",
+                        type=int,
+                        default=16000,
+                        help="Sample frequency (Hz)")
+    parser.add_argument("--cache-dir",
+                        type=str,
+                        default="figure",
+                        help="Directory to cache pictures")
+    parser.add_argument("--apply-log",
+                        action="store_true",
+                        help="Apply log on input features")
+    parser.add_argument("--trans",
+                        action="store_true",
+                        help="Apply matrix transpose on input features")
+    parser.add_argument("--norm",
+                        action="store_true",
+                        help="Normalize values in [-1, 1] "
+                        "before visualization")
+    parser.add_argument("--cmap",
+                        choices=["binary", "jet", "hot"],
+                        default="jet",
+                        help="Colormap used when save figures")
+    parser.add_argument("--size",
+                        type=int,
+                        default=3,
+                        help="Minimum height of images (in inches)")
     args = parser.parse_args()
     run(args)

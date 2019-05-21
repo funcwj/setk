@@ -102,19 +102,22 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("wav_scp", type=str, help="Input wav scripts")
     parser.add_argument("dst_dir", type=str, help="Output wav directory")
-    parser.add_argument(
-        "--mode",
-        type=int,
-        default=2,
-        help="Vad mode used in webrtc (0->3 less->more aggressive)")
-    parser.add_argument(
-        "--chunk-size", type=int, default=20, help="Chunk size in ms(x10)")
-    parser.add_argument(
-        "--fs", type=int, default=16000, help="Waveform sample frequency")
-    parser.add_argument(
-        "--cache-size",
-        type=int,
-        default=5,
-        help="Number of frames remembered in history")
+    parser.add_argument("--mode",
+                        type=int,
+                        default=2,
+                        help="Vad mode used in webrtc "
+                        "(0->3 less->more aggressive)")
+    parser.add_argument("--chunk-size",
+                        type=int,
+                        default=20,
+                        help="Chunk size in ms(x10)")
+    parser.add_argument("--fs",
+                        type=int,
+                        default=16000,
+                        help="Waveform sample frequency")
+    parser.add_argument("--cache-size",
+                        type=int,
+                        default=5,
+                        help="Number of frames remembered in history")
     args = parser.parse_args()
     run(args)

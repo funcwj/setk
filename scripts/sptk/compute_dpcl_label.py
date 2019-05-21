@@ -47,8 +47,9 @@ def run(args):
                 np.sum(sil_idx) * 100 / (T * F)))
             # for each speaker
             act_idx = ~sil_idx
-            labels = np.argmax(
-                np.stack([reader[key] for reader in spk_reader]), axis=0)
+            labels = np.argmax(np.stack([reader[key]
+                                         for reader in spk_reader]),
+                               axis=0)
             masks[act_idx] = labels[act_idx]
             writer.write(key, masks)
     logger.info("Processed {:d} utterances done".format(len(mix_reader)))
@@ -61,17 +62,16 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("mix", type=str, help="Rspecifier for mixture")
-    parser.add_argument(
-        "spks",
-        type=str,
-        help="Rspecifier for multiple speakers, "
-        "separated by \',\', egs: spk1.scp,spk2.scp")
-    parser.add_argument(
-        "dir", type=str, help="Directory to store computed labels")
-    parser.add_argument(
-        "--beta",
-        type=float,
-        default=40,
-        help="Threshold to discriminate silence bins (in dB)")
+    parser.add_argument("spks",
+                        type=str,
+                        help="Rspecifier for multiple speakers, "
+                        "separated by \',\', egs: spk1.scp,spk2.scp")
+    parser.add_argument("dir",
+                        type=str,
+                        help="Directory to store computed labels")
+    parser.add_argument("--beta",
+                        type=float,
+                        default=40,
+                        help="Threshold to discriminate silence bins (in dB)")
     args = parser.parse_args()
     run(args)

@@ -66,53 +66,49 @@ if __name__ == "__main__":
         "and write as kaldi's archives",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-    parser.add_argument(
-        "wav_scp",
-        type=str,
-        help="Source location of wave scripts in kaldi format")
-    parser.add_argument(
-        "dup_ark", type=str, help="Location to dump spectrogram's features")
-    parser.add_argument(
-        "--format",
-        type=str,
-        default="kaldi",
-        choices=["kaldi", "exraw"],
-        help="Output archive format, see format in sptk/libs/exraw.py")
-    parser.add_argument(
-        "--scp",
-        type=str,
-        default="",
-        help="If assigned, generate corresponding scripts for archives")
-    parser.add_argument(
-        "--sample-frequency",
-        type=int,
-        default=16000,
-        dest="samp_freq",
-        help="Waveform data sample frequency")
-    parser.add_argument(
-        "--apply-log",
-        action="store_true",
-        dest="log",
-        help="If true, using log mel-spectrogram instead of linear")
-    parser.add_argument(
-        "--normalize-samples",
-        action="store_true",
-        dest="norm",
-        help="If true, normalize sample values between [-1, 1]")
-    parser.add_argument(
-        "--num-bins",
-        default=40,
-        type=int,
-        help="Number of mel-bins defined in mel-filters")
-    parser.add_argument(
-        "--min-freq",
-        default=0,
-        type=int,
-        help="Low cutoff frequency for mel bins")
-    parser.add_argument(
-        "--max-freq",
-        default=8000,
-        type=int,
-        help="High cutoff frequency for mel bins")
+    parser.add_argument("wav_scp",
+                        type=str,
+                        help="Source location of wave scripts in kaldi format")
+    parser.add_argument("dup_ark",
+                        type=str,
+                        help="Location to dump spectrogram's features")
+    parser.add_argument("--format",
+                        type=str,
+                        default="kaldi",
+                        choices=["kaldi", "exraw"],
+                        help="Output archive format, see "
+                        "format in sptk/libs/exraw.py")
+    parser.add_argument("--scp",
+                        type=str,
+                        default="",
+                        help="If assigned, generate corresponding "
+                        "scripts for archives")
+    parser.add_argument("--sample-frequency",
+                        type=int,
+                        default=16000,
+                        dest="samp_freq",
+                        help="Waveform data sample frequency")
+    parser.add_argument("--apply-log",
+                        action="store_true",
+                        dest="log",
+                        help="If true, using log mel-spectrogram "
+                        "instead of linear")
+    parser.add_argument("--normalize-samples",
+                        action="store_true",
+                        dest="norm",
+                        help="If true, normalize sample "
+                        "values between [-1, 1]")
+    parser.add_argument("--num-bins",
+                        default=40,
+                        type=int,
+                        help="Number of mel-bins defined in mel-filters")
+    parser.add_argument("--min-freq",
+                        default=0,
+                        type=int,
+                        help="Low cutoff frequency for mel bins")
+    parser.add_argument("--max-freq",
+                        default=8000,
+                        type=int,
+                        help="High cutoff frequency for mel bins")
     args = parser.parse_args()
     run(args)

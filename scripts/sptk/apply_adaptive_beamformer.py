@@ -37,13 +37,13 @@ def do_online_beamform(beamformer, speech_mask, stft_mat, args):
     for c in range(num_chunks + 1):
         base = chunk_size * c
         if c == num_chunks:
-            chunk = beamformer.run(
-                speech_mask[base:], stft_mat[:, :, base:], normalize=args.ban)
+            chunk = beamformer.run(speech_mask[base:],
+                                   stft_mat[:, :, base:],
+                                   normalize=args.ban)
         else:
-            chunk = beamformer.run(
-                speech_mask[base:base + chunk_size],
-                stft_mat[:, :, base:base + chunk_size],
-                normalize=args.ban)
+            chunk = beamformer.run(speech_mask[base:base + chunk_size],
+                                   stft_mat[:, :, base:base + chunk_size],
+                                   normalize=args.ban)
         enh_chunks.append(chunk)
     return np.hstack(enh_chunks)
 
@@ -108,8 +108,9 @@ def run(args):
                     speech_mask = np.transpose(speech_mask)
                 # stft_enh, stft_mat: (N) x F x T
                 if not online:
-                    stft_enh = beamformer.run(
-                        speech_mask, stft_mat, normalize=args.ban)
+                    stft_enh = beamformer.run(speech_mask,
+                                              stft_mat,
+                                              normalize=args.ban)
                 else:
                     stft_enh = do_online_beamform(beamformer, speech_mask,
                                                   stft_mat, args)
@@ -127,59 +128,56 @@ if __name__ == "__main__":
         description="Command to run adaptive(mvdr/gevd/pmwf) beamformer",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-    parser.add_argument(
-        "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
-    parser.add_argument(
-        "mask_scp",
-        type=str,
-        help="Scripts of masks in kaldi's archive or numpy's ndarray")
-    parser.add_argument(
-        "dst_dir", type=str, help="Location to dump enhanced wave files")
-    parser.add_argument(
-        "--mask-format",
-        dest="fmt",
-        choices=["kaldi", "numpy"],
-        default="kaldi",
-        help="Define format of masks, kaldi's archives or numpy's ndarray")
-    parser.add_argument(
-        "--beamformer",
-        type=str,
-        default="mvdr",
-        choices=["mvdr", "gevd", "pmwf"],
-        help="Type of adaptive beamformer to apply")
-    parser.add_argument(
-        "--sample-frequency",
-        type=int,
-        default=16000,
-        dest="samp_freq",
-        help="Waveform data sample frequency")
-    parser.add_argument(
-        "--post-filter",
-        dest="ban",
-        action="store_true",
-        help="Do Blind Analytical Normalization(BAN) or not")
-    parser.add_argument(
-        "--post-mask",
-        dest="mask",
-        action="store_true",
-        help="Masking enhanced spectrogram after beamforming or not")
-    parser.add_argument(
-        "--online.alpha",
-        default=0.8,
-        dest="alpha",
-        type=float,
-        help="Remember coefficient when updating covariance matrix")
-    parser.add_argument(
-        "--online.chunk-size",
-        default=-1,
-        type=int,
-        dest="chunk_size",
-        help="If >= 64, using online beamformer instead")
-    parser.add_argument(
-        "--online.channels",
-        default=4,
-        type=int,
-        dest="channels",
-        help="Number of channels available")
+    parser.add_argument("wav_scp",
+                        type=str,
+                        help="Multi-channel wave scripts in kaldi format")
+    parser.add_argument("mask_scp",
+                        type=str,
+                        help="Scripts of masks in kaldi's "
+                        "archive or numpy's ndarray")
+    parser.add_argument("dst_dir",
+                        type=str,
+                        help="Location to dump enhanced wave files")
+    parser.add_argument("--mask-format",
+                        dest="fmt",
+                        choices=["kaldi", "numpy"],
+                        default="kaldi",
+                        help="Define format of masks, kaldi's "
+                        "archives or numpy's ndarray")
+    parser.add_argument("--beamformer",
+                        type=str,
+                        default="mvdr",
+                        choices=["mvdr", "gevd", "pmwf"],
+                        help="Type of adaptive beamformer to apply")
+    parser.add_argument("--sample-frequency",
+                        type=int,
+                        default=16000,
+                        dest="samp_freq",
+                        help="Waveform data sample frequency")
+    parser.add_argument("--post-filter",
+                        dest="ban",
+                        action="store_true",
+                        help="Do Blind Analytical Normalization(BAN) or not")
+    parser.add_argument("--post-mask",
+                        dest="mask",
+                        action="store_true",
+                        help="Masking enhanced spectrogram "
+                        "after beamforming or not")
+    parser.add_argument("--online.alpha",
+                        default=0.8,
+                        dest="alpha",
+                        type=float,
+                        help="Remember coefficient when "
+                        "updating covariance matrix")
+    parser.add_argument("--online.chunk-size",
+                        default=-1,
+                        type=int,
+                        dest="chunk_size",
+                        help="If >= 64, using online beamformer instead")
+    parser.add_argument("--online.channels",
+                        default=4,
+                        type=int,
+                        dest="channels",
+                        help="Number of channels available")
     args = parser.parse_args()
     run(args)

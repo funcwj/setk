@@ -74,15 +74,13 @@ def run(args):
         logger.info("Processing utterance {}...".format(key))
         separated = auxiva(spectrogram, args.epochs)
         for idx in range(separated.shape[0]):
-            samps = istft(
-                separated[idx],
-                **stft_kwargs,
-                norm=spectrogram_reader.samp_norm(key))
-            write_wav(
-                os.path.join(args.dst_dir, "{}.SRC{:d}.wav".format(
-                    key, idx + 1)),
-                samps,
-                fs=args.fs)
+            samps = istft(separated[idx],
+                          **stft_kwargs,
+                          norm=spectrogram_reader.samp_norm(key))
+            write_wav(os.path.join(args.dst_dir,
+                                   "{}.SRC{:d}.wav".format(key, idx + 1)),
+                      samps,
+                      fs=args.fs)
     logger.info("Processed {:d} utterances".format(len(spectrogram_reader)))
 
 
@@ -91,21 +89,21 @@ if __name__ == "__main__":
         description="Command to do AuxIVA bss algorithm",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-    parser.add_argument(
-        "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
-    parser.add_argument(
-        "dst_dir", type=str, help="Location to dump separated source files")
-    parser.add_argument(
-        "--num-epochs",
-        default=20,
-        type=int,
-        dest="epochs",
-        help="Number of epochs to run AuxIVA algorithm")
-    parser.add_argument(
-        "--sample-frequency",
-        type=int,
-        default=16000,
-        dest="fs",
-        help="Waveform data sample frequency")
+    parser.add_argument("wav_scp",
+                        type=str,
+                        help="Multi-channel wave scripts in kaldi format")
+    parser.add_argument("dst_dir",
+                        type=str,
+                        help="Location to dump separated source files")
+    parser.add_argument("--num-epochs",
+                        default=20,
+                        type=int,
+                        dest="epochs",
+                        help="Number of epochs to run AuxIVA algorithm")
+    parser.add_argument("--sample-frequency",
+                        type=int,
+                        default=16000,
+                        dest="fs",
+                        help="Waveform data sample frequency")
     args = parser.parse_args()
     run(args)

@@ -65,26 +65,26 @@ if __name__ == "__main__":
         "Command to compute directional features, based on estimated TF-masks",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-    parser.add_argument(
-        "wav_scp", type=str, help="Multi-Channel wave scripts in kaldi format")
-    parser.add_argument(
-        "mask_scp",
-        type=str,
-        help="Scripts of masks in kaldi's archive or numpy's ndarray")
-    parser.add_argument(
-        "dup_ark",
-        type=str,
-        help="Location to dump features in kaldi's archives")
-    parser.add_argument(
-        "--scp",
-        type=str,
-        default="",
-        help="If assigned, generate corresponding feature scripts")
-    parser.add_argument(
-        "--mask-format",
-        dest="fmt",
-        choices=["kaldi", "numpy"],
-        default="kaldi",
-        help="Define format of masks, in kaldi's archives or numpy's ndarray")
+    parser.add_argument("wav_scp",
+                        type=str,
+                        help="Multi-Channel wave scripts in kaldi format")
+    parser.add_argument("mask_scp",
+                        type=str,
+                        help="Scripts of masks in kaldi's "
+                        "archive or numpy's ndarray")
+    parser.add_argument("dup_ark",
+                        type=str,
+                        help="Location to dump features in kaldi's archives")
+    parser.add_argument("--scp",
+                        type=str,
+                        default="",
+                        help="If assigned, generate corresponding "
+                        "feature scripts")
+    parser.add_argument("--mask-format",
+                        dest="fmt",
+                        choices=["kaldi", "numpy"],
+                        default="kaldi",
+                        help="Define format of masks, in kaldi's "
+                        "archives or numpy's ndarray")
     args = parser.parse_args()
     run(args)

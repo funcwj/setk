@@ -52,26 +52,29 @@ def run(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description="Command to copy MATLAB's (complex) matrix into (C)Matrix.",
+        description="Command to copy MATLAB's (complex) "
+        "matrix into (C)Matrix.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
-        "mmat", type=str, help="Original matrix in matlab's format")
-    parser.add_argument(
-        "kmat", type=str, help="Object matrix in kaldi's format")
-    parser.add_argument(
-        "key", type=str, help="Key values to index matrix in mmat")
-    parser.add_argument(
-        "--double",
-        action="store_true",
-        help="If true, then write matrix in float64/complex128")
-    parser.add_argument(
-        "--float",
-        action="store_true",
-        help="If true, then write matrix in float32/complex64")
-    parser.add_argument(
-        "--transpose",
-        action="store_true",
-        help="If true, write transpose of original matrix instead")
+    parser.add_argument("mmat",
+                        type=str,
+                        help="Original matrix in matlab's format")
+    parser.add_argument("kmat",
+                        type=str,
+                        help="Object matrix in kaldi's format")
+    parser.add_argument("key",
+                        type=str,
+                        help="Key values to index matrix in mmat")
+    parser.add_argument("--double",
+                        action="store_true",
+                        help="If true, then write matrix "
+                        "in float64/complex128")
+    parser.add_argument("--float",
+                        action="store_true",
+                        help="If true, then write matrix in float32/complex64")
+    parser.add_argument("--transpose",
+                        action="store_true",
+                        help="If true, write transpose of "
+                        "original matrix instead")
     args = parser.parse_args()
     run(args)

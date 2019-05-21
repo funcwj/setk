@@ -44,35 +44,35 @@ if __name__ == "__main__":
         "and write as kaldi's archives",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-    parser.add_argument(
-        "wav_scp",
-        type=str,
-        help="Source location of wave scripts in kaldi format")
-    parser.add_argument(
-        "dup_ark", type=str, help="Location to dump spectrogram features")
-    parser.add_argument(
-        "--scp",
-        type=str,
-        default="",
-        help="If assigned, generate corresponding scripts for archives")
-    parser.add_argument(
-        "--format",
-        type=str,
-        default="kaldi",
-        choices=["kaldi", "exraw"],
-        help="Output archive format, see format in sptk/libs/exraw.py")
-    parser.add_argument(
-        "--apply-log",
-        action="store_true",
-        help="If true, using log spectrogram instead of linear")
-    parser.add_argument(
-        "--apply-pow",
-        action="store_true",
-        help="If true, extract power spectrum instead of magnitude spectrum")
-    parser.add_argument(
-        "--normalize-samples",
-        action="store_true",
-        dest="normalize",
-        help="If true, normalize sample values between [-1, 1]")
+    parser.add_argument("wav_scp",
+                        type=str,
+                        help="Source location of wave scripts in kaldi format")
+    parser.add_argument("dup_ark",
+                        type=str,
+                        help="Location to dump spectrogram features")
+    parser.add_argument("--scp",
+                        type=str,
+                        default="",
+                        help="If assigned, generate corresponding "
+                        "scripts for archives")
+    parser.add_argument("--format",
+                        type=str,
+                        default="kaldi",
+                        choices=["kaldi", "exraw"],
+                        help="Output archive format, see format "
+                        "in sptk/libs/exraw.py")
+    parser.add_argument("--apply-log",
+                        action="store_true",
+                        help="If true, using log spectrogram "
+                        "instead of linear")
+    parser.add_argument("--apply-pow",
+                        action="store_true",
+                        help="If true, extract power spectrum "
+                        "instead of magnitude spectrum")
+    parser.add_argument("--normalize-samples",
+                        action="store_true",
+                        dest="normalize",
+                        help="If true, normalize sample "
+                        "values between [-1, 1]")
     args = parser.parse_args()
     run(args)

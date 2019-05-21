@@ -84,68 +84,61 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
 
-    parser.add_argument(
-        "wav_scp", type=str, help="Multi-Channel wave scripts in kaldi format")
-    parser.add_argument(
-        "dup_ark",
-        type=str,
-        help="Location to dump features in kaldi's archives")
-    parser.add_argument(
-        "--scp",
-        type=str,
-        default="",
-        help="If assigned, generate corresponding feature scripts")
-    parser.add_argument(
-        "--type",
-        type=str,
-        default="srp",
-        choices=["srp", "msc", "ipd"],
-        help="Type of spatial features to compute")
-    parser.add_argument(
-        "--srp.sample-rate",
-        type=int,
-        dest="samp_frequency",
-        default=16000,
-        help="Sample frequency of input wave")
-    parser.add_argument(
-        "--srp.sample-tdoa",
-        dest="samp_tdoa",
-        action="store_true",
-        help="Sample TDoA instead of DoA when computing spectrum")
-    parser.add_argument(
-        "--srp.num_doa",
-        type=int,
-        dest="num_doa",
-        default=181,
-        help="Number of DoA to sampled from 0 to 180 degress")
-    parser.add_argument(
-        "--srp.topo",
-        type=str,
-        dest="linear_topo",
-        default="0,0.2,0.4,0.8",
-        help="Topology description of microphone arrays")
-    parser.add_argument(
-        "--ipd.cos",
-        dest="ipd_cos",
-        action="store_true",
-        help="Compute cosIPD instead of IPD")
-    parser.add_argument(
-        "--ipd.sin",
-        dest="ipd_sin",
-        action="store_true",
-        help="Append sinIPD to cosIPD spatial features")
-    parser.add_argument(
-        "--ipd.index",
-        type=str,
-        dest="ipd_index",
-        default="0,1",
-        help="Given several channel index pairs to compute "
-        "IPD spatial features, separated by semicolon, egs: 0,3;1,4")
-    parser.add_argument(
-        "--msc.ctx",
-        type=int,
-        dest="msc_ctx",
-        default=1,
-        help="Value of context in MSC computation")
+    parser.add_argument("wav_scp",
+                        type=str,
+                        help="Multi-Channel wave scripts in kaldi format")
+    parser.add_argument("dup_ark",
+                        type=str,
+                        help="Location to dump features in kaldi's archives")
+    parser.add_argument("--scp",
+                        type=str,
+                        default="",
+                        help="If assigned, generate corresponding "
+                        "feature scripts")
+    parser.add_argument("--type",
+                        type=str,
+                        default="srp",
+                        choices=["srp", "msc", "ipd"],
+                        help="Type of spatial features to compute")
+    parser.add_argument("--srp.sample-rate",
+                        type=int,
+                        dest="samp_frequency",
+                        default=16000,
+                        help="Sample frequency of input wave")
+    parser.add_argument("--srp.sample-tdoa",
+                        dest="samp_tdoa",
+                        action="store_true",
+                        help="Sample TDoA instead of DoA "
+                        "when computing spectrum")
+    parser.add_argument("--srp.num_doa",
+                        type=int,
+                        dest="num_doa",
+                        default=181,
+                        help="Number of DoA to sampled from 0 to 180 degress")
+    parser.add_argument("--srp.topo",
+                        type=str,
+                        dest="linear_topo",
+                        default="0,0.2,0.4,0.8",
+                        help="Topology description of microphone arrays")
+    parser.add_argument("--ipd.cos",
+                        dest="ipd_cos",
+                        action="store_true",
+                        help="Compute cosIPD instead of IPD")
+    parser.add_argument("--ipd.sin",
+                        dest="ipd_sin",
+                        action="store_true",
+                        help="Append sinIPD to cosIPD spatial features")
+    parser.add_argument("--ipd.index",
+                        type=str,
+                        dest="ipd_index",
+                        default="0,1",
+                        help="Given several channel index "
+                        "pairs to compute IPD spatial features, "
+                        "separated by semicolon, egs: 0,3;1,4")
+    parser.add_argument("--msc.ctx",
+                        type=int,
+                        dest="msc_ctx",
+                        default=1,
+                        help="Value of context in MSC computation")
     args = parser.parse_args()
     run(args)

@@ -36,39 +36,37 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to copy Kaldi's archives to Numpy's ndarrays",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "src_dec", type=str, help="Rspecifier for input features(.ark/.scp)")
-    parser.add_argument(
-        "dst_dir", type=str, help="Location to dump numpy's ndarray")
-    parser.add_argument(
-        "--src-format",
-        type=str,
-        dest="src",
-        choices=["ark", "scp"],
-        default="scp",
-        help="Format of input rspecifier")
-    parser.add_argument(
-        "--dst-format",
-        type=str,
-        dest="dst",
-        choices=["npy", "mat"],
-        default="npy",
-        help="Format of the data to transform to")
-    parser.add_argument(
-        "--transpose",
-        action="store_true",
-        dest="trans",
-        help="If true, transpose matrix before write to ndarray")
-    parser.add_argument(
-        "--input",
-        type=str,
-        choices=["matrix", "vector"],
-        default="matrix",
-        help="Type of the data in source rspecifier")
-    parser.add_argument(
-        "--scp",
-        type=str,
-        default="",
-        help="If assigned, dump corresponding scripts")
+    parser.add_argument("src_dec",
+                        type=str,
+                        help="Rspecifier for input features(.ark/.scp)")
+    parser.add_argument("dst_dir",
+                        type=str,
+                        help="Location to dump numpy's ndarray")
+    parser.add_argument("--src-format",
+                        type=str,
+                        dest="src",
+                        choices=["ark", "scp"],
+                        default="scp",
+                        help="Format of input rspecifier")
+    parser.add_argument("--dst-format",
+                        type=str,
+                        dest="dst",
+                        choices=["npy", "mat"],
+                        default="npy",
+                        help="Format of the data to transform to")
+    parser.add_argument("--transpose",
+                        action="store_true",
+                        dest="trans",
+                        help="If true, transpose matrix "
+                        "before write to ndarray")
+    parser.add_argument("--input",
+                        type=str,
+                        choices=["matrix", "vector"],
+                        default="matrix",
+                        help="Type of the data in source rspecifier")
+    parser.add_argument("--scp",
+                        type=str,
+                        default="",
+                        help="If assigned, dump corresponding scripts")
     args = parser.parse_args()
     run(args)
