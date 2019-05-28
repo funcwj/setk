@@ -8,8 +8,8 @@ Some useful scripts (work with python 3.6.5+) for speech enhancement integrated 
 6. Spatial/Spectral feature computation
 7. AuxIVA, GWPE, FB
 8. Mask computation (iam, irm, ibm, psm, crm)
-9. RIR simulation
+9. RIR simulation (1D/2D arrays)
 10. TF spectral masking, oracle speech separation
-11. Si-SDR evaluation
+11. Si-SDR/SDR evaluation
 12. Pywebrtc vad wrapper
 13. ...

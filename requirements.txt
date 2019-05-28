@@ -1,7 +1,9 @@
-numpy==1.14.3
-scipy==1.1.0
-matplotlib==2.2.2
-librosa==0.6.2
+matplotlib==3.0.3
+mir_eval==0.5
+scipy==1.2.1
+librosa==0.6.3
+tqdm==4.31.1
+numpy==1.16.2
+torch==1.1.0
+scikit_learn==0.21.2
 webrtcvad==2.0.10
-tqdm==4.27.0
-scikit_learn==0.20.2
