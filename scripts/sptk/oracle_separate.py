@@ -77,11 +77,10 @@ def run(args):
         spk_masks = compute_mask(mixture, targets_list, args.mask)
         for index, mask in enumerate(spk_masks):
             samps = istft(mixture * mask, **stft_kwargs, nsamps=nsamps)
-            write_wav(
-                os.path.join(args.dump_dir, "spk{:d}/{}.wav".format(
-                    index + 1, key)),
-                samps,
-                fs=args.fs)
+            write_wav(os.path.join(args.dump_dir,
+                                   "spk{:d}/{}.wav".format(index + 1, key)),
+                      samps,
+                      fs=args.fs)
     logger.info("Processed {} utterance!".format(num_utts))
 
 
@@ -91,36 +90,31 @@ if __name__ == "__main__":
         "using specified mask(IAM|IBM|IRM|PSM)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-    parser.add_argument(
-        "mix_scp",
-        type=str,
-        help="Location of mixture wave scripts in kaldi format")
-    parser.add_argument(
-        "--ref-scp",
-        type=str,
-        required=True,
-        help="Reference speaker wave scripts in kaldi format, "
-        "separated using \',\'")
-    parser.add_argument(
-        "--dump-dir",
-        type=str,
-        default="cache",
-        help="Location to dump seperated speakers")
-    parser.add_argument(
-        "--mask",
-        type=str,
-        default="irm",
-        choices=["iam", "irm", "ibm", "psm"],
-        help="Type of mask to use for speech separation")
-    parser.add_argument(
-        "--sample-frequency",
-        type=int,
-        default=16000,
-        dest="fs",
-        help="Waveform data sample frequency")
-    parser.add_argument(
-        "--keep-length",
-        action="store_true",
-        help="If ture, keep result the same length as orginal")
+    parser.add_argument("mix_scp",
+                        type=str,
+                        help="Location of mixture wave "
+                        "scripts in kaldi format")
+    parser.add_argument("--ref-scp",
+                        type=str,
+                        required=True,
+                        help="Reference speaker wave scripts in kaldi format, "
+                        "separated using \',\'")
+    parser.add_argument("--dump-dir",
+                        type=str,
+                        default="cache",
+                        help="Location to dump seperated speakers")
+    parser.add_argument("--mask",
+                        type=str,
+                        default="irm",
+                        choices=["iam", "irm", "ibm", "psm"],
+                        help="Type of mask to use for speech separation")
+    parser.add_argument("--sample-frequency",
+                        type=int,
+                        default=16000,
+                        dest="fs",
+                        help="Waveform data sample frequency")
+    parser.add_argument("--keep-length",
+                        action="store_true",
+                        help="If ture, keep result the same length as orginal")
     args = parser.parse_args()
     run(args)

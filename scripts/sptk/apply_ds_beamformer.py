@@ -37,8 +37,10 @@ def run(args):
 
     with WaveWriter(args.dst_dir, fs=args.fs) as writer:
         for key, stft_src in spectrogram_reader:
-            stft_enh = beamformer.run(
-                doa, stft_src, c=args.speed, sample_rate=args.fs)
+            stft_enh = beamformer.run(doa,
+                                      stft_src,
+                                      c=args.speed,
+                                      sample_rate=args.fs)
             power = spectrogram_reader.power(key)
             samps = istft(stft_enh, **stft_kwargs, power=power)
             writer.write(key, samps)
@@ -50,23 +52,27 @@ if __name__ == "__main__":
         description="Command to apply delay and sum beamformer.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-    parser.add_argument(
-        "wav_scp", type=str, help="Rspecifier for multi-channel wave file")
-    parser.add_argument(
-        "dst_dir", type=str, help="Directory to dump enhanced results")
-    parser.add_argument(
-        "--fs", type=int, default=16000, help="Sample frequency of input wave")
-    parser.add_argument(
-        "--speed", type=float, default=240, help="Speed of sound")
-    parser.add_argument(
-        "--linear-topo",
-        type=str,
-        required=True,
-        help="Topology of linear microphone arrays")
-    parser.add_argument(
-        "--doa",
-        type=float,
-        default=90,
-        help="Given DoA for DS beamformer, in degrees")
+    parser.add_argument("wav_scp",
+                        type=str,
+                        help="Rspecifier for multi-channel wave file")
+    parser.add_argument("dst_dir",
+                        type=str,
+                        help="Directory to dump enhanced results")
+    parser.add_argument("--fs",
+                        type=int,
+                        default=16000,
+                        help="Sample frequency of input wave")
+    parser.add_argument("--speed",
+                        type=float,
+                        default=240,
+                        help="Speed of sound")
+    parser.add_argument("--linear-topo",
+                        type=str,
+                        required=True,
+                        help="Topology of linear microphone arrays")
+    parser.add_argument("--doa",
+                        type=float,
+                        default=90,
+                        help="Given DoA for DS beamformer, in degrees")
     args = parser.parse_args()
     run(args)

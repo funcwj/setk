@@ -157,42 +157,41 @@ if __name__ == "__main__":
         "only for 2 component case, egs: speech & noise)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-    parser.add_argument(
-        "speech_scp",
-        type=str,
-        help="Scripts for target speech in Kaldi format")
-    parser.add_argument(
-        "denorm_scp",
-        type=str,
-        help="Scripts for bg-noise or mixture in Kaldi format")
-    parser.add_argument(
-        "mask_ark", type=str, help="Location to dump mask archives")
-    parser.add_argument(
-        "--format",
-        type=str,
-        default="kaldi",
-        choices=["kaldi", "exraw"],
-        help="Output archive format, see format in sptk/libs/exraw.py")
-    parser.add_argument(
-        "--scp",
-        type=str,
-        default="",
-        help="If assigned, generate corresponding mask scripts")
-    parser.add_argument(
-        "--mask",
-        type=str,
-        default="irm",
-        choices=["irm", "ibm", "iam", "psm", "psa", "crm"],
-        help=
-        "Type of masks(irm/ibm/iam(FFT-mask,smm)/psm/psa/crm) to compute. \'psa\' "
-        "is not a real mask(nominator of psm), but could compute using this "
-        "command. Noted that if iam/psm assigned, second .scp is expected "
-        "to be noisy component.")
-    parser.add_argument(
-        "--cutoff",
-        type=float,
-        default=-1,
-        help="Cutoff values(<=0, not cutoff) for some non-bounded masks, "
-        "egs: iam/psm")
+    parser.add_argument("speech_scp",
+                        type=str,
+                        help="Scripts for target speech in Kaldi format")
+    parser.add_argument("denorm_scp",
+                        type=str,
+                        help="Scripts for bg-noise or mixture in Kaldi format")
+    parser.add_argument("mask_ark",
+                        type=str,
+                        help="Location to dump mask archives")
+    parser.add_argument("--format",
+                        type=str,
+                        default="kaldi",
+                        choices=["kaldi", "exraw"],
+                        help="Output archive format, see "
+                        "format in sptk/libs/exraw.py")
+    parser.add_argument("--scp",
+                        type=str,
+                        default="",
+                        help="If assigned, generate "
+                        "corresponding mask scripts")
+    parser.add_argument("--mask",
+                        type=str,
+                        default="irm",
+                        choices=["irm", "ibm", "iam", "psm", "psa", "crm"],
+                        help="Type of masks(irm/ibm/iam(FFT-mask,"
+                        "smm)/psm/psa/crm) to compute. \'psa\' is not "
+                        "a real mask(nominator of psm), but could compute "
+                        "using this command. Noted that if "
+                        "iam/psm assigned, second .scp is expected "
+                        "to be noisy component.")
+    parser.add_argument("--cutoff",
+                        type=float,
+                        default=-1,
+                        help="Cutoff values(<=0, not cutoff) for "
+                        "some non-bounded masks, "
+                        "egs: iam/psm")
     args = parser.parse_args()
     run(args)

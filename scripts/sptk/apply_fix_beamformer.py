@@ -50,15 +50,18 @@ if __name__ == "__main__":
         "design fixed beamformer first.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-    parser.add_argument(
-        "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
-    parser.add_argument(
-        "weights", type=str, help="Fixed beamformer weight in MATLAB format")
-    parser.add_argument(
-        "dst_dir", type=str, help="Location to dump enhanced wave file")
-    parser.add_argument(
-        "--weight-key",
-        default="weights",
-        help="String key to index matrix in MATLAB's .mat file")
+    parser.add_argument("wav_scp",
+                        type=str,
+                        help="Multi-channel wave scripts in kaldi format")
+    parser.add_argument("weights",
+                        type=str,
+                        help="Fixed beamformer weight in MATLAB format")
+    parser.add_argument("dst_dir",
+                        type=str,
+                        help="Location to dump enhanced wave file")
+    parser.add_argument("--weight-key",
+                        default="weights",
+                        help="String key to index matrix in "
+                        "MATLAB's .mat file")
     args = parser.parse_args()
     run(args)

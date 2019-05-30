@@ -57,20 +57,20 @@ if __name__ == "__main__":
         description="Estimate speech & noise masks using CGMM methods",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-    parser.add_argument(
-        "wav_scp", type=str, help="Multi-channel wave scripts in kaldi format")
-    parser.add_argument(
-        "dst_dir", type=str, help="Location to dump estimated speech masks")
-    parser.add_argument(
-        "--num-epochs",
-        type=int,
-        default=20,
-        help="Number of epochs to train CGMM parameters")
-    parser.add_argument(
-        "--init-speech-mask",
-        type=str,
-        default="",
-        dest="init_mask",
-        help="Speech mask scripts for cgmm initialization")
+    parser.add_argument("wav_scp",
+                        type=str,
+                        help="Multi-channel wave scripts in kaldi format")
+    parser.add_argument("dst_dir",
+                        type=str,
+                        help="Location to dump estimated speech masks")
+    parser.add_argument("--num-epochs",
+                        type=int,
+                        default=20,
+                        help="Number of epochs to train CGMM parameters")
+    parser.add_argument("--init-speech-mask",
+                        type=str,
+                        default="",
+                        dest="init_mask",
+                        help="Speech mask scripts for cgmm initialization")
     args = parser.parse_args()
     run(args)

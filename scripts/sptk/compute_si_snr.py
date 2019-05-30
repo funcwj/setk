@@ -101,25 +101,23 @@ if __name__ == "__main__":
         description=
         "Command to compute SI-SDR, as metric of the separation quality",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "sep_scp",
-        type=str,
-        help="Separated speech scripts, waiting for measure"
-        "(support multi-speaker, egs: spk1.scp,spk2.scp)")
-    parser.add_argument(
-        "ref_scp",
-        type=str,
-        help="Reference speech scripts, as ground truth for"
-        " Si-SDR computation")
-    parser.add_argument(
-        "--spk2class",
-        type=str,
-        default="",
-        help="If assigned, report results per class (gender or degree)")
-    parser.add_argument(
-        "--details",
-        type=str,
-        default="",
-        help="If assigned, report snr improvement for each utterance")
+    parser.add_argument("sep_scp",
+                        type=str,
+                        help="Separated speech scripts, waiting for measure"
+                        "(support multi-speaker, egs: spk1.scp,spk2.scp)")
+    parser.add_argument("ref_scp",
+                        type=str,
+                        help="Reference speech scripts, as ground truth for"
+                        " Si-SDR computation")
+    parser.add_argument("--spk2class",
+                        type=str,
+                        default="",
+                        help="If assigned, report results"
+                        " per class (gender or degree)")
+    parser.add_argument("--details",
+                        type=str,
+                        default="",
+                        help="If assigned, report snr "
+                        "improvement for each utterance")
     args = parser.parse_args()
     run(args)

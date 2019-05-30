@@ -50,24 +50,20 @@ if __name__ == "__main__":
         description="Command to compute means of numpy vectors/matrix",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("npy_scp", type=str, help="Input numpy rspecifier")
-    parser.add_argument(
-        "--dump-dir",
-        type=str,
-        default="mean",
-        help="Directory to dump computed results")
-    parser.add_argument(
-        "--spk2utt",
-        type=str,
-        default="",
-        help="Rspecifier for speaker to utterance-list map")
-    parser.add_argument(
-        "--scp",
-        type=str,
-        default="",
-        help="If assigned, generate corresponding scripts")
-    parser.add_argument(
-        "--normalize",
-        action="store_true",
-        help="If true, normalize vectors before compute means")
+    parser.add_argument("--dump-dir",
+                        type=str,
+                        default="mean",
+                        help="Directory to dump computed results")
+    parser.add_argument("--spk2utt",
+                        type=str,
+                        default="",
+                        help="Rspecifier for speaker to utterance-list map")
+    parser.add_argument("--scp",
+                        type=str,
+                        default="",
+                        help="If assigned, generate corresponding scripts")
+    parser.add_argument("--normalize",
+                        action="store_true",
+                        help="If true, normalize vectors before compute means")
     args = parser.parse_args()
     run(args)

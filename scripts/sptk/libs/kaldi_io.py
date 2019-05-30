@@ -269,23 +269,18 @@ def uncompress(cdata, cps_type, head):
         ...uint8 sequence...
     """
     min_val, prange, num_rows, num_cols = head
-    # mat = np.zeros([num_rows, num_cols])
     print_info('\tUncompress to matrix {} X {}'.format(num_rows, num_cols))
     if cps_type == 'CM':
         # checking compressed data size, 8 is the sizeof PerColHeader
         assert len(cdata) == num_cols * (8 + num_rows)
         chead, cmain = cdata[:8 * num_cols], cdata[8 * num_cols:]
         # type uint16
-        pch = np.array(
-            struct.unpack('{}H'.format(4 * num_cols), chead), dtype=np.float32)
-        pch = np.transpose(
-            pch.reshape(num_cols, 4) * prange / 65535.0 + min_val)
+        pch = np.fromstring(chead, dtype=np.uint16).astype(np.float32)
+        pch = np.transpose(pch.reshape(num_cols, 4))
+        pch = pch * prange / 65535.0 + min_val
         # type uint8
-        uint8 = np.array(
-            struct.unpack('{}B'.format(num_rows * num_cols), cmain),
-            dtype=np.float32)
-        uint8 = uint8.reshape(num_cols, num_rows)
-        uint8 = np.transpose(uint8)
+        uint8 = np.fromstring(cmain, dtype=np.uint8).astype(np.float32)
+        uint8 = np.transpose(uint8.reshape(num_cols, num_rows))
         # precompute index
         le64_index = uint8 <= 64
         gt92_index = uint8 >= 193
@@ -299,13 +294,11 @@ def uncompress(cdata, cps_type, head):
     else:
         if cps_type == 'CM2':
             inc = float(prange / 65535.0)
-            uint_seq = struct.unpack('{}H'.format(num_rows * num_cols), cdata)
+            uint_seq = np.fromstring(cdata, dtype=np.uint16).astype(np.float32)
         else:
             inc = float(prange / 255.0)
-            uint_seq = struct.unpack('{}B'.format(num_rows * num_cols), cdata)
-        uint_seq = np.array(
-            uint_seq, dtype=np.float32).reshape(num_rows, num_cols)
-        mat = min_val + uint_seq * inc
+            uint_seq = np.fromstring(cdata, dtype=np.uint8).astype(np.float32)
+        mat = min_val + uint_seq.reshape(num_rows, num_cols) * inc
 
     return mat
 

@@ -71,14 +71,13 @@ def run(args):
             # N x T x F
             for (i, j) in srp_pair:
                 srp.append(
-                    gcc_phat_diag(
-                        stft_mat[i],
-                        stft_mat[j],
-                        min(i, j) * np.pi * 2 / args.n,
-                        args.d,
-                        num_bins=num_ffts // 2 + 1,
-                        sr=args.sr,
-                        num_doa=args.num_doa))
+                    gcc_phat_diag(stft_mat[i],
+                                  stft_mat[j],
+                                  min(i, j) * np.pi * 2 / args.n,
+                                  args.d,
+                                  num_bins=num_ffts // 2 + 1,
+                                  sr=args.sr,
+                                  num_doa=args.num_doa))
             srp = sum(srp) / len(srp_pair)
             nan = np.sum(np.isnan(srp))
             if nan:
@@ -96,28 +95,30 @@ if __name__ == "__main__":
         "Command to compute SRP augular spectrum for circular arrays",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-    parser.add_argument(
-        "wav_scp", type=str, help="Rspecifier for multi-channel wave")
+    parser.add_argument("wav_scp",
+                        type=str,
+                        help="Rspecifier for multi-channel wave")
     parser.add_argument("srp_ark", type=str, help="Location to dump features")
-    parser.add_argument(
-        "--scp",
-        type=str,
-        default="",
-        help="If assigned, generate corresponding scripts")
+    parser.add_argument("--scp",
+                        type=str,
+                        default="",
+                        help="If assigned, generate corresponding scripts")
     parser.add_argument("--n", type=int, default=6, help="Number of arrays")
-    parser.add_argument(
-        "--d", type=float, default=0.07, help="Diameter of circular array")
-    parser.add_argument(
-        "--diag-pair",
-        type=str,
-        default="0,3;1,4;2,5",
-        help="Compute gcc between those diagonal arrays")
-    parser.add_argument(
-        "--sr", type=int, default=16000, help="Sample rate of input wave")
-    parser.add_argument(
-        "--num-doa",
-        type=int,
-        default=121,
-        help="Number of DoA to sample between 0 and 2pi")
+    parser.add_argument("--d",
+                        type=float,
+                        default=0.07,
+                        help="Diameter of circular array")
+    parser.add_argument("--diag-pair",
+                        type=str,
+                        default="0,3;1,4;2,5",
+                        help="Compute gcc between those diagonal arrays")
+    parser.add_argument("--sr",
+                        type=int,
+                        default=16000,
+                        help="Sample rate of input wave")
+    parser.add_argument("--num-doa",
+                        type=int,
+                        default=121,
+                        help="Number of DoA to sample between 0 and 2pi")
     args = parser.parse_args()
     run(args)

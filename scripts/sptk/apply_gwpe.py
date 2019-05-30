@@ -69,36 +69,34 @@ if __name__ == "__main__":
         "configuration: 512/128/blackman)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-    parser.add_argument(
-        "wav_scp", type=str, help="Multi-channel rspecifier in kaldi format")
-    parser.add_argument(
-        "dst_dir", type=str, help="Location to dump dereverbrated files")
-    parser.add_argument(
-        "--taps",
-        default=10,
-        type=int,
-        help="Value of taps used in GWPE algorithm")
-    parser.add_argument(
-        "--delay",
-        default=3,
-        type=int,
-        help="Value of delay used in GWPE algorithm")
-    parser.add_argument(
-        "--context",
-        default=1,
-        dest="context",
-        type=int,
-        help="Context value to compute PSD matrix in GWPE algorithm")
-    parser.add_argument(
-        "--num-iters",
-        default=3,
-        type=int,
-        help="Number of iterations to step in GWPE")
-    parser.add_argument(
-        "--sample-frequency",
-        type=int,
-        default=16000,
-        dest="samp_fs",
-        help="Waveform data sample frequency")
+    parser.add_argument("wav_scp",
+                        type=str,
+                        help="Multi-channel rspecifier in kaldi format")
+    parser.add_argument("dst_dir",
+                        type=str,
+                        help="Location to dump dereverbrated files")
+    parser.add_argument("--taps",
+                        default=10,
+                        type=int,
+                        help="Value of taps used in GWPE algorithm")
+    parser.add_argument("--delay",
+                        default=3,
+                        type=int,
+                        help="Value of delay used in GWPE algorithm")
+    parser.add_argument("--context",
+                        default=1,
+                        dest="context",
+                        type=int,
+                        help="Context value to compute PSD "
+                        "matrix in GWPE algorithm")
+    parser.add_argument("--num-iters",
+                        default=3,
+                        type=int,
+                        help="Number of iterations to step in GWPE")
+    parser.add_argument("--sample-frequency",
+                        type=int,
+                        default=16000,
+                        dest="samp_fs",
+                        help="Waveform data sample frequency")
     args = parser.parse_args()
     run(args)

@@ -18,8 +18,8 @@ def run(args):
     utt2spk = parse_scps(args.utt2spk)
 
     def Reader(scp, t):
-        return NumpyReader(scp) if t == "numpy" else ScriptReader(
-            scp, matrix=False)
+        return NumpyReader(scp) if t == "numpy" else ScriptReader(scp,
+                                                                  matrix=False)
 
     spks_reader = Reader(args.spks_scp, args.type)
     spks_keys, spks_embs = [], []
@@ -31,7 +31,7 @@ def run(args):
         spks_mat = np.linalg.norm(spks_mat, axis=1, ord=2, keepdims=True)
     logger.info("Load {:d} speakers from enrollment embeddings".format(
         len(spks_keys)))
-        
+
     eval_reader = Reader(args.eval_scp, args.type)
     for uttid, uttvec in eval_reader:
         spkid = utt2spk[uttid]
@@ -57,29 +57,26 @@ if __name__ == "__main__":
         "and registered ones, output results to stdout, which could "
         "be used to compute eer using compute-eer in kaldi.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "spks_scp",
-        type=str,
-        help="Embedding rspecifier computed from enrollment utterances")
-    parser.add_argument(
-        "eval_scp",
-        type=str,
-        help="Embedding rspecifier to evaluate perfermance")
-    parser.add_argument(
-        "--utt2spk",
-        type=str,
-        required=True,
-        help="Rspecifier for utterance to speaker map")
-    parser.add_argument(
-        "--vector-type",
-        dest="type",
-        type=str,
-        choices=["kaldi", "numpy"],
-        default="kaldi",
-        help="Storage format for embeddings")
-    parser.add_argument(
-        "--normalize",
-        action="store_true",
-        help="If true, normalize embeddings before compute dot product")
+    parser.add_argument("spks_scp",
+                        type=str,
+                        help="Embedding rspecifier computed "
+                        "from enrollment utterances")
+    parser.add_argument("eval_scp",
+                        type=str,
+                        help="Embedding rspecifier to evaluate perfermance")
+    parser.add_argument("--utt2spk",
+                        type=str,
+                        required=True,
+                        help="Rspecifier for utterance to speaker map")
+    parser.add_argument("--vector-type",
+                        dest="type",
+                        type=str,
+                        choices=["kaldi", "numpy"],
+                        default="kaldi",
+                        help="Storage format for embeddings")
+    parser.add_argument("--normalize",
+                        action="store_true",
+                        help="If true, normalize embeddings "
+                        "before compute dot product")
     args = parser.parse_args()
     run(args)

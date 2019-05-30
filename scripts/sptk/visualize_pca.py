@@ -56,20 +56,18 @@ if __name__ == "__main__":
         "Command to visualize embeddings (egs: ivector/xvector/dvector) "
         "using PCA transform",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "rspec_or_dir",
-        type=str,
-        help="Read specifier of archives/Directory of ndarrays")
-    parser.add_argument(
-        "--input",
-        type=str,
-        default="vector",
-        choices=["matrix", "vector"],
-        help="Input data type")
-    parser.add_argument(
-        "--dim",
-        type=int,
-        default=3,
-        help="Number of components in PCA transform")
+    parser.add_argument("rspec_or_dir",
+                        type=str,
+                        help="Read specifier of "
+                        "archives/Directory of ndarrays")
+    parser.add_argument("--input",
+                        type=str,
+                        default="vector",
+                        choices=["matrix", "vector"],
+                        help="Input data type")
+    parser.add_argument("--dim",
+                        type=int,
+                        default=3,
+                        help="Number of components in PCA transform")
     args = parser.parse_args()
     run(args)
