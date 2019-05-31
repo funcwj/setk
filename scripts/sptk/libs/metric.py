@@ -1,9 +1,11 @@
 # wujian@2018
 """
-Si-SNR(scale-invariant SNR/SDR) measure of speech separation
+1. Si-SNR (scale-invariant SNR/SDR)
+2. WER (word error rate)
 """
 
 import numpy as np
+import editdistance as ed
 
 from itertools import permutations
 
@@ -51,3 +53,25 @@ def permute_si_snr(xlist, slist):
     for order in permutations(range(N)):
         si_snrs.append(si_snr_avg(xlist, [slist[n] for n in order]))
     return max(si_snrs)
+
+
+def permute_ed(hlist, rlist):
+    """
+    Compute edit distance between N pairs
+    Arguments:
+        hlist: list[vector], hypothesis
+        rlist: list[vector], reference 
+    """
+
+    def distance(hlist, rlist):
+        return sum([ed.eval(h, r) for h, r in zip(hlist, rlist)])
+
+    N = len(hlist)
+    if N != len(rlist):
+        raise RuntimeError(
+            "size do not match between hlist and rlist: {:d} vs {:d}".format(
+                N, len(rlist)))
+    wers = []
+    for order in permutations(range(N)):
+        wers.append(distance(hlist, [rlist[n] for n in order]))
+    return min(wers)

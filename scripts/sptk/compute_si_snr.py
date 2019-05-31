@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from collections import defaultdict
 from libs.metric import si_snr, permute_si_snr
-from libs.data_handler import WaveReader, parse_scps
+from libs.data_handler import WaveReader, Reader
 
 
 class SpeakersReader(object):
@@ -37,7 +37,7 @@ class SpeakersReader(object):
 
 class Report(object):
     def __init__(self, spk2class=None):
-        self.s2c = parse_scps(spk2class) if spk2class else None
+        self.s2c = Reader(spk2class) if spk2class else None
         self.snr = defaultdict(float)
         self.cnt = defaultdict(int)
 
@@ -63,7 +63,7 @@ class Report(object):
 def run(args):
     single_speaker = len(args.sep_scp.split(",")) == 1
     reporter = Report(args.spk2class)
-    details = open(args.details, "w") if args.details else None
+    each_utt = open(args.per_utt, "w") if args.each_utt else None
 
     if single_speaker:
         sep_reader = WaveReader(args.sep_scp)
@@ -76,8 +76,8 @@ def run(args):
                 ref = ref[:end]
             snr = si_snr(sep, ref)
             reporter.add(key, snr)
-            if details:
-                details.write("{}\t{:.2f}\n".format(key, snr))
+            if each_utt:
+                each_utt.write("{}\t{:.2f}\n".format(key, snr))
     else:
         sep_reader = SpeakersReader(args.sep_scp)
         ref_reader = SpeakersReader(args.ref_scp)
@@ -89,11 +89,11 @@ def run(args):
                 ref_list = [s[:end] for s in ref_list]
             snr = permute_si_snr(sep_list, ref_list)
             reporter.add(key, snr)
-            if details:
-                details.write("{}\t{:.2f}\n".format(key, snr))
+            if each_utt:
+                each_utt.write("{}\t{:.2f}\n".format(key, snr))
     reporter.report()
-    if details:
-        details.close()
+    if each_utt:
+        each_utt.close()
 
 
 if __name__ == "__main__":
@@ -114,7 +114,7 @@ if __name__ == "__main__":
                         default="",
                         help="If assigned, report results"
                         " per class (gender or degree)")
-    parser.add_argument("--details",
+    parser.add_argument("--per-utt",
                         type=str,
                         default="",
                         help="If assigned, report snr "
