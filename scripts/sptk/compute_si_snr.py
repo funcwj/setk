@@ -49,7 +49,7 @@ class Report(object):
         self.cnt[cls_str] += 1
 
     def report(self):
-        print("SI-SDR(dB) Report: ")
+        print("Si-SDR(dB) Report: ")
         tot_utt = sum([self.cnt[cls_str] for cls_str in self.cnt])
         tot_snr = sum([self.snr[cls_str] for cls_str in self.snr])
         print("Total: {:d}/{:.3f}".format(tot_utt, tot_snr / tot_utt))
@@ -63,7 +63,7 @@ class Report(object):
 def run(args):
     single_speaker = len(args.sep_scp.split(",")) == 1
     reporter = Report(args.spk2class)
-    each_utt = open(args.per_utt, "w") if args.each_utt else None
+    each_utt = open(args.per_utt, "w") if args.per_utt else None
 
     if single_speaker:
         sep_reader = WaveReader(args.sep_scp)

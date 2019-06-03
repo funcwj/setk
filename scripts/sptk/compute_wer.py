@@ -4,8 +4,6 @@
 
 import argparse
 
-from tqdm import tqdm
-
 from libs.data_handler import Reader as BaseReader
 from libs.metric import permute_ed
 
@@ -43,7 +41,7 @@ def run(args):
 
     err = 0
     tot = 0
-    for key, hyp in tqdm(hyp_reader):
+    for key, hyp in hyp_reader:
         ref = ref_reader[key]
         dst = permute_ed(hyp, ref)
         ref_len = sum([len(r) for r in ref])

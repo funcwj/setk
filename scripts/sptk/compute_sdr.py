@@ -60,7 +60,7 @@ def run(args):
 
     sep_reader = AudioReader(args.sep_scp)
     ref_reader = AudioReader(args.ref_scp)
-    each_utt = open(args.per_utt, "w") if args.each_utt else None
+    each_utt = open(args.per_utt, "w") if args.per_utt else None
     reporter = Report(args.spk2class)
     # sep: N x S
     for key, sep in sep_reader:
