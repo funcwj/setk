@@ -41,8 +41,8 @@ def pipe_fopen(command, mode, background=True):
             _thread.interrupt_main()
 
     if background:
-        thread = threading.Thread(
-            target=background_command_waiter, args=(command, p))
+        thread = threading.Thread(target=background_command_waiter,
+                                  args=(command, p))
         # exits abnormally if main thread is terminated .
         thread.daemon = True
         thread.start()
@@ -107,7 +107,10 @@ class ext_open(object):
         _fclose(self.fname, self.fd)
 
 
-def parse_scps(scp_path, value_processor=lambda x: x, num_tokens=2):
+def parse_scps(scp_path,
+               value_processor=lambda x: x,
+               num_tokens=2,
+               restrict=True):
     """
     Parse kaldi's script(.scp) file with supported for stdin/pipe
     If num_tokens >= 2, function will check token number
@@ -122,8 +125,8 @@ def parse_scps(scp_path, value_processor=lambda x: x, num_tokens=2):
             if scp_tokens[-1] == "|":
                 key, value = scp_tokens[0], " ".join(scp_tokens[1:])
             else:
-                if num_tokens >= 2 and len(scp_tokens) != num_tokens or len(
-                        scp_tokens) < 2:
+                if (num_tokens >= 2 and len(scp_tokens) != num_tokens) or (
+                        restrict and len(scp_tokens) < 2):
                     raise RuntimeError(
                         "For {}, format error in line[{:d}]: {}".format(
                             scp_path, line, raw_line))
@@ -143,9 +146,8 @@ class Reader(object):
         Base class for sequential/random accessing, to be implemented
     """
 
-    def __init__(self, scp_path, value_processor=lambda x: x, num_tokens=2):
-        self.index_dict = parse_scps(
-            scp_path, value_processor=value_processor, num_tokens=num_tokens)
+    def __init__(self, scp_rspecifier, **kwargs):
+        self.index_dict = parse_scps(scp_rspecifier, **kwargs)
         self.index_keys = list(self.index_dict.keys())
 
     def _load(self, key):
@@ -256,8 +258,9 @@ class WaveReader(Reader):
 
     def _read_s(self, addr):
         # return C x N or N
-        samp_rate, samps = read_wav(
-            addr, normalize=self.normalize, return_rate=True)
+        samp_rate, samps = read_wav(addr,
+                                    normalize=self.normalize,
+                                    return_rate=True)
         # if given samp_rate, check it
         if self.samp_rate is not None and samp_rate != self.samp_rate:
             raise RuntimeError("SampleRate mismatch: {:d} vs {:d}".format(
@@ -382,8 +385,8 @@ class ScriptReader(Reader):
             path, offset = ":".join(addr_token[0:-1]), int(addr_token[-1])
             return (path, offset)
 
-        super(ScriptReader, self).__init__(
-            ark_scp, value_processor=addr_processor)
+        super(ScriptReader, self).__init__(ark_scp,
+                                           value_processor=addr_processor)
         self.matrix = matrix
         self.fmgr = dict()
 

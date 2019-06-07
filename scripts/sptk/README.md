@@ -1,4 +1,4 @@
-Some useful scripts (work with python 3.6.5+) for speech enhancement integrated with kaldi, which could be used dependently.
+Python scripts (work with python 3.6+) for speech enhancement integrated with kaldi, which could be used dependently.
 
 1. Supervised beamformer/Speech separation based on TF-mask
 2. Data convertion among MATLAB, Numpy and kaldi
@@ -10,6 +10,6 @@ Some useful scripts (work with python 3.6.5+) for speech enhancement integrated 
 8. Mask computation (iam, irm, ibm, psm, crm)
 9. RIR simulation (1D/2D arrays)
 10. TF spectral masking, oracle speech separation
-11. Si-SDR/SDR evaluation
+11. Si-SDR/SDR/WER evaluation
 12. Pywebrtc vad wrapper
 13. ...
