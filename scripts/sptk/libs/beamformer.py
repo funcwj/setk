@@ -102,6 +102,33 @@ def rank1_constraint(Rxx, Rvv=None):
     return rank1_appro
 
 
+def beam_pattern(weight, steer_vector):
+    """
+    Compute beam pattern of the fixed beamformer
+    Arguments (for N: num_mics, F: num_bins, D: num_doas, B: num_beams)
+        weight: B x F x N or F x N (single or multiple beams)
+        steer_vector: F x D x N
+    Return
+        pattern: [F x D, ...] or F x D
+    """
+
+    if weight.shape[-1] != steer_vector.shape[-1] or weight.shape[
+            -2] != steer_vector.shape[0]:
+        raise RuntimeError("Shape mismatch between weight and steer_vector")
+
+    def single_beam(weight, sv):
+        # F x D x 1
+        bp = sv @ np.expand_dims(weight.conj(), -1)
+        return np.squeeze(np.abs(bp))
+
+    if weight.ndim == 2:
+        return single_beam(weight, steer_vector)
+    elif weight.ndim == 3:
+        return [single_beam(w, steer_vector) for w in weight]
+    else:
+        raise RuntimeError(f"Expect 2/3D beam weights, got {weight.ndim}")
+
+
 class Beamformer(object):
     def __init__(self):
         pass
@@ -324,10 +351,14 @@ class SupperDirectiveBeamformer(DSBeamformer):
         Return:
             weight: shape as F x N
         """
-        steer_vector = super(SupperDirectiveBeamformer, self).weight(
-            doa, num_bins, c=c, sample_rate=sample_rate)
-        Rvv = self.compute_diffuse_covar(
-            num_bins, c=c, sample_rate=sample_rate)
+        steer_vector = super(SupperDirectiveBeamformer,
+                             self).weight(doa,
+                                          num_bins,
+                                          c=c,
+                                          sample_rate=sample_rate)
+        Rvv = self.compute_diffuse_covar(num_bins,
+                                         c=c,
+                                         sample_rate=sample_rate)
         numerator = np.linalg.solve(Rvv, steer_vector)
         denominator = np.einsum("...d,...d->...", steer_vector.conj(),
                                 numerator)
@@ -462,8 +493,9 @@ class OnlineGevdBeamformer(OnlineSupervisedBeamformer):
     """
 
     def __init__(self, num_bins, num_channels, alpha=0.8):
-        super(OnlineGevdBeamformer, self).__init__(
-            num_bins, num_channels, alpha=alpha)
+        super(OnlineGevdBeamformer, self).__init__(num_bins,
+                                                   num_channels,
+                                                   alpha=alpha)
 
     def weight(self, Rxx, Rvv):
         """
@@ -482,8 +514,9 @@ class OnlineMvdrBeamformer(OnlineSupervisedBeamformer):
     """
 
     def __init__(self, num_bins, num_channels, alpha=0.8):
-        super(OnlineMvdrBeamformer, self).__init__(
-            num_bins, num_channels, alpha=alpha)
+        super(OnlineMvdrBeamformer, self).__init__(num_bins,
+                                                   num_channels,
+                                                   alpha=alpha)
 
     def weight(self, Rxx, Rvv):
         """

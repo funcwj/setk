@@ -41,7 +41,7 @@ for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_dir/wav.$n.scp"; done
 ./utils/split_scp.pl $wav_scp $split_wav_scp
 
 $cmd JOB=1:$nj $exp_dir/log/cut_silence.JOB.log \
-  ./scripts/sptk/cut_silence.py \
+  ./scripts/sptk/remove_sil.py \
   --mode $mode \
   --fs $fs \
   --chunk-size $chunk_size \

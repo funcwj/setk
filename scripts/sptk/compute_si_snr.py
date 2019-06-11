@@ -27,7 +27,13 @@ class SpeakersReader(object):
         return len(first_reader)
 
     def __getitem__(self, key):
-        return [reader[key] for reader in self.readers]
+        data = []
+        for reader in self.readers:
+            wave = reader[key]
+            # if multi-channel, choose ch0 as reference
+            # we always use ch0 as training targets
+            data.append(wave if wave.ndim == 1 else wave[0])
+        return data
 
     def __iter__(self):
         first_reader = self.readers[0]

@@ -18,17 +18,17 @@ class AudioReader(object):
     def __len__(self):
         return len(self.wav_reader[0])
 
-    def _index(self, key):
-        data = [reader[key] for reader in self.wav_reader]
-        return np.stack(data, axis=0)
-
     def __getitem__(self, key):
-        return self._index(key)
+        data = []
+        for reader in self.wav_reader:
+            wave = reader[key]
+            data.append(wave if wave.ndim == 1 else wave[0])
+        return np.stack(data, axis=0)
 
     def __iter__(self):
         ref = self.wav_reader[0]
         for key in ref.index_keys:
-            yield key, self._index(key)
+            yield key, self[key]
 
 
 class Report(object):

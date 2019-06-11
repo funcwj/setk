@@ -46,9 +46,8 @@ def permute_si_snr(xlist, slist):
 
     N = len(xlist)
     if N != len(slist):
-        raise RuntimeError(
-            "size do not match between xlist and slist: {:d} vs {:d}".format(
-                N, len(slist)))
+        raise RuntimeError("size do not match between xlist "
+                           "and slist: {:d} vs {:d}".format(N, len(slist)))
     si_snrs = []
     for order in permutations(range(N)):
         si_snrs.append(si_snr_avg(xlist, [slist[n] for n in order]))
@@ -68,9 +67,8 @@ def permute_ed(hlist, rlist):
 
     N = len(hlist)
     if N != len(rlist):
-        raise RuntimeError(
-            "size do not match between hlist and rlist: {:d} vs {:d}".format(
-                N, len(rlist)))
+        raise RuntimeError("size do not match between hlist "
+                           "and rlist: {:d} vs {:d}".format(N, len(rlist)))
     wers = []
     for order in permutations(range(N)):
         wers.append(distance(hlist, [rlist[n] for n in order]))

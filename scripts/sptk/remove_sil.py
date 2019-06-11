@@ -96,7 +96,7 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Command to cut silence from original utterances"
+        description="Command to remove silence from original utterances"
         "(using py-webrtcvad from https://github.com/wiseman/py-webrtcvad). "
         "This is often used in speaker relative tasks.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
