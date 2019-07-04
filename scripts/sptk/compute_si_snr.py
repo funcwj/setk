@@ -69,7 +69,8 @@ class Report(object):
 def run(args):
     single_speaker = len(args.sep_scp.split(",")) == 1
     reporter = Report(args.spk2class)
-    each_utt = open(args.per_utt, "w") if args.per_utt else None
+    utt_snr = open(args.per_utt, "w") if args.per_utt else None
+    utt_ali = open(args.utt_ali, "w") if args.utt_ali else None
 
     if single_speaker:
         sep_reader = WaveReader(args.sep_scp)
@@ -82,8 +83,8 @@ def run(args):
                 ref = ref[:end]
             snr = si_snr(sep, ref)
             reporter.add(key, snr)
-            if each_utt:
-                each_utt.write("{}\t{:.2f}\n".format(key, snr))
+            if utt_snr:
+                utt_snr.write("{}\t{:.2f}\n".format(key, snr))
     else:
         sep_reader = SpeakersReader(args.sep_scp)
         ref_reader = SpeakersReader(args.ref_scp)
@@ -93,13 +94,18 @@ def run(args):
                 end = min(sep_list[0].size, ref_list[0].size)
                 sep_list = [s[:end] for s in sep_list]
                 ref_list = [s[:end] for s in ref_list]
-            snr = permute_si_snr(sep_list, ref_list)
+            snr, ali = permute_si_snr(sep_list, ref_list, align=True)
             reporter.add(key, snr)
-            if each_utt:
-                each_utt.write("{}\t{:.2f}\n".format(key, snr))
+            if utt_snr:
+                utt_snr.write(f"{key}\t{snr:.2f}\n")
+            if utt_ali:
+                ali_str = " ".join(map(str, ali))
+                utt_ali.write(f"{key}\t{ali_str}\n")
     reporter.report()
-    if each_utt:
-        each_utt.close()
+    if utt_snr:
+        utt_snr.close()
+    if utt_ali:
+        utt_ali.close()
 
 
 if __name__ == "__main__":
@@ -125,5 +131,9 @@ if __name__ == "__main__":
                         default="",
                         help="If assigned, report snr "
                         "improvement for each utterance")
+    parser.add_argument("--utt-ali",
+                        type=str,
+                        default="",
+                        help="If assigned, output audio alignments")
     args = parser.parse_args()
     run(args)

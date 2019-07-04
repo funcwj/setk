@@ -33,7 +33,7 @@ def si_snr(x, s, eps=1e-8, remove_dc=True):
     return 20 * np.log10(vec_l2norm(t) / (vec_l2norm(n) + eps) + eps)
 
 
-def permute_si_snr(xlist, slist):
+def permute_si_snr(xlist, slist, align=False):
     """
     Compute Si-SNR between N pairs
     Arguments:
@@ -49,9 +49,15 @@ def permute_si_snr(xlist, slist):
         raise RuntimeError("size do not match between xlist "
                            "and slist: {:d} vs {:d}".format(N, len(slist)))
     si_snrs = []
+    perm = []
     for order in permutations(range(N)):
         si_snrs.append(si_snr_avg(xlist, [slist[n] for n in order]))
-    return max(si_snrs)
+        perm.append(order)
+    if not align:
+        return max(si_snrs)
+    else:
+        max_idx = np.argmax(si_snrs)
+        return max(si_snrs), perm[max_idx]
 
 
 def permute_ed(hlist, rlist):
