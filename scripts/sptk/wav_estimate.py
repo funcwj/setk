@@ -4,71 +4,65 @@
 """
 Esimate signal from fbank or (log)-magnitude/power spectrum using Griffin Lim algorithm
 """
-import os
 import argparse
-import librosa as audio_lib
 import numpy as np
 
-from libs.utils import get_logger, nfft, griffin_lim, write_wav, EPSILON
+from libs.utils import get_logger, griffin_lim, istft
 from libs.opts import StftParser
-from libs.data_handler import ScriptReader, WaveWriter
+from libs.data_handler import ScriptReader, WaveWriter, SpectrogramReader, NumpyReader
 
 logger = get_logger(__name__)
 
 
 def run(args):
-    griffin_lim_kwargs = {
+    stft_kwargs = {
         "frame_len": args.frame_len,
         "frame_hop": args.frame_hop,
         "window": args.window,
         "center": args.center,
-        "transpose": True,
-        "epochs": args.epochs
     }
 
-    feature_reader = ScriptReader(args.feat_scp)
+    FeatureReader = {"numpy": NumpyReader, "kaldi": ScriptReader}
+    feature_reader = FeatureReader[args.fmt](args.mask_scp)
 
-    if args.fbank:
-        mel_kwargs = {
-            "n_mels": args.num_bins,
-            "fmin": args.min_freq,
-            "fmax": args.max_freq,
-            "htk": True
-        }
-        # N x F
-        mel_weights = audio_lib.filters.mel(args.samp_freq,
-                                            nfft(args.frame_length),
-                                            **mel_kwargs)
-        # F x N
-        mel_inv_weights = np.linalg.pinv(mel_weights)
+    phase_reader = None
+    if args.phase_ref:
+        phase_reader = SpectrogramReader(
+            args.phase_ref,
+            **stft_kwargs,
+            round_power_of_two=args.round_power_of_two)
+        logger.info(f"Using phase reference from {args.phase_ref}")
 
-    with WaveWriter(args.dump_dir, fs=args.samp_freq,
+    with WaveWriter(args.dump_dir, fs=args.sr,
                     normalize=args.normalize) as writer:
         for key, spec in feature_reader:
+            logger.info(f"Processing utterance {key}...")
             # if log, tranform to linear
             if args.apply_log:
                 spec = np.exp(spec)
-            # convert fbank to spectrum
-            # feat: T x N
-            if args.fbank:
-                spec = np.maximum(spec @ np.transpose(mel_inv_weights),
-                                  EPSILON)
             # if power spectrum, tranform to magnitude spectrum
             if args.apply_pow:
                 spec = np.sqrt(spec)
-            if spec.shape[1] - 1 != nfft(args.frame_length) // 2:
-                raise RuntimeError("Seems missing --fbank options?")
-            # griffin lim
-            samps = griffin_lim(spec, **griffin_lim_kwargs)
+            if phase_reader is None:
+                # griffin lim
+                samps = griffin_lim(spec,
+                                    epoches=args.epoches,
+                                    transpose=True,
+                                    norm=0.8,
+                                    **stft_kwargs)
+            else:
+                if key not in phase_reader:
+                    raise KeyError(f"Missing key {key} in phase reader")
+                angle = np.angle(phase_reader[key])
+                phase = np.exp(angle * 1j)
+                samps = istft(spec * phase, **stft_kwargs, norm=0.8)
             writer.write(key, samps)
-    logger.info("Processed {:d} utterance done".format(len(feature_reader)))
+    logger.info(f"Processed {len(feature_reader)} utterance done")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=
-        "Command to restore signal from fbank/spectrogram using Griffin Lim algorithm."
-        "(NOTE: fbank/mel-spectrogram performs not very well)",
+        description="Command to restore signal from spectrogram.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("feat_scp",
@@ -80,8 +74,14 @@ if __name__ == "__main__":
     parser.add_argument("--sample-frequency",
                         type=int,
                         default=16000,
-                        dest="samp_freq",
+                        dest="sr",
                         help="Waveform data sample frequency")
+    parser.add_argument("--feat-format",
+                        dest="fmt",
+                        choices=["kaldi", "numpy"],
+                        default="kaldi",
+                        help="Define format of features, kaldi's "
+                        "archives or numpy's ndarray")
     parser.add_argument("--apply-log",
                         action="store_true",
                         default=False,
@@ -96,29 +96,15 @@ if __name__ == "__main__":
                         dest="normalize",
                         help="If true, normalize sample "
                         "values between [-1, 1]")
-    parser.add_argument("--fbank",
-                        action="store_true",
-                        default=False,
-                        help="Using fbank as input features")
-    parser.add_argument("--epochs",
+    parser.add_argument("--epoches",
                         type=int,
-                        default=100,
-                        help="Number of epochs to iterate "
+                        default=30,
+                        help="Number of epoches to iterate "
                         "griffin lim algorithm")
-    parser.add_argument("--fbank.num-bins",
-                        default=40,
-                        type=int,
-                        dest="num_bins",
-                        help="Number of mel-bins defined in mel-filters")
-    parser.add_argument("--fbank.min-freq",
-                        default=0,
-                        type=int,
-                        dest="min_freq",
-                        help="Low cutoff frequency for mel bins")
-    parser.add_argument("--fbank.max-freq",
-                        default=8000,
-                        type=int,
-                        dest="max_freq",
-                        help="High cutoff frequency for mel bins")
+    parser.add_argument("--phase-ref",
+                        type=str,
+                        default="",
+                        help="If assigned, use phase of it "
+                        "instead of griffin lim algorithm")
     args = parser.parse_args()
     run(args)
