@@ -23,7 +23,7 @@ def run(args):
     }
 
     FeatureReader = {"numpy": NumpyReader, "kaldi": ScriptReader}
-    feature_reader = FeatureReader[args.fmt](args.mask_scp)
+    feature_reader = FeatureReader[args.fmt](args.feat_scp)
 
     phase_reader = None
     if args.phase_ref:
@@ -53,7 +53,8 @@ def run(args):
             else:
                 if key not in phase_reader:
                     raise KeyError(f"Missing key {key} in phase reader")
-                angle = np.angle(phase_reader[key])
+                ref = phase_reader[key]
+                angle = np.angle(ref[0] if ref.ndim == 3 else ref)
                 phase = np.exp(angle * 1j)
                 samps = istft(spec * phase, **stft_kwargs, norm=0.8)
             writer.write(key, samps)
