@@ -327,7 +327,7 @@ class RirSimulator(object):
             json.dump(self.rirs_cfg, f, indent=2)
         logger.info("Generate {:d} rirs, {:d} rooms done, "
                     "retry = {:d}".format(self.args.num_rirs * num_rooms, done,
-                                          max_retry))
+                                          ntry))
 
 
 def run(args):

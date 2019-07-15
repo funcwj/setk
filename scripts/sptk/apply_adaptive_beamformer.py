@@ -92,7 +92,6 @@ def run(args):
     with WaveWriter(args.dst_dir, fs=args.samp_freq) as writer:
         for key, stft_mat in spectrogram_reader:
             if key in mask_reader:
-                num_done += 1
                 power = spectrogram_reader.power(key)
                 logger.info(
                     "Processing utterance {}, signal power {:.2f}...".format(
@@ -107,18 +106,23 @@ def run(args):
                 if speech_mask.shape[0] == F:
                     speech_mask = np.transpose(speech_mask)
                 # stft_enh, stft_mat: (N) x F x T
-                if not online:
-                    stft_enh = beamformer.run(speech_mask,
-                                              stft_mat,
-                                              normalize=args.ban)
-                else:
-                    stft_enh = do_online_beamform(beamformer, speech_mask,
-                                                  stft_mat, args)
+                try:
+                    if not online:
+                        stft_enh = beamformer.run(speech_mask,
+                                                stft_mat,
+                                                normalize=args.ban)
+                    else:
+                        stft_enh = do_online_beamform(beamformer, speech_mask,
+                                                    stft_mat, args)
+                except np.linalg.LinAlgError:
+                    logger.error(f"Raise linalg error: {key}")
+                    continue
                 # masking beamformer output if necessary
                 if args.mask:
                     stft_enh = stft_enh * np.transpose(speech_mask)
                 samps = istft(stft_enh, power=power, **stft_kwargs)
                 writer.write(key, samps)
+                num_done += 1
     logger.info("Processed {:d} utterances out of {:d}".format(
         num_done, len(spectrogram_reader)))
 

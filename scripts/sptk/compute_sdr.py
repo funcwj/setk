@@ -18,17 +18,17 @@ class AudioReader(object):
     def __len__(self):
         return len(self.wav_reader[0])
 
-    def _index(self, key):
-        data = [reader[key] for reader in self.wav_reader]
-        return np.stack(data, axis=0)
-
     def __getitem__(self, key):
-        return self._index(key)
+        data = []
+        for reader in self.wav_reader:
+            wave = reader[key]
+            data.append(wave if wave.ndim == 1 else wave[0])
+        return np.stack(data, axis=0)
 
     def __iter__(self):
         ref = self.wav_reader[0]
         for key in ref.index_keys:
-            yield key, self._index(key)
+            yield key, self[key]
 
 
 class Report(object):
@@ -60,7 +60,8 @@ def run(args):
 
     sep_reader = AudioReader(args.sep_scp)
     ref_reader = AudioReader(args.ref_scp)
-    each_utt = open(args.per_utt, "w") if args.per_utt else None
+    utt_snr = open(args.per_utt, "w") if args.per_utt else None
+    utt_ali = open(args.utt_ali, "w") if args.utt_ali else None
     reporter = Report(args.spk2class)
     # sep: N x S
     for key, sep in sep_reader:
@@ -68,15 +69,19 @@ def run(args):
         ref = ref_reader[key]
         # keep same shape
         nsamps = min(sep.shape[-1], ref.shape[-1])
-        sdr, _, _, _ = bss_eval_sources(ref[:, :nsamps], sep[:, :nsamps])
+        sdr, _, _, ali = bss_eval_sources(ref[:, :nsamps], sep[:, :nsamps])
         sdr = np.mean(sdr)
         reporter.add(key, sdr)
-        if each_utt:
-            each_utt.write("{}\t{:.2f}\n".format(key, sdr))
-
+        if utt_snr:
+            utt_snr.write("{}\t{:.2f}\n".format(key, sdr))
+        if utt_ali:
+            ali_str = " ".join(map(str, ali))
+            utt_ali.write(f"{key}\t{ali_str}\n")
     reporter.report()
-    if each_utt:
-        each_utt.close()
+    if utt_snr:
+        utt_snr.close()
+    if utt_ali:
+        utt_ali.close()
 
 
 if __name__ == "__main__":
@@ -102,5 +107,9 @@ if __name__ == "__main__":
                         default="",
                         help="If assigned, report snr "
                         "improvement for each utterance")
+    parser.add_argument("--utt-ali",
+                        type=str,
+                        default="",
+                        help="If assigned, output audio alignments")
     args = parser.parse_args()
     run(args)

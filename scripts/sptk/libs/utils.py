@@ -7,7 +7,7 @@ import errno
 import warnings
 import logging
 
-import librosa as audio_lib
+import librosa
 # using wf to handle wave IO because it support better than librosa
 import scipy.io.wavfile as wf
 import scipy.signal as ss
@@ -113,12 +113,12 @@ def stft(samps,
     # 1) win_length <= n_fft
     # 2) if win_length is None, win_length = n_fft
     # 3) if win_length < n_fft, pad window to n_fft
-    stft_mat = audio_lib.stft(samps,
-                              n_fft,
-                              frame_hop,
-                              win_length=frame_len,
-                              window=window,
-                              center=center)
+    stft_mat = librosa.stft(samps,
+                            n_fft,
+                            frame_hop,
+                            win_length=frame_len,
+                            window=window,
+                            center=center)
     # stft_mat: F x T or N x F x T
     if apply_abs:
         stft_mat = cmat_abs(stft_mat)
@@ -149,12 +149,12 @@ def istft(stft_mat,
     if window == "sqrthann":
         window = ss.hann(frame_len, sym=False)**0.5
     # orignal istft accept stft result(matrix, shape as FxT)
-    samps = audio_lib.istft(stft_mat,
-                            frame_hop,
-                            win_length=frame_len,
-                            window=window,
-                            center=center,
-                            length=nsamps)
+    samps = librosa.istft(stft_mat,
+                          frame_hop,
+                          win_length=frame_len,
+                          window=window,
+                          center=center,
+                          length=nsamps)
     # keep same amplitude
     if norm:
         samps_norm = np.linalg.norm(samps, np.inf)
@@ -166,36 +166,37 @@ def istft(stft_mat,
     return samps
 
 
-def griffin_lim(magnitude,
+def griffin_lim(mag,
                 frame_len=1024,
                 frame_hop=256,
+                round_power_of_two=True,
                 window="hann",
                 center=True,
                 transpose=True,
-                epochs=100):
+                norm=None,
+                epoches=30):
+    """
+    Griffin Lim Algothrim
+    """
     # TxF -> FxT
     if transpose:
-        magnitude = np.transpose(magnitude)
-    n_fft = nfft(frame_len)
-    angle = np.exp(2j * np.pi * np.random.rand(*magnitude.shape))
-    samps = audio_lib.istft(magnitude * angle,
-                            frame_hop,
-                            frame_len,
-                            window=window,
-                            center=center)
-    for _ in range(epochs):
-        stft_mat = audio_lib.stft(samps,
-                                  n_fft,
-                                  frame_hop,
-                                  frame_len,
-                                  window=window,
-                                  center=center)
-        angle = np.exp(1j * np.angle(stft_mat))
-        samps = audio_lib.istft(magnitude * angle,
-                                frame_hop,
-                                frame_len,
-                                window=window,
-                                center=center)
+        mag = np.transpose(mag)
+    n_fft = nfft(frame_len) if round_power_of_two else frame_len
+    stft_kwargs = {
+        "hop_length": frame_hop,
+        "win_length": frame_len,
+        "window": window,
+        "center": center
+    }
+    phase = np.exp(2j * np.pi * np.random.rand(*mag.shape))
+    samps = librosa.istft(mag * phase, **stft_kwargs)
+    for _ in range(epoches):
+        stft_mat = librosa.stft(samps, n_fft=n_fft, **stft_kwargs)
+        phase = np.exp(1j * np.angle(stft_mat))
+        samps = librosa.istft(mag * phase, **stft_kwargs)
+    if norm:
+        samps_norm = np.linalg.norm(samps, np.inf)
+        samps = samps * norm / (samps_norm + EPSILON)
     return samps
 
 

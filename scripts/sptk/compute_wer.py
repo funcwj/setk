@@ -23,12 +23,19 @@ class TransReader(object):
         return len(self.text_reader)
 
     def __getitem__(self, key):
+        if not self._check(key):
+            raise RuntimeError(f"Missing {key} in text reader")
         return [reader[key] for reader in self.text_reader]
+
+    def _check(self, key):
+        status = [key in reader for reader in self.text_reader]
+        return sum(status) == len(self.text_reader)
 
     def __iter__(self):
         ref = self.text_reader[0]
         for key in ref.index_keys:
-            yield key, [reader[key] for reader in self.text_reader]
+            if self._check(key):
+                yield key, self[key]
 
 
 def run(args):
@@ -41,6 +48,7 @@ def run(args):
 
     err = 0
     tot = 0
+    num_utts = 0
     for key, hyp in hyp_reader:
         ref = ref_reader[key]
         dst = permute_ed(hyp, ref)
@@ -52,7 +60,8 @@ def run(args):
                 each_utt.write("{}\tINF\n".format(key))
         err += dst
         tot += ref_len
-    print("WER: {:.2f}%".format(err * 100 / tot))
+        num_utts += 1
+    print("WER: {:.2f}%, {:d} utterances".format(err * 100 / tot, num_utts))
 
 
 if __name__ == "__main__":
