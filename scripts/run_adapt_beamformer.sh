@@ -16,6 +16,8 @@ post_mask=false
 alpha=0.8
 chunk_size=-1
 channels=4
+pmwf_ref=-1
+itf_mask=""
 
 echo "$0 $@"
 
@@ -25,7 +27,8 @@ function usage {
   echo "  --cmd         <run.pl|queue.pl>   # how to run jobs, (default=$cmd)"
   echo "  --stft-conf   <stft-conf>         # stft configurations files, (default=$stft_conf)"
   echo "  --mask-format <kaldi|numpy>       # load masks from np.ndarray instead, (default=$mask_format)"
-  echo "  --beamformer  <mvdr|pmwf|gevd>    # type of adaptive beamformer to apply, (default=$beamformer)"
+  echo "  --itf-mask                        # scripts of interfering masks, (default=$itf_mask)"
+  echo "  --beamformer  <mvdr|pmwf-0|pmwf-1|gevd>    # type of adaptive beamformer to apply, (default=$beamformer)"
   echo "  --normalize   <true|false>        # do ban or not, (default=$normalize)"
   echo "  --post-mask   <true|false>        # do TF-masking after beamforming or not, (default=$post_mask)"
   echo "  --alpha       <alpha>             # remember coefficient used in online version, (default=$alpha)"
@@ -63,9 +66,11 @@ wav_split_scp="" && for n in $(seq $nj); do wav_split_scp="$wav_split_scp $exp_d
 ./utils/split_scp.pl $exp_dir/wav.scp $wav_split_scp
 
 stft_opts=$(cat $stft_conf | xargs)
-beamformer_opts="$stft_opts --beamformer $beamformer --mask-format $mask_format"
+beamformer_opts="$stft_opts --beamformer $beamformer --mask-format $mask_format --pmwf-ref $pmwf_ref"
 $normalize && beamformer_opts="$beamformer_opts --post-filter"
 $post_mask && beamformer_opts="$beamformer_opts --post-mask"
+
+[ ! -z $itf_mask ] && beamformer_opts="$beamformer_opts --itf-mask $itf_mask"
 
 if [ $chunk_size -gt 0 ]; then
   beamformer_opts="$beamformer_opts --online.alpha $alpha --online.chunk-size $chunk_size --online.channels $channels"

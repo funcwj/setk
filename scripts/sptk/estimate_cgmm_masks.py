@@ -30,8 +30,7 @@ def run(args):
     num_done = 0
     with NumpyWriter(args.dst_dir) as writer:
         for key, stft in spectrogram_reader:
-            if not os.path.exists(
-                    os.path.join(args.dst_dir, "{}.npy".format(key))):
+            if not os.path.exists(os.path.join(args.dst_dir, f"{key}.npy")):
                 init_mask = None
                 if init_mask_reader and key in init_mask_reader:
                     init_mask = init_mask_reader[key]
@@ -43,13 +42,13 @@ def run(args):
                     speech_masks = trainer.train(args.num_epochs)
                     num_done += 1
                     writer.write(key, speech_masks.astype(np.float32))
-                    logger.info("Training utterance {} ... Done".format(key))
+                    logger.info(f"Training utterance {key} ... Done")
                 except RuntimeError:
-                    logger.warn("Training utterance {} ... Failed".format(key))
+                    logger.warn(f"Training utterance {key} ... Failed")
             else:
-                logger.info("Training utterance {} ... Skip".format(key))
-    logger.info("Train {:d} utterances over {:d}".format(
-        num_done, len(spectrogram_reader)))
+                logger.info(f"Training utterance {key} ... Skip")
+    logger.info(
+        f"Train {num_done:d} utterances over {len(spectrogram_reader):d}")
 
 
 if __name__ == "__main__":

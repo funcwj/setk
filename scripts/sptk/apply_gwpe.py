@@ -40,14 +40,14 @@ def run(args):
     num_done = 0
     with WaveWriter(args.dst_dir, fs=args.samp_fs) as writer:
         for key, reverbed in spectrogram_reader:
-            logger.info("Processing utt {}...".format(key))
+            logger.info(f"Processing utt {key}...")
             # N x T x F => F x N x T
             reverbed = np.transpose(reverbed, (2, 0, 1))
             try:
                 # F x N x T
                 dereverb = wpe(reverbed, **wpe_kwargs)
             except np.linalg.LinAlgError:
-                logger.warn("{}: Failed cause LinAlgError in wpe".format(key))
+                logger.warn(f"{key}: Failed cause LinAlgError in wpe")
                 continue
             # F x N x T => N x T x F
             dereverb = np.transpose(dereverb, (1, 2, 0))
@@ -58,9 +58,9 @@ def run(args):
             # show progress cause slow speed
             num_done += 1
             if not num_done % 100:
-                logger.info("Processed {:d} utterances...".format(num_done))
-    logger.info("Processed {:d} utterances over {:d}".format(
-        num_done, len(spectrogram_reader)))
+                logger.info(f"Processed {num_done:d} utterances...")
+    logger.info(
+        f"Processed {num_done:d} utterances over {len(spectrogram_reader):d}")
 
 
 if __name__ == "__main__":

@@ -32,7 +32,7 @@ def run(args):
             args.phase_ref,
             **stft_kwargs,
             round_power_of_two=args.round_power_of_two)
-        logger.info("Using phase reference from {}".format(args.phase_ref))
+        logger.info(f"Using phase reference from {args.phase_ref}")
     MaskReader = {"numpy": NumpyReader, "kaldi": ScriptReader}
     mask_reader = MaskReader[args.fmt](args.mask_scp)
 
@@ -50,12 +50,13 @@ def run(args):
                 _, F = specs.shape
                 if mask.shape[0] == F:
                     mask = np.transpose(mask)
-                logger.info("Processing utterance {}...".format(key))
+                logger.info(f"Processing utterance {key}...")
                 if mask.shape != specs.shape:
                     raise ValueError(
-                        "Dimention mismatch between mask and spectrogram"
-                        "({0[0]} x {0[1]} vs {1[0]} x {1[1]}), need check configures"
-                        .format(mask.shape, specs.shape))
+                        "Dimention mismatch between mask and spectrogram" +
+                        f"({mask.shape[0]} x {mask.shape[1]} vs " +
+                        f"{specs.shape[0]} x {specs.shape[1]}), need " +
+                        "check configures")
                 nsamps = spectrogram_reader.nsamps(
                     key) if args.keep_length else None
                 norm = spectrogram_reader.samp_norm(
@@ -74,8 +75,8 @@ def run(args):
                                   norm=norm,
                                   nsamps=nsamps)
                 writer.write(key, samps)
-    logger.info("Processed {:d} utterances over {:d}".format(
-        num_done, len(spectrogram_reader)))
+    logger.info(
+        f"Processed {num_done:d} utterances over {len(spectrogram_reader):d}")
 
 
 if __name__ == "__main__":

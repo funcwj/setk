@@ -46,7 +46,7 @@ def save_figure(key, mat, dest, cmap="jet", hop=10, sr=16000, size=3):
     plt.ylabel("Frequency(kHz)")
     plt.savefig(dest)
     plt.close()
-    logger.info("Save utterance {} to {}.png".format(key, dest))
+    logger.info(f"Save utterance {key} to {dest}.png")
 
 
 def run(args):
