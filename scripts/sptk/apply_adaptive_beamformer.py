@@ -12,7 +12,7 @@ import os
 import numpy as np
 from scipy.io import loadmat
 
-from libs.utils import istft, get_logger, nfft
+from libs.utils import istft, get_logger, nfft, cmat_abs
 from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, WaveWriter
 from libs.beamformer import MvdrBeamformer, GevdBeamformer, PmwfBeamformer
@@ -51,6 +51,30 @@ def do_online_beamform(beamformer, speech_mask, interf_mask, stft_mat, args):
                                    normalize=args.ban)
         enh_chunks.append(chunk)
     return np.hstack(enh_chunks)
+
+
+def compute_vad_masks(spectrogram, proportion):
+    """
+    We ignore several minimum values and keep proportion*100% energy
+    Arguments:
+        spectrogram: F x T
+    Return:
+        vad_mask: T x F
+    """
+    energy_mat = cmat_abs(spectrogram)
+    energy_vec = np.sort(energy_mat.flatten())
+    filter_energy = np.sum(energy_vec) * (1 - proportion)
+    threshold = 0
+    cumsum, index = 0, 0
+    while index < energy_vec.shape[0]:
+        threshold = energy_vec[index]
+        cumsum += threshold
+        if cumsum > filter_energy:
+            break
+        index += 1
+    # silence if 1
+    vad_mask = (energy_mat < threshold)
+    return vad_mask.transpose(), index
 
 
 def run(args):
@@ -119,6 +143,13 @@ def run(args):
                     speech_mask = np.transpose(speech_mask)
                     if interf_mask is not None:
                         interf_mask = np.transpose(interf_mask)
+                if 0.5 < args.vad_proportion < 1:
+                    vad_mask, N = compute_vad_masks(stft_mat[0],
+                                                    args.vad_proportion)
+                    logger.info(f"Filtering {N} TF-masks...")
+                    speech_mask = np.where(vad_mask, 1.0e-4, speech_mask)
+                    if interf_mask is not None:
+                        interf_mask = np.where(vad_mask, 1.0e-4, interf_mask)
                 # stft_enh, stft_mat: (N) x F x T
                 try:
                     if not online:
@@ -192,6 +223,11 @@ if __name__ == "__main__":
                         action="store_true",
                         help="Masking enhanced spectrogram "
                         "after beamforming or not")
+    parser.add_argument("--vad-proportion",
+                        type=float,
+                        default=1,
+                        help="Energy proportion to filter "
+                        "silence masks [0.5, 1]")
     parser.add_argument("--online.alpha",
                         default=0.8,
                         dest="alpha",
