@@ -4,6 +4,7 @@
 
 import argparse
 
+from collections import defaultdict
 from libs.data_handler import Reader as BaseReader
 from libs.metric import permute_ed
 
@@ -12,7 +13,6 @@ class TransReader(object):
     """
     Class to handle single/multi-speaker transcriptions
     """
-
     def __init__(self, text):
         self.text_reader = [
             BaseReader(t, num_tokens=-1, restrict=False)
@@ -38,6 +38,34 @@ class TransReader(object):
                 yield key, self[key]
 
 
+class Report(object):
+    def __init__(self, spk2class=None):
+        self.s2c = BaseReader(spk2class) if spk2class else None
+        self.err = defaultdict(float)
+        self.tot = defaultdict(float)
+        self.cnt = 0
+
+    def add(self, key, err, tot):
+        cls_str = "NG"
+        if self.s2c:
+            cls_str = self.s2c[key]
+        self.err[cls_str] += err
+        self.tot[cls_str] += tot
+        self.cnt += 1
+
+    def report(self):
+        print("WER(%) Report: ")
+        sum_err = sum([self.err[cls_str] for cls_str in self.err])
+        sum_len = sum([self.tot[cls_str] for cls_str in self.tot])
+        print(f"Total WER: {sum_err * 100 / sum_len:.2f}%, " +
+              f"{self.cnt} utterances")
+        if len(self.err) != 1:
+            for cls_str in self.err:
+                cls_err = self.err[cls_str]
+                cls_tot = self.tot[cls_str]
+                print(f"  {cls_str}: {cls_err * 100 / cls_tot:.2f}%")
+
+
 def run(args):
     hyp_reader = TransReader(args.hyp)
     ref_reader = TransReader(args.ref)
@@ -46,22 +74,18 @@ def run(args):
             "Looks number of speakers do not match in hyp & ref")
     each_utt = open(args.per_utt, "w") if args.per_utt else None
 
-    err = 0
-    tot = 0
-    num_utts = 0
+    reporter = Report(args.utt2class)
     for key, hyp in hyp_reader:
         ref = ref_reader[key]
-        dst = permute_ed(hyp, ref)
+        err = permute_ed(hyp, ref)
         ref_len = sum([len(r) for r in ref])
         if each_utt:
             if ref_len != 0:
-                each_utt.write("{}\t{:.3f}\n".format(key, dst / ref_len))
+                each_utt.write("{}\t{:.3f}\n".format(key, err / ref_len))
             else:
                 each_utt.write("{}\tINF\n".format(key))
-        err += dst
-        tot += ref_len
-        num_utts += 1
-    print("WER: {:.2f}%, {:d} utterances".format(err * 100 / tot, num_utts))
+        reporter.add(key, err, ref_len)
+    reporter.report()
 
 
 if __name__ == "__main__":
@@ -81,5 +105,10 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="If assigned, compute wer for each utterance")
+    parser.add_argument("--utt2class",
+                        type=str,
+                        default="",
+                        help="If assigned, report results "
+                        "per-class (gender or degree)")
     args = parser.parse_args()
     run(args)

@@ -171,7 +171,7 @@ void ComputeMvdrBeamWeights(const CMatrixBase<BaseFloat> &noise_psd,
         std::complex<BaseFloat>(1.0, 0) / VecVec(numerator, steer, kConj);
     KALDI_VLOG(3) << "1 / (d^H * R^{-1} * d): "
                   << "(" << std::real(s) << (std::imag(s) >= 0 ? "+" : "")
-                  << std::imag(s) << ")" << std::endl;
+                  << std::imag(s) << ")";
     numerator.Scale(std::real(s), std::imag(s));
     KALDI_VLOG(3) << "R^{-1} * d / (d^H * R^{-1} * d): " << numerator;
   }

@@ -26,14 +26,14 @@ def run(args):
     topo = list(map(float, args.linear_topo.split(",")))
     doa = args.doa if args.doa > 0 else 180 + args.doa
     if doa < 0 or doa > 180:
-        raise RuntimeError("Illegal value for DoA: {:.2f}".format(args.doa))
+        raise RuntimeError(f"Illegal value for DoA: {args.doa:.2f}")
 
     spectrogram_reader = SpectrogramReader(
         args.wav_scp,
         round_power_of_two=args.round_power_of_two,
         **stft_kwargs)
     beamformer = DSBeamformer(topo)
-    logger.info("Initialize {:d} channel DSBeamformer".format(len(topo)))
+    logger.info(f"Initialize {len(topo):d} channel DSBeamformer")
 
     with WaveWriter(args.dst_dir, fs=args.fs) as writer:
         for key, stft_src in spectrogram_reader:
@@ -44,7 +44,7 @@ def run(args):
             power = spectrogram_reader.power(key)
             samps = istft(stft_enh, **stft_kwargs, power=power)
             writer.write(key, samps)
-    logger.info("Processed {:d} utterances".format(len(spectrogram_reader)))
+    logger.info(f"Processed {len(spectrogram_reader):d} utterances")
 
 
 if __name__ == "__main__":

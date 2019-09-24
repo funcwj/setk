@@ -72,7 +72,7 @@ def run(args):
     fs = args.fs
     splitter = VoiceSpliter(args.mode, args.cache_size, fs)
     wav_reader = WaveReader(args.wav_scp, sample_rate=fs, normalize=False)
-    logger.info("Setting vad mode: {:d}".format(args.mode))
+    logger.info(f"Setting vad mode: {args.mode:d}")
 
     step = ms_to_n(args.chunk_size, fs)
     with WaveWriter(args.dst_dir, fs=fs, normalize=False) as wav_writer:
@@ -89,9 +89,8 @@ def run(args):
             if len(gather):
                 wav_writer.write(key, np.hstack(gather))
             else:
-                logger.warn(
-                    "Haven't got active segments for utterance {}".format(key))
-    logger.info("Processed {:d} utterances".format(len(wav_reader)))
+                logger.warn(f"Haven't got active segments for utterance {key}")
+    logger.info(f"Processed {len(wav_reader)} utterances")
 
 
 if __name__ == "__main__":

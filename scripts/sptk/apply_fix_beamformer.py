@@ -30,18 +30,18 @@ def run(args):
         **stft_kwargs)
     weights_dict = loadmat(args.weights)
     if args.weight_key not in weights_dict:
-        raise KeyError("Weight key error: no \'{}\' in {}".format(
-            args.weight_key, args.weights))
+        raise KeyError(
+            f"Weight key error: no {args.weight_key} in {args.weights}")
 
     beamformer = FixedBeamformer(weights_dict[args.weight_key])
     with WaveWriter(args.dump_dir) as writer:
         for key, stft_mat in spectrogram_reader:
-            logger.info("Processing utterance {}...".format(key))
+            logger.info(f"Processing utterance {key}...")
             stft_enh = beamformer.run(stft_mat)
             # do not normalize
             samps = istft(stft_enh, **stft_kwargs)
             writer.write(key, samps)
-    logger.info("Processed {:d} utterances".format(len(spectrogram_reader)))
+    logger.info(f"Processed {len(spectrogram_reader):d} utterances")
 
 
 if __name__ == "__main__":
