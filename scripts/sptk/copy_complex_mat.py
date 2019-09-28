@@ -9,7 +9,7 @@ import argparse
 import numpy as np
 import scipy.io as sio
 
-from libs.iobase import write_common_mat, write_token, write_int32, write_binary_symbol
+from libs.kaldi_io import write_common_mat, write_token, write_int32, write_binary_symbol
 
 
 def write_complex_mat(fd, cmat):

@@ -2,13 +2,13 @@
 # coding=utf-8
 # wujian@2018
 
-import os
 import glob
 import argparse
 
 import numpy as np
 import matplotlib.pyplot as plt
 
+from pathlib import Path
 from libs.data_handler import ArchiveReader
 from libs.utils import get_logger, filekey
 
@@ -17,9 +17,10 @@ logger = get_logger(__name__)
 
 class NumpyReader(object):
     def __init__(self, src_dir):
-        if not os.path.isdir(src_dir):
+        src_dir = Path(src_dir)
+        if not src_dir.is_dir():
             raise RuntimeError("NumpyReader expect dir as input")
-        flist = glob.glob(os.path.join(src_dir, "*.npy"))
+        flist = glob.glob((src_dir / "*.npy").as_posix())
         self.index_dict = {filekey(f): f for f in flist}
 
     def __iter__(self):
@@ -28,31 +29,48 @@ class NumpyReader(object):
 
 
 def save_figure(key, mat, dest, cmap="jet", hop=10, sr=16000, size=3):
-    num_frames, num_bins = mat.shape
-    # plt.figure(figsize=(size * t2f, size) if t2f <= 1 else (size, size / t2f))
-    plt.figure(figsize=(max(size * num_frames / num_bins, size) + 2, size + 2))
-    plt.imshow(mat.T,
-               origin="lower",
-               cmap=cmap,
-               aspect="auto",
-               interpolation="none")
-    plt.title(key)
-    xp = np.linspace(0, num_frames - 1, 5)
-    yp = np.linspace(0, num_bins - 1, 6)
-    plt.xticks(xp, ["{:.2f}".format(t) for t in (xp * hop)])
-    plt.yticks(yp,
-               ["{:.1f}".format(t) for t in np.linspace(0, sr / 2, 6) / 1000])
-    plt.xlabel("Time(s)")
-    plt.ylabel("Frequency(kHz)")
+    """
+    Save figure to disk
+    """
+    def plot(mat, num_frames, num_bins, xticks=True):
+        plt.imshow(mat.T,
+                   origin="lower",
+                   cmap=cmap,
+                   aspect="auto",
+                   interpolation="none")
+        if xticks:
+            xp = np.linspace(0, num_frames - 1, 5)
+            plt.xticks(xp, ["{:.2f}".format(t) for t in (xp * hop)])
+            plt.xlabel("Time(s)")
+        else:
+            # disble xticks
+            plt.xticks([])
+        yp = np.linspace(0, num_bins - 1, 6)
+        fs = np.linspace(0, sr / 2, 6) / 1000
+        plt.yticks(yp, ["{:.1f}".format(t) for t in fs])
+        plt.ylabel("Frequency(kHz)")
+
+    if mat.ndim == 3:
+        N, T, F = mat.shape
+    else:
+        T, F = mat.shape
+        N = 1
+    plt.figure(figsize=(max(size * T / F, size) + 2, size + 2))
+    if N != 1:
+        for i in range(N):
+            plt.subplot(int(f"{N}1{i + 1}"))
+            plot(mat[i], T, F, xticks=i == N - 1)
+    else:
+        plot(mat, T, F)
     plt.savefig(dest)
     plt.close()
     logger.info(f"Save utterance {key} to {dest}.png")
 
 
 def run(args):
-    if not os.path.exists(args.cache_dir):
-        os.makedirs(args.cache_dir)
-    is_dir = os.path.isdir(args.rspec_or_dir)
+    cache_dir = Path(args.cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    is_dir = Path(args.rspec_or_dir).is_dir()
     # ndarrays or archives
     mat_reader = ArchiveReader(
         args.rspec_or_dir) if not is_dir else NumpyReader(args.rspec_or_dir)
@@ -60,12 +78,12 @@ def run(args):
         if args.apply_log:
             mat = np.log10(mat)
         if args.trans:
-            mat = np.transpose(mat)
+            mat = np.swapaxes(mat, -1, -2)
         if args.norm:
             mat = mat / np.max(np.abs(mat))
         save_figure(key,
                     mat,
-                    os.path.join(args.cache_dir, key.replace('.', '-')),
+                    cache_dir / key.replace('.', '-'),
                     cmap=args.cmap,
                     hop=args.frame_hop * 1e-3,
                     sr=args.sr,
