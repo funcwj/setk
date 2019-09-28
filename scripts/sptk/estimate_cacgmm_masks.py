@@ -2,16 +2,38 @@
 
 # wujian@2018
 
+import sys
+import imp
+
 import argparse
 import numpy as np
 
 from pathlib import Path
-from libs.cluster import CgmmTrainer
+from urllib import request
+
+from libs.cluster import CacgmmTrainer
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, NumpyWriter
-from libs.utils import get_logger
+from libs.utils import get_logger, nfft
 from libs.opts import StftParser
 
 logger = get_logger(__name__)
+
+pb_bss_align_url = "https://raw.githubusercontent.com/fgnt/pb_bss/master/pb_bss/permutation_alignment.py"
+
+
+def load_module(url):
+    """
+    Load module from url (simplest way)
+    https://python3-cookbook.readthedocs.io/zh_CN/latest/c10/p11_load_modules_from_remote_machine_by_hooks.html
+    """
+    u = request.urlopen(url)
+    source = u.read().decode("utf-8")
+    mod = sys.modules.setdefault(url, imp.new_module(url))
+    code = compile(source, url, "exec")
+    mod.__file__ = url
+    mod.__package__ = ""
+    exec(code, mod.__dict__)
+    return mod
 
 
 def run(args):
@@ -29,24 +51,34 @@ def run(args):
     init_mask_reader = MaskReader[args.fmt](
         args.init_mask) if args.init_mask else None
 
+    n_fft = nfft(args.frame_len) if args.round_power_of_two else args.frame_len
+    # now use pb_bss
+    pb_perm_solver = load_module(pb_bss_align_url)
+    aligner = pb_perm_solver.DHTVPermutationAlignment.from_stft_size(n_fft)
+
     num_done = 0
     with NumpyWriter(args.dst_dir) as writer:
         dst_dir = Path(args.dst_dir)
         for key, stft in spectrogram_reader:
             if not (dst_dir / f"{key}.npy").exists():
+                # K x F x T
                 init_mask = None
                 if init_mask_reader and key in init_mask_reader:
                     init_mask = init_mask_reader[key]
-                    logger.info(
-                        "Using external speech mask to initialize cgmm")
+                    logger.info("Using external mask to initialize cacgmm")
                 # stft: N x F x T
-                trainer = CgmmTrainer(stft, Ms=init_mask)
+                trainer = CacgmmTrainer(stft,
+                                        args.num_classes,
+                                        gamma=init_mask)
                 try:
-                    speech_masks = trainer.train(args.num_epoches)
+                    # EM
+                    masks = trainer.train(args.num_epoches)
+                    # align
+                    masks = aligner(masks)
                     num_done += 1
-                    writer.write(key, speech_masks.astype(np.float32))
+                    writer.write(key, masks.astype(np.float32))
                     logger.info(f"Training utterance {key} ... Done")
-                except RuntimeError:
+                except np.linalg.LinAlgError:
                     logger.warn(f"Training utterance {key} ... Failed")
             else:
                 logger.info(f"Training utterance {key} ... Skip")
@@ -56,8 +88,8 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Speech & Noise mask estimation using CGMM model "
-        "(also see: estimate_cacgmm_masks.py)",
+        description="Speaker masks estimation using Complex Angular "
+        "Central Gaussian Mixture Model (CACGMM)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -65,16 +97,21 @@ if __name__ == "__main__":
                         help="Multi-channel wave scripts in kaldi format")
     parser.add_argument("dst_dir",
                         type=str,
-                        help="Location to dump estimated speech masks")
+                        help="Where to dump estimated speech masks")
     parser.add_argument("--num-epoches",
                         type=int,
-                        default=20,
-                        help="Number of epochs to train CGMM parameters")
-    parser.add_argument("--init-speech-mask",
+                        default=50,
+                        help="Number of epochs to train Cacgmm")
+    parser.add_argument("--num-classes",
+                        type=int,
+                        default=2,
+                        help="Number of the cluster "
+                        "used in cacgmm model")
+    parser.add_argument("--init-mask",
                         type=str,
                         default="",
                         dest="init_mask",
-                        help="Speech mask scripts for cgmm initialization")
+                        help="Mask scripts for cacgmm initialization")
     parser.add_argument("--mask-format",
                         type=str,
                         dest="fmt",
