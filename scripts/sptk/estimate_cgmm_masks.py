@@ -40,7 +40,7 @@ def run(args):
                     logger.info(
                         "Using external speech mask to initialize cgmm")
                 # stft: N x F x T
-                trainer = CgmmTrainer(stft, Ms=init_mask)
+                trainer = CgmmTrainer(stft, gamma=init_mask)
                 try:
                     speech_masks = trainer.train(args.num_epoches)
                     num_done += 1
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     parser.add_argument("--num-epoches",
                         type=int,
                         default=20,
-                        help="Number of epochs to train CGMM parameters")
+                        help="Number of epoches to train CGMM parameters")
     parser.add_argument("--init-speech-mask",
                         type=str,
                         default="",

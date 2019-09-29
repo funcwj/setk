@@ -3,7 +3,7 @@
 # wujian@2018
 
 import sys
-import imp
+import types
 
 import argparse
 import numpy as np
@@ -28,7 +28,7 @@ def load_module(url):
     """
     u = request.urlopen(url)
     source = u.read().decode("utf-8")
-    mod = sys.modules.setdefault(url, imp.new_module(url))
+    mod = sys.modules.setdefault(url, types.ModuleType(url))
     code = compile(source, url, "exec")
     mod.__file__ = url
     mod.__package__ = ""
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     parser.add_argument("--num-epoches",
                         type=int,
                         default=50,
-                        help="Number of epochs to train Cacgmm")
+                        help="Number of epoches to train Cacgmm")
     parser.add_argument("--num-classes",
                         type=int,
                         default=2,

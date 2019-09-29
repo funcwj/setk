@@ -23,13 +23,10 @@ from .utils import get_logger, EPSILON
 
 logger = get_logger(__name__)
 
-# cgmm trainer profile log
-# 424.9570s/369.6120s/333.9310s/275.4740s/12.4840s
-# faster = True
 theta = 1e-4
 
 
-# for all frames on frequency f
+# TODO: replace old implementation
 def CgmmLoglikelihoodFaster(R, phi):
     """
     Make computation faster
@@ -61,7 +58,7 @@ class CgmmTrainer(object):
     """
     CgmmTrainer for two components only: speech & noise
     """
-    def __init__(self, X, Ms=None):
+    def __init__(self, X, gamma=None):
         # N x F x T => F x N x T
         X = X.transpose([1, 0, 2])
 
@@ -69,7 +66,7 @@ class CgmmTrainer(object):
         self.num_bins, self.num_channels, self.num_frames = X.shape
 
         # init R{n,s}
-        if Ms is None:
+        if gamma is None:
             self.Rs = np.einsum("...dt,...et->...de", X,
                                 X.conj()) / self.num_frames
             self.Rn = np.array([
@@ -78,7 +75,7 @@ class CgmmTrainer(object):
             ])
         else:
             # Ms: T x F => F x 1 x T
-            Ms = np.expand_dims(np.transpose(Ms), axis=1)
+            Ms = np.expand_dims(np.transpose(gamma), axis=1)
             denominator_s = np.maximum(np.sum(Ms, axis=-1, keepdims=True),
                                        1e-6)
             self.Rs = np.einsum("...dt,...et->...de", Ms * X,
@@ -172,15 +169,26 @@ class CgmmTrainer(object):
         return ms
 
 
-class CacgmDistribution(object):
+class Distribution(object):
     """
-    Complex Angular Central Gaussian Distribution (K classes, F bins)
+    Basic distribution class 
     """
     def __init__(self, covar_eigval=None, covar_eigvec=None):
-        self.covar_eigval = covar_eigval
-        self.covar_eigvec = covar_eigvec
+        self.parameters = {
+            "covar_eigval": covar_eigval,
+            "covar_eigvec": covar_eigvec
+        }
 
-    def update(self, covar, force_hermitian=True):
+    def check_status(self):
+        """
+        Check if distribution is initialized
+        """
+        for key, value in self.parameters.items():
+            if value is None:
+                raise RuntimeError(
+                    f"{key} is not initialized in the distribution")
+
+    def update_covar(self, covar, force_hermitian=True):
         """
         Update covariance matrix (K x F x M x M)
         """
@@ -192,20 +200,11 @@ class CacgmDistribution(object):
         except np.linalg.LinAlgError:
             eig_val, eig_vec = np.linalg.eig(covar)
         # scaled eigen values
-        self.covar_eigval = eig_val / np.maximum(
+        self.parameters["covar_eigval"] = eig_val / np.maximum(
             np.amax(eig_val, axis=-1, keepdims=True),
             EPSILON,
         )
-        self.covar_eigvec = eig_vec
-
-    def _check_status(self):
-        """
-        Check if model is initialized
-        """
-        for s in [self.covar_eigval, self.covar_eigvec]:
-            if s is None:
-                raise RuntimeError(
-                    f"{self.__class__.__name__} is not initialized")
+        self.parameters["covar_eigvec"] = eig_vec
 
     def covar(self, inv=False):
         """
@@ -213,11 +212,35 @@ class CacgmDistribution(object):
         """
         # K x F x M x M
         if not inv:
-            return np.einsum("...xy,...y,...zy->...xz", self.covar_eigvec,
-                             self.covar_eigval, self.covar_eigvec.conj())
+            return np.einsum("...xy,...y,...zy->...xz",
+                             self.parameters["covar_eigvec"],
+                             self.parameters["covar_eigval"],
+                             self.parameters["covar_eigvec"].conj())
         else:
-            return np.einsum("...xy,...y,...zy->...xz", self.covar_eigvec,
-                             1 / self.covar_eigval, self.covar_eigvec.conj())
+            return np.einsum("...xy,...y,...zy->...xz",
+                             self.parameters["covar_eigvec"],
+                             1 / self.parameters["covar_eigval"],
+                             self.parameters["covar_eigvec"].conj())
+
+    def log_pdf(self, obs, **kwargs):
+        """
+        Return value of log-pdf
+        """
+        raise NotImplementedError
+
+
+class CacgDistribution(Distribution):
+    """
+    Complex Angular Central Gaussian Distribution (K classes, F bins)
+    """
+    def __init__(self, covar_eigval=None, covar_eigvec=None):
+        super(CacgDistribution, self).__init__(covar_eigval, covar_eigvec)
+
+    def update(self, covar, force_hermitian=True):
+        """
+        Update covar only
+        """
+        self.update_covar(covar, force_hermitian=force_hermitian)
 
     def log_pdf(self, obs, return_kernel=False):
         """
@@ -230,16 +253,18 @@ class CacgmDistribution(object):
             logpdf: K x F x T
             zh_B_inv_z: K x F x T, z^H * B^{-1} * z
         """
-        self._check_status()
-        _, _, M = self.covar_eigval.shape
+        self.check_status()
+        _, M, _ = obs.shape
         # K x F x M x M
         B_inv = self.covar(inv=True)
         # K x F x T
         zh_B_inv_z = np.einsum("...xt,...xy,...yt->...t", obs.conj(), B_inv,
                                obs)
         zh_B_inv_z = np.maximum(np.abs(zh_B_inv_z), EPSILON)
-        # K x F x M => K x F
-        log_det = np.sum(np.log(self.covar_eigval), axis=-1, keepdims=True)
+        # K x F x M => K x F x 1
+        log_det = np.sum(np.log(self.parameters["covar_eigval"]),
+                         axis=-1,
+                         keepdims=True)
         log_pdf = -M * np.log(zh_B_inv_z) - log_det
         # K x F x T
         if not return_kernel:
@@ -252,10 +277,10 @@ class Cacgmm(object):
     """
     Complex Angular Central Gaussian Mixture Model (CACGMM)
     """
-    def __init__(self):
-        self.cacgm = CacgmDistribution()
+    def __init__(self, mdl=None, alpha=None):
+        self.cacgm = CacgDistribution() if mdl is None else mdl
         # K x F
-        self.alpha = None
+        self.alpha = alpha
 
     def update(self, obs, gamma, kernel):
         """
@@ -267,12 +292,12 @@ class Cacgmm(object):
         """
         # K x F
         denominator = np.sum(gamma, -1)
-        M, _, _ = obs.shape
+        _, M, T = obs.shape
         # K x F x M x M
         covar = M * np.einsum("...t,...xt,...yt->...xy", gamma / kernel, obs,
                               obs.conj())
         covar = covar / np.maximum(denominator[..., None, None], EPSILON)
-        self.alpha = denominator / obs.shape[-1]
+        self.alpha = denominator / T
         self.cacgm.update(covar, force_hermitian=True)
 
     def predict(self, obs, return_Q=False):
@@ -320,20 +345,22 @@ class CacgmmTrainer(object):
         self.obs = self._norm_obs(obs)
 
         if self.random_init:
-            self.cacgmm = Cacgmm()
-            logger.info(f"Random initialized, num_classes = {num_classes}")
             if gamma is None:
                 F, _, T = self.obs.shape
+                self.cacgmm = Cacgmm()
                 gamma = np.random.uniform(size=[num_classes, F, T])
                 self.gamma = gamma / np.sum(gamma, 0, keepdims=True)
+                logger.info(f"Random initialized, num_classes = {num_classes}")
             else:
                 self.gamma = gamma
+                logger.info("Using external gamma, " +
+                            f"num_classes = {num_classes}")
             self.K = np.ones([num_classes, F, T])
         else:
             with open(cacgmm, "r") as pkl:
                 self.cacgmm = pickle.load(pkl)
             logger.info(f"Resume cacgmm model from {cacgmm}")
-            self.gamma, self.K = self.cacgmm.predict(obs)
+            self.gamma, self.K = self.cacgmm.predict(self.obs)
 
     def train(self, num_epoches=20):
         """
