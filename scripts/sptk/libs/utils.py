@@ -85,7 +85,7 @@ def read_wav(fname, normalize=True, return_rate=False):
     return samps
 
 
-# return F x T or T x F(tranpose=True)
+# return F x T or T x F (tranpose=True)
 def stft(samps,
          frame_len=1024,
          frame_hop=256,

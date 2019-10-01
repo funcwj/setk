@@ -23,155 +23,10 @@ from .utils import get_logger, EPSILON
 
 logger = get_logger(__name__)
 
-theta = 1e-4
-
-
-# TODO: replace old implementation
-def CgmmLoglikelihoodFaster(R, phi):
-    """
-    Make computation faster
-        for:
-            N(y, sigma) = e^(-y^H * sigma^{-1} * y) / det(pi*sigma)
-        since:
-            phi = trace(y * y^H * sigma^{-1}) / N = y^H * sigma^{-1} * y / N
-        then:
-            N(y, phi*sigma) = e^(-y^H * sigma^{-1} * y / phi) / det(pi*sigma*phi)
-                            = e^{-N} / (det(sigma) * (phi * pi)^N)
-    """
-    # kernels = np.trace(np.linalg.solve(R, C), axis1=1, axis2=2).real / phi
-    N = R.shape[0]
-    # make sure hermitian
-    R = (R + np.transpose(np.conj(R))) / 2
-    det = np.linalg.det(R).real
-    # TODO: check why sometimes negative here
-    if det <= 0:
-        raise RuntimeError(
-            f"Determinant of R is negative, det = {det:.4f}, R = {R}")
-    loglikes = np.exp(-N) / (det * ((np.pi * phi)**N) + EPSILON)
-    if np.any(np.isnan(loglikes)) or np.any(np.isinf(loglikes)):
-        raise RuntimeError("Encounter loglike = NAN/INF in "
-                           "CgmmLoglikehoodV() on some time axis")
-    return loglikes
-
-
-class CgmmTrainer(object):
-    """
-    CgmmTrainer for two components only: speech & noise
-    """
-    def __init__(self, X, gamma=None):
-        # N x F x T => F x N x T
-        X = X.transpose([1, 0, 2])
-
-        # self.X = X
-        self.num_bins, self.num_channels, self.num_frames = X.shape
-
-        # init R{n,s}
-        if gamma is None:
-            self.Rs = np.einsum("...dt,...et->...de", X,
-                                X.conj()) / self.num_frames
-            self.Rn = np.array([
-                np.eye(self.num_channels, self.num_channels, dtype=np.complex)
-                for f in range(self.num_bins)
-            ])
-        else:
-            # Ms: T x F => F x 1 x T
-            Ms = np.expand_dims(np.transpose(gamma), axis=1)
-            denominator_s = np.maximum(np.sum(Ms, axis=-1, keepdims=True),
-                                       1e-6)
-            self.Rs = np.einsum("...dt,...et->...de", Ms * X,
-                                X.conj()) / denominator_s
-            denominator_n = np.maximum(np.sum(1 - Ms, axis=-1, keepdims=True),
-                                       1e-6)
-            self.Rn = np.einsum("...dt,...et->...de",
-                                (1 - Ms) * X, X.conj()) / denominator_n
-
-        # F x N x T => F x T x N
-        X = X.transpose([0, 2, 1])
-        # init covariance-matrix on each T-F bins
-        # F x T x N x N
-        self.Rtf = np.einsum("...a,...b->...ab", X, np.conj(X))
-
-        # init phi_{n,s}
-        self.phi_n = np.zeros([self.num_bins, self.num_frames])
-        self.phi_s = np.zeros([self.num_bins, self.num_frames])
-
-        # tr(A*B^{-1}) = tr(B^{-1}*A) = tr(B\A)
-        for f in range(self.num_bins):
-            # N x N, T x N x N => T x N x N
-            self.phi_n[f] = np.trace(np.linalg.solve(self.Rn[f], self.Rtf[f]),
-                                     axis1=1,
-                                     axis2=2).real / self.num_channels
-            self.phi_s[f] = np.trace(np.linalg.solve(self.Rs[f], self.Rtf[f]),
-                                     axis1=1,
-                                     axis2=2).real / self.num_channels
-
-        logger.info(
-            "CGMM initialize: {:d} channels, {:d} frames, {:d} frequency bins".
-            format(self.num_channels, self.num_frames, self.num_bins))
-
-    def train(self, num_epoches=20):
-        """
-            Start cgmm training for some epoches
-        """
-        # likelihoods
-        pn = np.ones([self.num_bins, self.num_frames])
-        ps = np.ones([self.num_bins, self.num_frames])
-        # masks
-        mn = np.ones([self.num_bins, self.num_frames])
-        ms = np.ones([self.num_bins, self.num_frames])
-        # component weights
-        # wn = np.ones([self.num_bins, 1]) / 2
-        # ws = np.ones([self.num_bins, 1]) / 2
-        I = np.eye(self.num_channels, self.num_channels, dtype=np.complex)
-
-        for e in range(num_epoches):
-
-            for f in range(self.num_bins):
-
-                self.Rn[f] += theta * np.trace(
-                    self.Rn[f]).real / self.num_channels * I
-                self.Rs[f] += theta * np.trace(
-                    self.Rs[f]).real / self.num_channels * I
-
-                pn[f] = CgmmLoglikelihoodFaster(self.Rn[f], self.phi_n[f])
-                ps[f] = CgmmLoglikelihoodFaster(self.Rs[f], self.phi_s[f])
-
-                # update phi
-                self.phi_n[f] = np.trace(
-                    np.linalg.solve(self.Rn[f], self.Rtf[f]), axis1=1,
-                    axis2=2).real / self.num_channels
-                self.phi_s[f] = np.trace(
-                    np.linalg.solve(self.Rs[f], self.Rtf[f]), axis1=1,
-                    axis2=2).real / self.num_channels
-
-                # update masks
-                # mn[f] = wn[f] * pn[f] / (wn[f] * pn[f] + ws[f] * ps[f])
-                mn[f] = pn[f] / (pn[f] + ps[f])
-                ms[f] = 1 - mn[f]
-                # update alpha
-                # wn[f] = np.sum(mn[f]) / self.num_frames
-                # ws[f] = np.sum(ms[f]) / self.num_frames
-
-                cn = mn[f] / (self.phi_n[f] * np.sum(mn[f]))
-                cs = ms[f] / (self.phi_s[f] * np.sum(ms[f]))
-
-                # update R{n,s}
-                self.Rn[f] = np.sum(cn[:, None, None] * self.Rtf[f], axis=0)
-                self.Rs[f] = np.sum(cs[:, None, None] * self.Rtf[f], axis=0)
-
-            Qn = np.sum(
-                mn * np.log(pn + EPSILON)) / (self.num_bins * self.num_frames)
-            Qs = np.sum(
-                ms * np.log(ps + EPSILON)) / (self.num_bins * self.num_frames)
-            logger.info("Epoch {:02d}: Q = {:.4f} + {:.4f} = {:.4f}".format(
-                e + 1, Qn, Qs, Qn + Qs))
-
-        return ms
-
 
 class Distribution(object):
     """
-    Basic distribution class 
+    Basic distribution class
     """
     def __init__(self, covar_eigval=None, covar_eigvec=None):
         self.parameters = {
@@ -200,15 +55,16 @@ class Distribution(object):
         except np.linalg.LinAlgError:
             eig_val, eig_vec = np.linalg.eig(covar)
         # scaled eigen values
-        self.parameters["covar_eigval"] = eig_val / np.maximum(
+        eig_val = eig_val / np.maximum(
             np.amax(eig_val, axis=-1, keepdims=True),
             EPSILON,
         )
+        self.parameters["covar_eigval"] = np.maximum(eig_val, EPSILON)
         self.parameters["covar_eigvec"] = eig_vec
 
     def covar(self, inv=False):
         """
-        Return B or B^{-1}
+        Return R or R^{-1}
         """
         # K x F x M x M
         if not inv:
@@ -228,6 +84,57 @@ class Distribution(object):
         """
         raise NotImplementedError
 
+    def update_parameters(self, *args, **kwargs):
+        """
+        Update distribution parameters
+        """
+        raise NotImplementedError
+
+
+class CgDistribution(Distribution):
+    """
+    Complex Gaussian Distribution (K classes, F bins)
+    """
+    def __init__(self, phi=None, covar_eigval=None, covar_eigvec=None):
+        super(CgDistribution, self).__init__(covar_eigval, covar_eigvec)
+        self.parameters["phi"] = phi
+
+    def update_parameters(self, obs, covar, force_hermitian=True):
+        """
+        Update covar & phi
+        """
+        _, M, _ = obs.shape
+        self.update_covar(covar, force_hermitian=force_hermitian)
+        R_inv = self.covar(inv=True)
+        phi = np.einsum("...xt,...xy,...yt->...t", obs.conj(), R_inv, obs)
+        phi = np.maximum(np.abs(phi), EPSILON)
+        self.parameters["phi"] = phi / M
+
+    def log_pdf(self, obs, return_kernel=False):
+        """
+        Formula:
+            N(y, R) = e^(-y^H * R^{-1} * y) / det(pi*R)
+        since:
+            phi = trace(y * y^H * R^{-1}) / M = y^H * R^{-1} * y / M
+        then:
+            N(y, phi*R) = e^(-y^H * R^{-1} * y / phi) / det(pi*R*phi)
+                        = e^{-M} / (det(R) * (phi * pi)^M)
+        log N = const - log[det(R)] - M * log(phi)
+
+        Arguments
+            obs: normalized mixture observation, F x M x T
+        Return:
+            logpdf: K x F x T
+        """
+        self.check_status()
+        _, M, _ = obs.shape
+        log_det = np.sum(np.log(self.parameters["covar_eigval"]),
+                         axis=-1,
+                         keepdims=True)
+        log_pdf = -M * np.log(self.parameters["phi"]) - log_det
+        # K x F x T
+        return log_pdf
+
 
 class CacgDistribution(Distribution):
     """
@@ -236,7 +143,7 @@ class CacgDistribution(Distribution):
     def __init__(self, covar_eigval=None, covar_eigvec=None):
         super(CacgDistribution, self).__init__(covar_eigval, covar_eigvec)
 
-    def update(self, covar, force_hermitian=True):
+    def update_parameters(self, covar, force_hermitian=True):
         """
         Update covar only
         """
@@ -278,7 +185,7 @@ class Cacgmm(object):
     Complex Angular Central Gaussian Mixture Model (CACGMM)
     """
     def __init__(self, mdl=None, alpha=None):
-        self.cacgm = CacgDistribution() if mdl is None else mdl
+        self.cacg = CacgDistribution() if mdl is None else mdl
         # K x F
         self.alpha = alpha
 
@@ -298,7 +205,7 @@ class Cacgmm(object):
                               obs.conj())
         covar = covar / np.maximum(denominator[..., None, None], EPSILON)
         self.alpha = denominator / T
-        self.cacgm.update(covar, force_hermitian=True)
+        self.cacg.update_parameters(covar, force_hermitian=True)
 
     def predict(self, obs, return_Q=False):
         """
@@ -309,7 +216,7 @@ class Cacgmm(object):
             gamma: posterior, K x F x T
         """
         # K x F x T
-        log_pdf, kernel = self.cacgm.log_pdf(obs, return_kernel=True)
+        log_pdf, kernel = self.cacg.log_pdf(obs, return_kernel=True)
         Q = None
         if return_Q:
             # K x F x T => F x T
@@ -329,33 +236,163 @@ class Cacgmm(object):
             return gamma, kernel
 
 
+class Cgmm(object):
+    """
+    Complex Gaussian Mixture Model (CGMM)
+    """
+    def __init__(self, mdl=None, alpha=None):
+        self.cg = CgDistribution() if mdl is None else mdl
+        # K x F
+        self.alpha = alpha
+
+    def update(self, obs, gamma):
+        """
+        Update parameters in Cgmm
+        Arguments:
+            obs: mixture observation, F x M x T
+            gamma: K x F x T
+        """
+        # K x F x 1
+        denominator = np.sum(gamma, -1, keepdims=True)
+        # K x F x M x M
+        R = np.einsum("...t,...xt,...yt->...xy",
+                      gamma / self.cg.parameters["phi"], obs, obs.conj())
+        R = R / np.maximum(denominator[..., None], EPSILON)
+        # update R & phi
+        self.cg.update_parameters(obs, R)
+        self.alpha = np.mean(gamma, -1)
+
+    def predict(self, obs, return_Q=False):
+        """
+        Compute gamma (posterior) using Cgmm
+        Arguments:
+            obs: mixture observation, F x M x T
+        Return:
+            gamma: posterior, K x F x T
+        """
+        # K x F x T
+        log_pdf = self.cg.log_pdf(obs)
+        Q = None
+        if return_Q:
+            # K x F x T => F x T
+            pdf_tf = np.sum(np.exp(log_pdf) * self.alpha[..., None], 0)
+            # each TF-bin
+            Q = np.mean(np.log(pdf_tf))
+        log_pdf = log_pdf - np.amax(log_pdf, 0, keepdims=True)
+        # K x F x T
+        pdf = np.exp(log_pdf)
+        # K x F x T
+        nominator = pdf * self.alpha[..., None]
+        denominator = np.sum(nominator, 0, keepdims=True)
+        gamma = nominator / np.maximum(denominator, EPSILON)
+        if return_Q:
+            return gamma, Q
+        else:
+            return gamma
+
+
+class CgmmTrainer(object):
+    """
+    Cgmm Trainer
+    """
+    def __init__(self, obs, gamma=None, cgmm=None):
+        """
+        Arguments:
+            obs: mixture observation, M x F x T
+            gamma: initial gamma, K x F x T
+        """
+        self.random_init = cgmm is None
+        # F x M x T
+        self.obs = np.einsum("mft->fmt", obs)
+        F, M, T = self.obs.shape
+        logger.info(f"CGMM instance: F = {F:d}, T = {T:}, M = {M}")
+
+        if self.random_init:
+            cg = CgDistribution()
+            if gamma is None:
+                Rs = np.einsum("...dt,...et->...de", self.obs,
+                               self.obs.conj()) / T
+                Rn = np.stack(
+                    [np.eye(M, M, dtype=np.complex) for _ in range(F)])
+                R = np.stack([Rs, Rn])
+            else:
+                # 2 x F x T
+                gamma = np.stack([gamma, 1 - gamma])
+                # 2 x F
+                den = np.maximum(np.sum(gamma, axis=-1, keepdims=True),
+                                 EPSILON)
+                # 2 x F x M x M
+                R = np.einsum("...t,...xt,...yt->...xy", gamma, self.obs,
+                              self.obs.conj()) / den[..., None]
+            cg.update_parameters(self.obs, R)
+            self.cgmm = Cgmm(mdl=cg, alpha=np.ones([2, F]) / 2)
+            self.gamma = self.cgmm.predict(self.obs)
+        else:
+            with open(cgmm, "r") as pkl:
+                self.cgmm = pickle.load(pkl)
+            logger.info(f"Resume cgmm model from {cgmm}")
+            self.gamma = self.cgmm.predict(self.obs)
+
+    def train(self, num_epoches=20):
+        """
+        Train in EM progress
+        """
+        for e in range(num_epoches):
+            self.cgmm.update(self.obs, self.gamma)
+            self.gamma, Q = self.cgmm.predict(self.obs, return_Q=True)
+            logger.info(f"Epoch {e + 1:2d}: Q = {Q:.4f}")
+        return self.gamma[0]
+
+
 class CacgmmTrainer(object):
     """
     Cacgmm Trainer
     """
-    def __init__(self, obs, num_classes, gamma=None, cacgmm=None):
+    def __init__(self,
+                 obs,
+                 num_classes,
+                 gamma=None,
+                 cacgmm=None,
+                 cgmm_init=False):
         """
         Arguments:
             obs: mixture observation, M x F x T
             num_classes: number of the cluster
             gamma: initial gamma, K x F x T
+            cgmm_init: init like cgmm papers
         """
         self.random_init = cacgmm is None
         # F x M x T
         self.obs = self._norm_obs(obs)
+        F, M, T = self.obs.shape
+        logger.info(f"CACGMM instance: F = {F:d}, T = {T:}, M = {M}")
 
         if self.random_init:
-            if gamma is None:
-                F, _, T = self.obs.shape
-                self.cacgmm = Cacgmm()
-                gamma = np.random.uniform(size=[num_classes, F, T])
-                self.gamma = gamma / np.sum(gamma, 0, keepdims=True)
-                logger.info(f"Random initialized, num_classes = {num_classes}")
+            if cgmm_init and num_classes == 2:
+                # using init method like cgmm (not well)
+                cacg = CacgDistribution()
+                # init covar
+                covar = np.stack([
+                    np.einsum("...xt,...yt->...xy", self.obs, self.obs.conj())
+                    / T,
+                    np.stack([np.eye(M, M, dtype=obs.dtype) for _ in range(F)])
+                ])
+                cacg.update_parameters(covar)
+                self.cacgmm = Cacgmm(mdl=cacg, alpha=np.ones([2, F]) / 2)
+                self.gamma, self.K = self.cacgmm.predict(self.obs)
+                logger.info("Using cgmm init for num_classes = 2")
             else:
-                self.gamma = gamma
-                logger.info("Using external gamma, " +
-                            f"num_classes = {num_classes}")
-            self.K = np.ones([num_classes, F, T])
+                if gamma is None:
+                    self.cacgmm = Cacgmm()
+                    gamma = np.random.uniform(size=[num_classes, F, T])
+                    self.gamma = gamma / np.sum(gamma, 0, keepdims=True)
+                    logger.info(
+                        f"Random initialized, num_classes = {num_classes}")
+                else:
+                    self.gamma = gamma
+                    logger.info("Using external gamma, " +
+                                f"num_classes = {num_classes}")
+                self.K = np.ones([num_classes, F, T])
         else:
             with open(cacgmm, "r") as pkl:
                 self.cacgmm = pickle.load(pkl)
