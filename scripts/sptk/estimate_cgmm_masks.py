@@ -33,14 +33,17 @@ def run(args):
     with NumpyWriter(args.dst_dir) as writer:
         dst_dir = Path(args.dst_dir)
         for key, stft in spectrogram_reader:
+            _, F, _ = stft.shape
             if not (dst_dir / f"{key}.npy").exists():
                 init_mask = None
                 if init_mask_reader and key in init_mask_reader:
                     init_mask = init_mask_reader[key]
+                    if args.trans_mask:
+                        init_mask = np.transpose(init_mask)
                     logger.info(
                         "Using external speech mask to initialize cgmm")
                 # stft: N x F x T
-                trainer = CgmmTrainer(stft, Ms=init_mask)
+                trainer = CgmmTrainer(stft, gamma=init_mask)
                 try:
                     speech_masks = trainer.train(args.num_epoches)
                     num_done += 1
@@ -69,12 +72,15 @@ if __name__ == "__main__":
     parser.add_argument("--num-epoches",
                         type=int,
                         default=20,
-                        help="Number of epochs to train CGMM parameters")
+                        help="Number of epoches to train CGMM parameters")
     parser.add_argument("--init-speech-mask",
                         type=str,
                         default="",
                         dest="init_mask",
                         help="Speech mask scripts for cgmm initialization")
+    parser.add_argument("--trans-mask",
+                        action="store_true",
+                        help="If true, transpose initial TF masks")
     parser.add_argument("--mask-format",
                         type=str,
                         dest="fmt",

@@ -23,7 +23,7 @@ function usage {
   echo "  --nj          <nj>                  # number of jobs to run parallel, (default=40)"
   echo "  --cmd         <run.pl|queue.pl>     # how to run jobs, (default=run.pl)"
   echo "  --stft-conf   <stft-conf>           # stft configurations files, (default=conf/stft.conf)"
-  echo "  --epoches     <epochs>              # number of epoches to run CGMM, (default=20)"
+  echo "  --epoches     <epoches>             # number of epoches to run CGMM, (default=20)"
   echo "  --init-mask   <init-mask>           # dir or script for mask initialization, (default="")"
   echo "  --mask-format <kaldi|numpy>         # mask storage type, (default=$mask_format)"
 }
@@ -46,7 +46,7 @@ split_wav_scp="" && for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_d
 
 ./utils/split_scp.pl $wav_scp $split_wav_scp
 
-cgmm_opts="--num-epoches $epochs"
+cgmm_opts="--num-epoches $epoches"
 [ ! -z $init_mask ] && cgmm_opts="$cgmm_opts --init-speech-mask $init_mask --mask-format $mask_format"
 
 mkdir -p $dst_dir

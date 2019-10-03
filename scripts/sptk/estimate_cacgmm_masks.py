@@ -3,7 +3,7 @@
 # wujian@2018
 
 import sys
-import imp
+import types
 
 import argparse
 import numpy as np
@@ -28,7 +28,7 @@ def load_module(url):
     """
     u = request.urlopen(url)
     source = u.read().decode("utf-8")
-    mod = sys.modules.setdefault(url, imp.new_module(url))
+    mod = sys.modules.setdefault(url, types.ModuleType(url))
     code = compile(source, url, "exec")
     mod.__file__ = url
     mod.__package__ = ""
@@ -69,12 +69,16 @@ def run(args):
                 # stft: N x F x T
                 trainer = CacgmmTrainer(stft,
                                         args.num_classes,
-                                        gamma=init_mask)
+                                        gamma=init_mask,
+                                        cgmm_init=args.cgmm_init)
                 try:
-                    # EM
+                    # EM progress
                     masks = trainer.train(args.num_epoches)
-                    # align
-                    masks = aligner(masks)
+                    # align if needed
+                    if not args.cgmm_init or args.num_classes != 2:
+                        masks = aligner(masks)
+                        logger.info(
+                            "Permutation align done for each frequency")
                     num_done += 1
                     writer.write(key, masks.astype(np.float32))
                     logger.info(f"Training utterance {key} ... Done")
@@ -101,7 +105,7 @@ if __name__ == "__main__":
     parser.add_argument("--num-epoches",
                         type=int,
                         default=50,
-                        help="Number of epochs to train Cacgmm")
+                        help="Number of epoches to train Cacgmm")
     parser.add_argument("--num-classes",
                         type=int,
                         default=2,
@@ -112,6 +116,9 @@ if __name__ == "__main__":
                         default="",
                         dest="init_mask",
                         help="Mask scripts for cacgmm initialization")
+    parser.add_argument("--cgmm-init",
+                        action="store_true",
+                        help="For 2 classes, using the cgmm init way")
     parser.add_argument("--mask-format",
                         type=str,
                         dest="fmt",
