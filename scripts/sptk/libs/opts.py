@@ -15,9 +15,9 @@ def str_to_float_tuple(string, sep=","):
 
 
 def str_to_bool(value):
-    if value == "true":
+    if value in ["true", "True"]:
         return True
-    elif value == "false":
+    elif value in ["false", "False"]:
         return False
     else:
         raise ValueError
@@ -64,14 +64,15 @@ class StftParser(object):
     parser.add_argument(
         "--center",
         action=StrToBoolAction,
-        default="true",
+        default=True,
         help="Value of parameter \'center\' in librosa.stft functions")
     parser.add_argument(
         "--round-power-of-two",
         action=StrToBoolAction,
-        default="true",
+        default=True,
         help="If true, pad fft size to power of two")
     parser.add_argument(
         "--window",
+        type=str,
         default="hann",
         help="Type of window function, see scipy.signal.get_window")

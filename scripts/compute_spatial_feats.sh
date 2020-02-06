@@ -55,14 +55,13 @@ spatial_opts=$(cat $stft_conf | xargs)
 case $feats in 
   "ipd" )
     spatial_opts="$spatial_opts --ipd.index $ipd_index"
-    $ipd_cos && spatial_opts="$spatial_opts --ipd.cos"
-    $ipd_sin && spatial_opts="$spatial_opts --ipd.sin"
+    spatial_opts="$spatial_opts --ipd.cos $ipd_cos --ipd.sin $ipd_sin"
     ;;
   "msc" )
     spatial_opts="$spatial_opts --msc.ctx $msc_ctx"
     ;;
   "srp" )
-    $src_sample_tdoa && spatial_opts="$spatial_opts --srp.sample-tdoa"
+    spatial_opts="$spatial_opts --srp.sample-tdoa $src_sample_tdoa"
     spatial_opts="$spatial_opts --srp.num_doa $srp_num_doa --srp.sample-rate $srp_fs --srp.topo $srp_topo"
     ;;
   * )

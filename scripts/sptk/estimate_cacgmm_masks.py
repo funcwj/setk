@@ -14,11 +14,19 @@ from urllib import request
 from libs.cluster import CacgmmTrainer
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, NumpyWriter
 from libs.utils import get_logger, nfft
-from libs.opts import StftParser
-
-logger = get_logger(__name__)
+from libs.opts import StftParser, StrToBoolAction
 
 pb_bss_align_url = "https://raw.githubusercontent.com/fgnt/pb_bss/master/pb_bss/permutation_alignment.py"
+pb_bss_align_loc = "$SETK_ROOT/scripts/sptk/pb_perm_solver.py"
+
+try:
+    import pb_perm_solver
+except ImportError:
+    raise RuntimeError(
+        "Import pb_perm_solver error\n " +
+        f"Please download {pb_bss_align_url} to {pb_bss_align_loc}")
+
+logger = get_logger(__name__)
 
 
 def load_module(url):
@@ -53,7 +61,7 @@ def run(args):
 
     n_fft = nfft(args.frame_len) if args.round_power_of_two else args.frame_len
     # now use pb_bss
-    pb_perm_solver = load_module(pb_bss_align_url)
+    # pb_perm_solver = load_module(pb_bss_align_url)
     aligner = pb_perm_solver.DHTVPermutationAlignment.from_stft_size(n_fft)
 
     num_done = 0
@@ -117,7 +125,8 @@ if __name__ == "__main__":
                         dest="init_mask",
                         help="Mask scripts for cacgmm initialization")
     parser.add_argument("--cgmm-init",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="For 2 classes, using the cgmm init way")
     parser.add_argument("--mask-format",
                         type=str,

@@ -47,9 +47,8 @@ dst_dir=$3
 for x in $src_dir/wav.scp $fbank_conf; do [ ! -f $x ] && echo "$0: missing file: $x" && exit 1; done
 
 fbank_opts=$(cat $fbank_conf | xargs)
-$sample_normalize && fbank_opts="$fbank_opts --normalize-samples"
-$apply_log && fbank_opts="$fbank_opts --apply-log"
-$apply_pow && fbank_opts="$fbank_opts --apply-pow"
+fbank_opts="$fbank_opts --normalize-samples $sample_normalize"
+fbank_opts="$fbank_opts --apply-log $apply_log --apply-pow $apply_pow"
 
 exp_dir=$2 && mkdir -p $exp_dir
 mkdir -p $dst_dir && dst_dir=$(cd $dst_dir; pwd)

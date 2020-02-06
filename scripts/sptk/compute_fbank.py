@@ -10,7 +10,7 @@ import librosa as audio_lib
 import numpy as np
 
 from libs.utils import stft, get_logger, nfft, EPSILON
-from libs.opts import StftParser
+from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 from libs.exraw import BinaryWriter
 
@@ -89,12 +89,14 @@ if __name__ == "__main__":
                         dest="samp_freq",
                         help="Waveform data sample frequency")
     parser.add_argument("--apply-log",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         dest="log",
                         help="If true, using log mel-spectrogram "
                         "instead of linear")
     parser.add_argument("--normalize-samples",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,                        
                         dest="norm",
                         help="If true, normalize sample "
                         "values between [-1, 1]")

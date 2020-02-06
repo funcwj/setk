@@ -13,7 +13,7 @@ import numpy as np
 from scipy.io import loadmat
 
 from libs.utils import istft, get_logger, nfft, cmat_abs
-from libs.opts import StftParser
+from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, WaveWriter
 from libs.beamformer import MvdrBeamformer, GevdBeamformer, PmwfBeamformer
 from libs.beamformer import OnlineGevdBeamformer, OnlineMvdrBeamformer
@@ -216,11 +216,13 @@ if __name__ == "__main__":
                         help="Waveform data sample frequency")
     parser.add_argument("--post-filter",
                         dest="ban",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="Do Blind Analytical Normalization(BAN) or not")
     parser.add_argument("--post-mask",
                         dest="mask",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="Masking enhanced spectrogram "
                         "after beamforming or not")
     parser.add_argument("--vad-proportion",

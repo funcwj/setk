@@ -8,7 +8,7 @@ import argparse
 import numpy as np
 
 from libs.utils import get_logger, griffin_lim, istft
-from libs.opts import StftParser
+from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import ScriptReader, WaveWriter, SpectrogramReader, NumpyReader
 
 logger = get_logger(__name__)
@@ -84,15 +84,15 @@ if __name__ == "__main__":
                         help="Define format of features, kaldi's "
                         "archives or numpy's ndarray")
     parser.add_argument("--apply-log",
-                        action="store_true",
+                        action=StrToBoolAction,
                         default=False,
                         help="Corresponding option in feature computation")
     parser.add_argument("--apply-pow",
-                        action="store_true",
+                        action=StrToBoolAction,
                         default=False,
                         help="Corresponding option in feature computation")
     parser.add_argument("--normalize-samples",
-                        action="store_true",
+                        action=StrToBoolAction,
                         default=False,
                         dest="normalize",
                         help="If true, normalize sample "

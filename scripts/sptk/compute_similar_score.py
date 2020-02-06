@@ -10,6 +10,7 @@ import numpy as np
 
 from libs.data_handler import NumpyReader, ScriptReader, parse_scps
 from libs.utils import get_logger
+from libs.opts import StrToBoolAction
 
 logger = get_logger(__name__)
 
@@ -75,7 +76,8 @@ if __name__ == "__main__":
                         default="kaldi",
                         help="Storage format for embeddings")
     parser.add_argument("--normalize",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="If true, normalize embeddings "
                         "before compute dot product")
     args = parser.parse_args()

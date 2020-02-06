@@ -24,6 +24,10 @@ figure/
 scripts/sptk/create_*
 scripts/sptk/test_*
 scripts/sptk/\.*.py
+scripts/sptk/pb_perm_solver.py
 
 # clang format
 .clang-format
+
+# pyenv
+.python-version

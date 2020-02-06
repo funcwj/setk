@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from libs.data_handler import ArchiveReader
 from libs.utils import get_logger, filekey
+from libs.opts import StrToBoolAction
 
 logger = get_logger(__name__)
 
@@ -76,6 +77,7 @@ def run(args):
         args.rspec_or_dir) if not is_dir else NumpyReader(args.rspec_or_dir)
     for key, mat in mat_reader:
         if args.apply_log:
+            print("hehe")
             mat = np.log10(mat)
         if args.trans:
             mat = np.swapaxes(mat, -1, -2)
@@ -115,13 +117,16 @@ if __name__ == "__main__":
                         default="figure",
                         help="Directory to cache pictures")
     parser.add_argument("--apply-log",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="Apply log on input features")
     parser.add_argument("--trans",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="Apply matrix transpose on input features")
     parser.add_argument("--norm",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="Normalize values in [-1, 1] "
                         "before visualization")
     parser.add_argument("--cmap",
