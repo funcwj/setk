@@ -31,3 +31,6 @@ scripts/sptk/pb_perm_solver.py
 
 # pyenv
 .python-version
+
+# MAC
+.DS_Store
