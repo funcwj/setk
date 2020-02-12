@@ -10,6 +10,7 @@ import scipy.io as sio
 
 from libs.utils import filekey, get_logger, EPSILON
 from libs.data_handler import ScriptReader, ArchiveReader, NumpyWriter, MatWriter
+from libs.opts import StrToBoolAction
 
 logger = get_logger(__name__)
 
@@ -55,7 +56,8 @@ if __name__ == "__main__":
                         default="npy",
                         help="Format of the data to transform to")
     parser.add_argument("--transpose",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         dest="trans",
                         help="If true, transpose matrix "
                         "before write to ndarray")

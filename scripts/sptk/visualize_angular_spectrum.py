@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 
 from libs.data_handler import ArchiveReader
 from libs.utils import get_logger
+from libs.opts import StrToBoolAction
 
 logger = get_logger(__name__)
 
@@ -71,7 +72,8 @@ if __name__ == '__main__':
                         help="Location to dump pictures")
     parser.add_argument("--sample-tdoa",
                         dest="tdoa",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="Sample TDoA instead of DoA when "
                         "computing spectrum")
     parser.add_argument("--size",

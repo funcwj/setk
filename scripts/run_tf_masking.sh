@@ -58,7 +58,7 @@ for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_dir/wav.$n.scp"; done
 ./utils/split_scp.pl $wav_scp $split_wav_scp || exit 1
 
 mask_opts=$(cat $stft_conf | xargs)
-$keep_length && mask_opts="$mask_opts --keep-length"
+mask_opts="$mask_opts --keep-length $keep_length"
 [ ! -z $phase_ref ] && mask_opts="$mask_opts --phase-ref $phase_ref"
 
 mkdir -p $enhan_dir

@@ -9,7 +9,7 @@ from pathlib import Path
 from libs.cluster import CgmmTrainer
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, NumpyWriter
 from libs.utils import get_logger
-from libs.opts import StftParser
+from libs.opts import StftParser, StrToBoolAction
 
 logger = get_logger(__name__)
 
@@ -33,7 +33,6 @@ def run(args):
     with NumpyWriter(args.dst_dir) as writer:
         dst_dir = Path(args.dst_dir)
         for key, stft in spectrogram_reader:
-            _, F, _ = stft.shape
             if not (dst_dir / f"{key}.npy").exists():
                 init_mask = None
                 if init_mask_reader and key in init_mask_reader:
@@ -79,7 +78,8 @@ if __name__ == "__main__":
                         dest="init_mask",
                         help="Speech mask scripts for cgmm initialization")
     parser.add_argument("--trans-mask",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="If true, transpose initial TF masks")
     parser.add_argument("--mask-format",
                         type=str,

@@ -69,8 +69,7 @@ wav_split_scp="" && for n in $(seq $nj); do wav_split_scp="$wav_split_scp $exp_d
 
 stft_opts=$(cat $stft_conf | xargs)
 beamformer_opts="$stft_opts --beamformer $beamformer --mask-format $mask_format --pmwf-ref $pmwf_ref --vad-proportion $vad_proportion"
-$normalize && beamformer_opts="$beamformer_opts --post-filter"
-$post_mask && beamformer_opts="$beamformer_opts --post-mask"
+beamformer_opts="$beamformer_opts --post-filter $normalize --post-mask $post_mask"
 
 [ ! -z $itf_mask ] && beamformer_opts="$beamformer_opts --itf-mask $itf_mask"
 

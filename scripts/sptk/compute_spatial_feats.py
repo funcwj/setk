@@ -10,7 +10,7 @@ import argparse
 import numpy as np
 
 from libs.utils import get_logger, nfft
-from libs.opts import StftParser
+from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 from libs.spatial import srp_phat_linear, ipd, msc
 
@@ -106,8 +106,9 @@ if __name__ == "__main__":
                         default=16000,
                         help="Sample frequency of input wave")
     parser.add_argument("--srp.sample-tdoa",
+                        action=StrToBoolAction,
+                        default=False,                        
                         dest="samp_tdoa",
-                        action="store_true",
                         help="Sample TDoA instead of DoA "
                         "when computing spectrum")
     parser.add_argument("--srp.num_doa",
@@ -122,11 +123,13 @@ if __name__ == "__main__":
                         help="Topology description of microphone arrays")
     parser.add_argument("--ipd.cos",
                         dest="ipd_cos",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="Compute cosIPD instead of IPD")
     parser.add_argument("--ipd.sin",
                         dest="ipd_sin",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="Append sinIPD to cosIPD spatial features")
     parser.add_argument("--ipd.index",
                         type=str,

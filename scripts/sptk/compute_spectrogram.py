@@ -8,7 +8,7 @@ Compute spectrogram features(using librosa kernels) and write in kaldi format
 import argparse
 
 from libs.utils import stft, get_logger
-from libs.opts import StftParser
+from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 from libs.exraw import BinaryWriter
 
@@ -62,15 +62,18 @@ if __name__ == "__main__":
                         help="Output archive format, see format "
                         "in sptk/libs/exraw.py")
     parser.add_argument("--apply-log",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="If true, using log spectrogram "
                         "instead of linear")
     parser.add_argument("--apply-pow",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="If true, extract power spectrum "
                         "instead of magnitude spectrum")
     parser.add_argument("--normalize-samples",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         dest="normalize",
                         help="If true, normalize sample "
                         "values between [-1, 1]")

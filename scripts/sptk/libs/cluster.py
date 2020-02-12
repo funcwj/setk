@@ -23,7 +23,6 @@ from .utils import get_logger, EPSILON
 
 logger = get_logger(__name__)
 
-
 class Distribution(object):
     """
     Basic distribution class
@@ -184,7 +183,7 @@ class Cacgmm(object):
     """
     Complex Angular Central Gaussian Mixture Model (CACGMM)
     """
-    def __init__(self, mdl=None, alpha=None):
+    def __init__(self, mdl, alpha=None):
         self.cacg = CacgDistribution() if mdl is None else mdl
         # K x F
         self.alpha = alpha
@@ -240,7 +239,7 @@ class Cgmm(object):
     """
     Complex Gaussian Mixture Model (CGMM)
     """
-    def __init__(self, mdl=None, alpha=None):
+    def __init__(self, mdl, alpha=None):
         self.cg = CgDistribution() if mdl is None else mdl
         # K x F
         self.alpha = alpha
@@ -260,7 +259,8 @@ class Cgmm(object):
         R = R / np.maximum(denominator[..., None], EPSILON)
         # update R & phi
         self.cg.update_parameters(obs, R)
-        self.alpha = np.mean(gamma, -1)
+        # do not update alpha
+        # self.alpha = np.mean(gamma, -1)
 
     def predict(self, obs, return_Q=False):
         """
@@ -325,7 +325,7 @@ class CgmmTrainer(object):
                 R = np.einsum("...t,...xt,...yt->...xy", gamma, self.obs,
                               self.obs.conj()) / den[..., None]
             cg.update_parameters(self.obs, R)
-            self.cgmm = Cgmm(mdl=cg, alpha=np.ones([2, F]) / 2)
+            self.cgmm = Cgmm(cg, alpha=np.ones([2, F]))
             self.gamma = self.cgmm.predict(self.obs)
         else:
             with open(cgmm, "r") as pkl:
@@ -378,12 +378,12 @@ class CacgmmTrainer(object):
                     np.stack([np.eye(M, M, dtype=obs.dtype) for _ in range(F)])
                 ])
                 cacg.update_parameters(covar)
-                self.cacgmm = Cacgmm(mdl=cacg, alpha=np.ones([2, F]) / 2)
+                self.cacgmm = Cacgmm(cacg, alpha=np.ones([2, F]) / 2)
                 self.gamma, self.K = self.cacgmm.predict(self.obs)
                 logger.info("Using cgmm init for num_classes = 2")
             else:
                 if gamma is None:
-                    self.cacgmm = Cacgmm()
+                    self.cacgmm = Cacgmm(None)
                     gamma = np.random.uniform(size=[num_classes, F, T])
                     self.gamma = gamma / np.sum(gamma, 0, keepdims=True)
                     logger.info(

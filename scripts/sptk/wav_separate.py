@@ -8,7 +8,7 @@ import os
 import numpy as np
 
 from libs.utils import stft, istft, get_logger
-from libs.opts import StftParser
+from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import SpectrogramReader, NumpyReader, ScriptReader, WaveWriter
 
 logger = get_logger(__name__)
@@ -112,7 +112,8 @@ if __name__ == "__main__":
                         help="Define format of masks, kaldi's "
                         "archives or numpy's ndarray")
     parser.add_argument("--keep-length",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="If ture, keep result the same length as orginal")
     parser.add_argument("--use-mixed-norm",
                         action="store_true",
