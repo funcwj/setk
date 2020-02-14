@@ -9,6 +9,7 @@ import logging
 
 import librosa
 # using wf to handle wave IO because it support better than librosa
+import soundfile as sf
 import scipy.io.wavfile as wf
 import scipy.signal as ss
 
@@ -18,13 +19,13 @@ MAX_INT16 = np.iinfo(np.int16).max
 EPSILON = np.finfo(np.float32).eps
 
 __all__ = [
-    "stft", "istft", "get_logger", "make_dir", "filekey", "write_wav",
-    "read_wav"
+    "forward_stft", "inverse_stft", "get_logger", "make_dir", "filekey",
+    "write_wav", "read_wav"
 ]
 
 
-def nfft(window_size):
-    # nextpow2
+def nextpow2(window_size):
+    # next power of two
     return 2**math.ceil(math.log2(window_size))
 
 
@@ -49,7 +50,7 @@ def write_wav(fname, samps, fs=16000, normalize=True):
     """
     if normalize:
         samps = samps * MAX_INT16
-    # scipy.io.wavfile.write could write single/multi-channel files
+    # scipy.io.wavfile/soundfile could write single/multi-channel files
     # for multi-channel, accept ndarray [Nsamples, Nchannels]
     if samps.ndim != 1 and samps.shape[0] < samps.shape[1]:
         samps = np.transpose(samps)
@@ -60,18 +61,19 @@ def write_wav(fname, samps, fs=16000, normalize=True):
     if fdir and not os.path.exists(fdir):
         os.makedirs(fdir)
     # NOTE: librosa 0.6.0 seems could not write non-float narray
-    #       so use scipy.io.wavfile instead
-    wf.write(fname, fs, samps_int16)
+    #       so use scipy.io.wavfile/soundfile instead
+    # wf.write(fname, fs, samps_int16)
+    sf.write(fname, samps_int16, fs)
 
 
-def read_wav(fname, normalize=True, return_rate=False):
+def read_wav(fname, beg=None, end=None, normalize=True, return_rate=False):
     """
-    Read wave files using scipy.io.wavfile(support multi-channel)
+    Read wave files using soundfile (support multi-channel & chunk)
     """
     # samps_int16: N x C or N
     #   N: number of samples
     #   C: number of channels
-    samp_rate, samps_int16 = wf.read(fname)
+    samps_int16, samp_rate = sf.read(fname, start=beg, stop=end, dtype="int16")
     # N x C => C x N
     samps = samps_int16.astype(np.float)
     # tranpose because I used to put channel axis first
@@ -86,16 +88,16 @@ def read_wav(fname, normalize=True, return_rate=False):
 
 
 # return F x T or T x F (tranpose=True)
-def stft(samps,
-         frame_len=1024,
-         frame_hop=256,
-         round_power_of_two=True,
-         center=False,
-         window="hann",
-         apply_abs=False,
-         apply_log=False,
-         apply_pow=False,
-         transpose=True):
+def forward_stft(samps,
+                 frame_len=1024,
+                 frame_hop=256,
+                 round_power_of_two=True,
+                 center=False,
+                 window="hann",
+                 apply_abs=False,
+                 apply_log=False,
+                 apply_pow=False,
+                 transpose=True):
     """
     STFT wrapper, using librosa
     """
@@ -105,7 +107,7 @@ def stft(samps,
     if samps.ndim != 1:
         raise RuntimeError("Invalid shape, librosa.stft accepts mono input")
     # pad fft size to power of two or left it same as frame length
-    n_fft = nfft(frame_len) if round_power_of_two else frame_len
+    n_fft = nextpow2(frame_len) if round_power_of_two else frame_len
     if window == "sqrthann":
         window = ss.hann(frame_len, sym=False)**0.5
     # orignal stft accept samps(vector) and return matrix shape as F x T
@@ -132,15 +134,15 @@ def stft(samps,
 
 
 # accept F x T or T x F(tranpose=True)
-def istft(stft_mat,
-          frame_len=1024,
-          frame_hop=256,
-          center=False,
-          window="hann",
-          transpose=True,
-          norm=None,
-          power=None,
-          nsamps=None):
+def inverse_stft(stft_mat,
+                 frame_len=1024,
+                 frame_hop=256,
+                 center=False,
+                 window="hann",
+                 transpose=True,
+                 norm=None,
+                 power=None,
+                 nsamps=None):
     """
     iSTFT wrapper, using librosa
     """
@@ -181,7 +183,7 @@ def griffin_lim(mag,
     # TxF -> FxT
     if transpose:
         mag = np.transpose(mag)
-    n_fft = nfft(frame_len) if round_power_of_two else frame_len
+    n_fft = nextpow2(frame_len) if round_power_of_two else frame_len
     stft_kwargs = {
         "hop_length": frame_hop,
         "win_length": frame_len,
@@ -215,14 +217,13 @@ def filekey(path):
 
 
 def get_logger(
-        name,
-        format_str="%(asctime)s [%(pathname)s:%(lineno)s - %(levelname)s ] %(message)s",
-        date_format="%Y-%m-%d %H:%M:%S",
-        file=False):
+    name,
+    format_str="%(asctime)s [%(pathname)s:%(lineno)s - %(levelname)s ] %(message)s",
+    date_format="%Y-%m-%d %H:%M:%S",
+    file=False):
     """
     Get logger instance
     """
-
     def get_handler(handler):
         handler.setLevel(logging.INFO)
         formatter = logging.Formatter(fmt=format_str, datefmt=date_format)

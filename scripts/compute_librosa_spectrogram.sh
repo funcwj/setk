@@ -45,8 +45,8 @@ for x in $src_dir/wav.scp $stft_conf; do [ ! -f $x ] && echo "$0: missing file: 
 
 spectrogram_opts=$(cat $stft_conf | xargs)
 
-fbank_opts="$fbank_opts --normalize-samples $sample_normalize"
-fbank_opts="$fbank_opts --apply-log $apply_log --apply-pow $apply_pow"
+spectrogram_opts="$spectrogram_opts --normalize-samples $sample_normalize"
+spectrogram_opts="$spectrogram_opts --apply-log $apply_log --apply-pow $apply_pow"
 
 exp_dir=$2 && mkdir -p $exp_dir
 mkdir -p $dst_dir && dst_dir=$(cd $dst_dir; pwd)

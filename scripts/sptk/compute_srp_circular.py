@@ -7,7 +7,7 @@ import argparse
 import numpy as np
 
 from libs.data_handler import SpectrogramReader, ArchiveWriter
-from libs.utils import get_logger, nfft, EPSILON
+from libs.utils import get_logger, nextpow2, EPSILON
 from libs.opts import StftParser
 
 logger = get_logger(__name__)
@@ -61,7 +61,7 @@ def run(args):
         "transpose": True  # T x F
     }
     num_done = 0
-    num_ffts = nfft(
+    num_ffts = nextpow2(
         args.frame_len) if args.round_power_of_two else args.frame_len
     reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
     with ArchiveWriter(args.srp_ark, args.scp) as writer:

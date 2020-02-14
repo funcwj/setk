@@ -9,7 +9,7 @@ import argparse
 
 import numpy as np
 
-from libs.utils import get_logger, nfft
+from libs.utils import get_logger, nextpow2
 from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 from libs.spatial import srp_phat_linear, ipd, msc
@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 
 def compute_spatial_feats(args, S):
     if args.type == "srp":
-        num_ffts = nfft(
+        num_ffts = nextpow2(
             args.frame_len) if args.round_power_of_two else args.frame_len
         srp_kwargs = {
             "sample_frequency": args.samp_frequency,
@@ -107,7 +107,7 @@ if __name__ == "__main__":
                         help="Sample frequency of input wave")
     parser.add_argument("--srp.sample-tdoa",
                         action=StrToBoolAction,
-                        default=False,                        
+                        default=False,
                         dest="samp_tdoa",
                         help="Sample TDoA instead of DoA "
                         "when computing spectrum")

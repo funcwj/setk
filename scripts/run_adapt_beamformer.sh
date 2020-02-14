@@ -10,8 +10,8 @@ stft_conf=conf/stft.conf
 mask_format="kaldi"
 beamformer="mvdr"
 # do ban or not
-normalize=false
-post_mask=false
+ban=false
+post_masking=false
 vad_proportion=1
 # online
 alpha=0.8
@@ -30,8 +30,8 @@ function usage {
   echo "  --mask-format <kaldi|numpy>       # load masks from np.ndarray instead, (default=$mask_format)"
   echo "  --itf-mask                        # scripts of interfering masks, (default=$itf_mask)"
   echo "  --beamformer  <mvdr|pmwf-0|pmwf-1|gevd>    # type of adaptive beamformer to apply, (default=$beamformer)"
-  echo "  --normalize   <true|false>        # do ban or not, (default=$normalize)"
-  echo "  --post-mask   <true|false>        # do TF-masking after beamforming or not, (default=$post_mask)"
+  echo "  --ban         <true|false>        # do ban or not, (default=$normalize)"
+  echo "  --post-masking   <true|false>     # do TF-masking after beamforming or not, (default=$post_mask)"
   echo "  --vad-proportion <proportion>     # vad proportion to filter silence masks, (default=$vad_proportion)"
   echo "  --alpha       <alpha>             # remember coefficient used in online version, (default=$alpha)"
   echo "  --chunk-size  <chunk-size>        # chunk size in online beamformer, (default=$chunk_size)"
@@ -67,10 +67,7 @@ echo "$0: Reduce $(cat $wav_scp | wc -l) utterances to $(cat $exp_dir/wav.scp | 
 wav_split_scp="" && for n in $(seq $nj); do wav_split_scp="$wav_split_scp $exp_dir/wav.$n.scp"; done
 ./utils/split_scp.pl $exp_dir/wav.scp $wav_split_scp
 
-stft_opts=$(cat $stft_conf | xargs)
-beamformer_opts="$stft_opts --beamformer $beamformer --mask-format $mask_format --pmwf-ref $pmwf_ref --vad-proportion $vad_proportion"
-beamformer_opts="$beamformer_opts --post-filter $normalize --post-mask $post_mask"
-
+beamformer_opts=$(cat $stft_conf | xargs)
 [ ! -z $itf_mask ] && beamformer_opts="$beamformer_opts --itf-mask $itf_mask"
 
 if [ $chunk_size -gt 0 ]; then
@@ -81,6 +78,12 @@ mkdir -p $enhan_dir
 $cmd JOB=1:$nj $exp_dir/log/run_$beamformer.JOB.log \
   ./scripts/sptk/apply_adaptive_beamformer.py \
   $beamformer_opts \
+  --beamformer $beamformer \
+  --mask-format $mask_format \
+  --pmwf-ref $pmwf_ref \
+  --ban $ban \
+  --vad-proportion $vad_proportion \
+  --post-masking $post_masking \
   $exp_dir/wav.JOB.scp \
   $exp_dir/masks.scp \
   $enhan_dir

@@ -9,7 +9,7 @@ import argparse
 import librosa as audio_lib
 import numpy as np
 
-from libs.utils import stft, get_logger, nfft, EPSILON
+from libs.utils import get_logger, nextpow2, EPSILON
 from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 from libs.exraw import BinaryWriter
@@ -43,8 +43,8 @@ def run(args):
     # N x F
     mel_weights = audio_lib.filters.mel(
         args.samp_freq,
-        nfft(args.frame_len) if args.round_power_of_two else args.frame_len,
-        **mel_kwargs)
+        nextpow2(args.frame_len)
+        if args.round_power_of_two else args.frame_len, **mel_kwargs)
     WriterImpl = {"kaldi": ArchiveWriter, "exraw": BinaryWriter}[args.format]
 
     with WriterImpl(args.dup_ark, args.scp) as writer:
@@ -96,7 +96,7 @@ if __name__ == "__main__":
                         "instead of linear")
     parser.add_argument("--normalize-samples",
                         action=StrToBoolAction,
-                        default=False,                        
+                        default=False,
                         dest="norm",
                         help="If true, normalize sample "
                         "values between [-1, 1]")

@@ -7,7 +7,7 @@ import argparse
 
 import numpy as np
 
-from libs.utils import istft, get_logger
+from libs.utils import inverse_stft, get_logger
 from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, WaveWriter
 from libs.beamformer import DSBeamformer
@@ -41,8 +41,9 @@ def run(args):
                                       stft_src,
                                       c=args.speed,
                                       sample_rate=args.fs)
-            power = spectrogram_reader.power(key)
-            samps = istft(stft_enh, **stft_kwargs, power=power)
+            # power = spectrogram_reader.power(key)
+            norm = spectrogram_reader.maxabs(key)
+            samps = inverse_stft(stft_enh, **stft_kwargs, norm=norm)
             writer.write(key, samps)
     logger.info(f"Processed {len(spectrogram_reader):d} utterances")
 

@@ -10,11 +10,11 @@ Reference: https://github.com/LCAV/pyroomacoustics/blob/master/pyroomacoustics/b
 """
 
 import argparse
-import os
 
 import numpy as np
 
-from libs.utils import stft, istft, get_logger, write_wav, EPSILON
+from pathlib import Path
+from libs.utils import inverse_stft, get_logger, write_wav, EPSILON
 from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader
 
@@ -71,17 +71,14 @@ def run(args):
         round_power_of_two=args.round_power_of_two,
         **stft_kwargs)
     for key, spectrogram in spectrogram_reader:
-        logger.info("Processing utterance {}...".format(key))
+        logger.info(f"Processing utterance {key}...")
         separated = auxiva(spectrogram, args.epochs)
+        norm = spectrogram_reader.maxabs(key)
         for idx in range(separated.shape[0]):
-            samps = istft(separated[idx],
-                          **stft_kwargs,
-                          norm=spectrogram_reader.samp_norm(key))
-            write_wav(os.path.join(args.dst_dir,
-                                   "{}.SRC{:d}.wav".format(key, idx + 1)),
-                      samps,
-                      fs=args.fs)
-    logger.info("Processed {:d} utterances".format(len(spectrogram_reader)))
+            samps = inverse_stft(separated[idx], **stft_kwargs, norm=norm)
+            fname = Path(args.dst_dir) / f"{key}.src{idx + 1:d}.wav"
+            write_wav(fname, samps, fs=args.fs)
+    logger.info(f"Processed {len(spectrogram_reader):d} utterances")
 
 
 if __name__ == "__main__":

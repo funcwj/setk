@@ -9,7 +9,7 @@ import argparse
 
 import numpy as np
 
-from libs.utils import nfft, get_logger
+from libs.utils import nextpow2, get_logger
 from libs.opts import StftParser
 from libs.spatial import directional_feats
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, ArchiveWriter
@@ -31,7 +31,7 @@ def run(args):
     MaskReader = {"numpy": NumpyReader, "kaldi": ScriptReader}
     mask_reader = MaskReader[args.fmt](args.mask_scp)
 
-    num_bins = nfft(args.frame_len) // 2 + 1
+    num_bins = nextpow2(args.frame_len) // 2 + 1
     beamformer = MvdrBeamformer(num_bins)
 
     num_done = 0

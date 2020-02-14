@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pathlib import Path
-from libs.data_handler import ArchiveReader
+from libs.data_handler import ScriptReader, ArchiveReader
 from libs.utils import get_logger, filekey
 from libs.opts import StrToBoolAction
 
@@ -17,6 +17,9 @@ logger = get_logger(__name__)
 
 
 class NumpyReader(object):
+    """
+    Simple directory reader for .npy objects
+    """
     def __init__(self, src_dir):
         src_dir = Path(src_dir)
         if not src_dir.is_dir():
@@ -71,13 +74,15 @@ def save_figure(key, mat, dest, cmap="jet", hop=10, sr=16000, size=3):
 def run(args):
     cache_dir = Path(args.cache_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
-    is_dir = Path(args.rspec_or_dir).is_dir()
+    reader_templ = {
+        "dir": NumpyReader,
+        "scp": ScriptReader,
+        "ark": ArchiveReader
+    }
     # ndarrays or archives
-    mat_reader = ArchiveReader(
-        args.rspec_or_dir) if not is_dir else NumpyReader(args.rspec_or_dir)
+    mat_reader = reader_templ[args.input](args.rspec)
     for key, mat in mat_reader:
         if args.apply_log:
-            print("hehe")
             mat = np.log10(mat)
         if args.trans:
             mat = np.swapaxes(mat, -1, -2)
@@ -100,10 +105,15 @@ if __name__ == "__main__":
         "Command to visualize kaldi's features/numpy's ndarray on T-F domain. "
         "egs: spectral/spatial features or T-F mask. ",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("rspec_or_dir",
+    parser.add_argument("rspec",
                         type=str,
                         help="Read specifier of archives "
                         "or directory of ndarrays")
+    parser.add_argument("--input",
+                        type=str,
+                        choices=["ark", "scp", "dir"],
+                        default="dir",
+                        help="Type of the input read specifier")
     parser.add_argument("--frame-hop",
                         type=int,
                         default=16,

@@ -12,7 +12,7 @@ import os
 import numpy as np
 from scipy.io import loadmat
 
-from libs.utils import istft, get_logger, nfft, cmat_abs
+from libs.utils import inverse_stft, get_logger, nextpow2, cmat_abs
 from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, WaveWriter
 from libs.beamformer import MvdrBeamformer, GevdBeamformer, PmwfBeamformer
@@ -96,7 +96,7 @@ def run(args):
     if itf_mask_reader is not None:
         logger.info(f"Using interfering masks from {args.itf_mask}")
     online = False
-    num_bins = nfft(args.frame_len) // 2 + 1
+    num_bins = nextpow2(args.frame_len) // 2 + 1
     ref_channel = args.pmwf_ref if args.pmwf_ref >= 0 else None
     supported_beamformer = {
         "mvdr": MvdrBeamformer(num_bins),
@@ -124,7 +124,8 @@ def run(args):
     with WaveWriter(args.dst_dir, fs=args.samp_freq) as writer:
         for key, stft_mat in spectrogram_reader:
             if key in tgt_mask_reader:
-                power = spectrogram_reader.power(key)
+                # power = spectrogram_reader.power(key)
+                norm = spectrogram_reader.maxabs(key)
                 logger.info(
                     f"Processing utterance {key}, " +
                     f"signal power {10 * np.log10(power + 1e-5):.2f}...")
@@ -167,7 +168,7 @@ def run(args):
                 # masking beamformer output if necessary
                 if args.mask:
                     stft_enh = stft_enh * np.transpose(speech_mask)
-                samps = istft(stft_enh, power=power, **stft_kwargs)
+                samps = inverse_stft(stft_enh, norm=norm, **stft_kwargs)
                 writer.write(key, samps)
                 num_done += 1
     logger.info(f"Processed {num_done:d} utterances " +
@@ -214,12 +215,11 @@ if __name__ == "__main__":
                         default=16000,
                         dest="samp_freq",
                         help="Waveform data sample frequency")
-    parser.add_argument("--post-filter",
-                        dest="ban",
+    parser.add_argument("--ban",
                         action=StrToBoolAction,
                         default=False,
-                        help="Do Blind Analytical Normalization(BAN) or not")
-    parser.add_argument("--post-mask",
+                        help="Do Blind Analytical Normalization (BAN) or not")
+    parser.add_argument("--post-masking",
                         dest="mask",
                         action=StrToBoolAction,
                         default=False,

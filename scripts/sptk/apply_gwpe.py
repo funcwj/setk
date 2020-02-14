@@ -4,11 +4,11 @@
 """
 Do GWPE Dereverbration Algorithm
 """
-
-import argparse
 import os
+import argparse
 
-from libs.utils import get_logger, istft
+from libs.opts import StrToBoolAction
+from libs.utils import get_logger, inverse_stft
 from libs.opts import StftParser
 from libs.gwpe import wpe
 from libs.data_handler import SpectrogramReader, WaveWriter
@@ -38,14 +38,22 @@ def run(args):
         **stft_kwargs)
 
     num_done = 0
-    with WaveWriter(args.dst_dir, fs=args.samp_fs) as writer:
+    with WaveWriter(args.dst_dir, fs=args.sr) as writer:
         for key, reverbed in spectrogram_reader:
             logger.info(f"Processing utt {key}...")
             # N x T x F => F x N x T
             reverbed = np.transpose(reverbed, (2, 0, 1))
             try:
-                # F x N x T
-                dereverb = wpe(reverbed, **wpe_kwargs)
+                if args.nara_wpe:
+                    from nara_wpe.wpe import wpe_v8
+                    # T x F x N
+                    dereverb = wpe_v8(reverbed,
+                                      taps=args.taps,
+                                      delay=args.delay,
+                                      iterations=args.num_iters,
+                                      psd_context=args.context)
+                else:
+                    dereverb = wpe(reverbed, **wpe_kwargs)
             except np.linalg.LinAlgError:
                 logger.warn(f"{key}: Failed cause LinAlgError in wpe")
                 continue
@@ -53,7 +61,7 @@ def run(args):
             dereverb = np.transpose(dereverb, (1, 2, 0))
             # dump multi-channel
             samps = np.stack(
-                [istft(spectra, **stft_kwargs) for spectra in dereverb])
+                [inverse_stft(spectra, **stft_kwargs) for spectra in dereverb])
             writer.write(key, samps)
             # show progress cause slow speed
             num_done += 1
@@ -65,7 +73,7 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Command to do GWPE dereverbration algorithm(recommended "
+        description="Command to do GWPE dereverbration algorithm (recommended "
         "configuration: 512/128/blackman)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
@@ -93,10 +101,14 @@ if __name__ == "__main__":
                         default=3,
                         type=int,
                         help="Number of iterations to step in GWPE")
-    parser.add_argument("--sample-frequency",
+    parser.add_argument("--sample-rate",
                         type=int,
                         default=16000,
-                        dest="samp_fs",
-                        help="Waveform data sample frequency")
+                        dest="sr",
+                        help="Waveform data sample rate")
+    parser.add_argument("--nara-wpe",
+                        action=StrToBoolAction,
+                        default=False,
+                        help="Use nara-wpe package")
     args = parser.parse_args()
     run(args)
