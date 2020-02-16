@@ -17,13 +17,21 @@ import matplotlib.pyplot as plt
 
 from libs.scheduler import run_command
 from libs.utils import get_logger, make_dir, write_wav
-from libs.opts import StrToFloatTupleAction, str_to_float_tuple
+from libs.opts import StrToFloatTupleAction, StrToBoolAction, str2tuple
 
 try:
     import pyrirgen
     pyrirgen_available = True
 except ImportError:
     pyrirgen_available = False
+
+try:
+    import gpuRIR as pygpurir
+    gpu_rir_available = True
+    gpuRIR.activateMixedPrecision(False)
+    gpuRIR.activateLUT(True)
+except ImportError:
+    gpu_rir_available = False
 
 logger = get_logger(__name__)
 
@@ -32,7 +40,6 @@ class UniformSampler(object):
     """
     A simple uniform sampler
     """
-
     def __init__(self, a, b):
         self.min, self.max = a, b
 
@@ -44,7 +51,6 @@ class Room(object):
     """
     Room instance
     """
-
     def __init__(self, l, w, h, rt60=None, refl=None):
         self.size = (l, w, h)
         self.beta = rt60 if rt60 is not None else [refl] * 6
@@ -111,11 +117,28 @@ class Room(object):
         plt.savefig(fig)
         plt.close()
 
-    def rir(self, fname, fs=16000, rir_nsamps=4096, v=340):
+    def rir(self, fname, fs=16000, rir_nsamps=4096, v=340, gpu=False):
         """
         Generate rir for current settings
         """
-        if shutil.which("rir-simulate"):
+        if gpu:
+            # self.beta: rt60
+            beta = pygpurir.beta_SabineEstimation(self.size, self.beta)
+            # NOTE: do not clear here
+            # diff = pygpurir.att2t_SabineEstimator(15, self.beta)
+            tmax = rir_nsamps / fs
+            nb_img = pygpurir.t2n(tmax, self.size)
+            # S x R x T
+            rir = pygpurir.simulateRIR(self.size,
+                                       beta,
+                                       np.array(self.spos)[None, ...],
+                                       np.array(self.rpos),
+                                       nb_img,
+                                       tmax,
+                                       fs,
+                                       mic_pattern="omni")
+            write_wav(fname, rir[0], fs=fs)
+        elif shutil.which("rir-simulate"):
             # format float
             ffloat = lambda f: "{:.3f}".format(f)
             # location for each microphone
@@ -160,7 +183,6 @@ class RoomGenerator(object):
     """
     Room generator
     """
-
     def __init__(self, rt60_opt, absc_opt, room_dim):
         """
         rt60_opt: "" or "a,b", higher priority than absc_opt
@@ -171,9 +193,9 @@ class RoomGenerator(object):
         if not rt60_opt:
             self.absc = UniformSampler(*absc_opt)
         else:
-            rt60_r = str_to_float_tuple(rt60_opt)
+            rt60_r = str2tuple(rt60_opt)
             self.rt60 = UniformSampler(*rt60_r)
-        dim_range = [str_to_float_tuple(t) for t in room_dim.split(";")]
+        dim_range = [str2tuple(t) for t in room_dim.split(";")]
         if len(dim_range) != 3:
             raise RuntimeError(
                 "Wrong format with --room-dim={}".format(room_dim))
@@ -209,8 +231,9 @@ class RirSimulator(object):
     """
     RIR simulator
     """
-
     def __init__(self, args):
+        if args.gpu and not gpu_rir_available:
+            raise RuntimeError("Please install gpuRIR first if --gpu=True")
         # make dump dir
         make_dir(args.dump_dir)
         self.rirs_cfg = []
@@ -299,7 +322,8 @@ class RirSimulator(object):
                 room.rir(rir_loc,
                          fs=self.args.sample_rate,
                          rir_nsamps=self.args.rir_samples,
-                         v=self.args.speed)
+                         v=self.args.speed,
+                         gpu=self.args.gpu)
                 scfg[idx]["loc"] = rir_loc
             # plot room
             room.plot(scfg, "{0}/Room{1}.png".format(self.args.dump_dir,
@@ -445,5 +469,10 @@ if __name__ == "__main__":
                         default=(1, 3),
                         help="Range of distance between "
                         "microphone arrays and speakers")
+    parser.add_argument("--gpu",
+                        action=StrToBoolAction,
+                        default=False,
+                        help="Use gpuRIR from "
+                        "https://github.com/DavidDiazGuerra/gpuRIR.git")
     args = parser.parse_args()
     run(args)

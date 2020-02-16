@@ -5,7 +5,10 @@ Some customized action for argparse
 import argparse
 
 
-def str_to_float_tuple(string, sep=","):
+def str2tuple(string, sep=","):
+    """
+    Map "1.0,2,0" => (1.0, 2.0)
+    """
     tokens = string.split(sep)
     if len(tokens) == 1:
         raise ValueError("Get only one token by " +
@@ -14,7 +17,10 @@ def str_to_float_tuple(string, sep=","):
     return tuple(floats)
 
 
-def str_to_bool(value):
+def str2bool(value):
+    """
+    Map "true"/"false" => True/False
+    """
     if value in ["true", "True"]:
         return True
     elif value in ["false", "False"]:
@@ -29,7 +35,7 @@ class StrToBoolAction(argparse.Action):
     """
     def __call__(self, parser, namespace, values, option_string=None):
         try:
-            setattr(namespace, self.dest, str_to_bool(values))
+            setattr(namespace, self.dest, str2bool(values))
         except ValueError:
             raise Exception("Unknown value {0} for --{1}".format(
                 values, self.dest))
@@ -41,7 +47,7 @@ class StrToFloatTupleAction(argparse.Action):
     """
     def __call__(self, parser, namespace, values, option_string=None):
         try:
-            setattr(namespace, self.dest, str_to_float_tuple(values))
+            setattr(namespace, self.dest, str2tuple(values))
         except ValueError:
             raise Exception("Unknown value {0} for --{1}".format(
                 values, self.dest))

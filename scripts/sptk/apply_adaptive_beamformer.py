@@ -124,7 +124,7 @@ def run(args):
     with WaveWriter(args.dst_dir, fs=args.samp_freq) as writer:
         for key, stft_mat in spectrogram_reader:
             if key in tgt_mask_reader:
-                # power = spectrogram_reader.power(key)
+                power = spectrogram_reader.power(key)
                 norm = spectrogram_reader.maxabs(key)
                 logger.info(
                     f"Processing utterance {key}, " +

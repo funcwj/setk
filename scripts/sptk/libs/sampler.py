@@ -5,42 +5,38 @@ import random
 import argparse
 
 from .data_handler import Reader, WaveReader, NumpyReader, ScriptReader
+from .opts import str2tuple
 
 
-class Sampler(object):
-    def __init__(self, obj_reader):
-        if not isinstance(obj_reader, Reader):
-            raise TypeError(
-                "obj_reader is not a instance of libs.data_handler.Reader")
-        self.reader = obj_reader
+class UniformSampler(object):
+    """
+    A uniform sampler class
+    """
+    def __init__(self, tuple_or_str):
+        if isinstance(tuple_or_str, (list, tuple)):
+            self.min, self.max = tuple_or_str
+        else:
+            self.min, self.max = str2tuple(tuple_or_str)
+
+    def sample(self):
+        return random.uniform(self.min, self.max)
+
+
+class ScriptSampler(object):
+    """
+    Sampler class for scripts
+    """
+    def __init__(self, scp, utt2dur):
+        self.val = Reader(scp, num_tokens=-1, restrict=False)
+        self.dur = Reader(utt2dur, value_processor=lambda x: float(x))
 
     def __len__(self):
-        return len(self.reader)
+        return len(self.val)
+
+    def __getitem__(self, key):
+        return self.val[key], self.dur[key]
 
     def sample(self, num_items):
-        keys = random.sample(self.reader.index_keys, num_items)
-        vals = [self.reader[key] for key in keys]
-        return vals[0] if num_items == 1 else vals
-
-
-class ScriptSampler(Sampler):
-    def __init__(self, raw_scp, **kwargs):
-        super(ScriptSampler, self).__init__(Reader(raw_scp, **kwargs))
-
-
-class WaveSampler(Sampler):
-    def __init__(self, wav_scp, **kwargs):
-        super(WaveSampler, self).__init__(WaveReader(wav_scp, **kwargs))
-
-
-class NumpySampler(Sampler):
-    def __init__(self, npy_scp, **kwargs):
-        super(NumpySampler, self).__init__(NumpyReader(npy_scp, **kwargs))
-
-
-class ArchiveSampler(Sampler):
-    def __init__(self, ark_scp, **kwargs):
-        super(ArchiveSampler, self).__init__(ScriptReader(ark_scp, **kwargs))
-
-
-# ...
+        keys = random.sample(self.val.index_keys, num_items)
+        egs = [{"loc": self.val[key], "dur": self.dur[key]} for key in keys]
+        return egs[0] if num_items == 1 else egs
