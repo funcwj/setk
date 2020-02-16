@@ -5,6 +5,7 @@
 Generate scripts for RIR simulation which use
     1) rir-simulate (see src/rir-simulate.cc)
     2) pyrirgen (see https://github.com/Marvin182/rir-generator)
+    3) gpurir (see https://github.com/DavidDiazGuerra/gpuRIR)
 """
 import os
 import json
@@ -18,6 +19,7 @@ import matplotlib.pyplot as plt
 from libs.scheduler import run_command
 from libs.utils import get_logger, make_dir, write_wav
 from libs.opts import StrToFloatTupleAction, StrToBoolAction, str2tuple
+from libs.sampler import UniformSampler
 
 try:
     import pyrirgen
@@ -28,23 +30,13 @@ except ImportError:
 try:
     import gpuRIR as pygpurir
     gpu_rir_available = True
-    gpuRIR.activateMixedPrecision(False)
-    gpuRIR.activateLUT(True)
+    pygpurir.activateMixedPrecision(False)
+    pygpurir.activateLUT(True)
 except ImportError:
     gpu_rir_available = False
 
+plt.switch_backend("agg")
 logger = get_logger(__name__)
-
-
-class UniformSampler(object):
-    """
-    A simple uniform sampler
-    """
-    def __init__(self, a, b):
-        self.min, self.max = a, b
-
-    def sample(self):
-        return random.uniform(self.min, self.max)
 
 
 class Room(object):
@@ -191,15 +183,15 @@ class RoomGenerator(object):
         """
         self.rt60_opt = rt60_opt
         if not rt60_opt:
-            self.absc = UniformSampler(*absc_opt)
+            self.absc = UniformSampler(absc_opt)
         else:
             rt60_r = str2tuple(rt60_opt)
-            self.rt60 = UniformSampler(*rt60_r)
+            self.rt60 = UniformSampler(rt60_r)
         dim_range = [str2tuple(t) for t in room_dim.split(";")]
         if len(dim_range) != 3:
             raise RuntimeError(
                 "Wrong format with --room-dim={}".format(room_dim))
-        self.dim_sampler = [UniformSampler(*c) for c in dim_range]
+        self.dim_sampler = [UniformSampler(c) for c in dim_range]
 
     def generate(self, v=340):
         # (l, w, h)
@@ -303,7 +295,7 @@ class RirSimulator(object):
             stats.append(stat)
             if done == num_rirs:
                 break
-        logger.info("try/done = {:d}/{:d}".format(ntry, done))
+        logger.info(f"Put speaker point: try/done = {ntry}/{done}")
         return done == num_rirs, stats
 
     def run_for_instance(self, room_id):
@@ -350,8 +342,8 @@ class RirSimulator(object):
         with open(os.path.join(args.dump_dir, "rir.json"), "w") as f:
             json.dump(self.rirs_cfg, f, indent=2)
         logger.info("Generate {:d} rirs, {:d} rooms done, "
-                    "retry = {:d}".format(self.args.num_rirs * num_rooms, done,
-                                          ntry))
+                    "try = {:d}".format(self.args.num_rirs * num_rooms, done,
+                                        ntry))
 
 
 def run(args):
@@ -367,14 +359,14 @@ $cmd JOB=1:$nj ./exp/rir_simu/rir_generate_1d.JOB.log \
     --dump-dir $dump_dir/JOB \
     --array-topo "0,0.05,0.1,0.15,0.2,0.25" \
     --array-height "1.2,1.8" \
-    --room-dim "4,6\;8,10\;2.4,3" \
+    --room-dim "4,6;8,10;2.4,3" \
     --rt60 "0.2,0.7" \
     --array-relx "0.4,0.6" \
     --array-rely "0.05,0.1" \
     --speaker-height "1,2" \
     --source-distance "1,4" \
     --rir-samples 4096 \
-    --dump-cfg \
+    --dump-cfg true \
     $num_room
 """
 if __name__ == "__main__":
@@ -392,7 +384,8 @@ if __name__ == "__main__":
                         default=1,
                         help="Number of rirs to simulate for each room")
     parser.add_argument("--dump-cfg",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=True,
                         help="If true, dump rir configures out in json format")
     parser.add_argument("--rir-samples",
                         type=int,
@@ -466,7 +459,7 @@ if __name__ == "__main__":
     parser.add_argument("--source-distance",
                         action=StrToFloatTupleAction,
                         dest="src_dist",
-                        default=(1, 3),
+                        default=(1.5, 3),
                         help="Range of distance between "
                         "microphone arrays and speakers")
     parser.add_argument("--gpu",

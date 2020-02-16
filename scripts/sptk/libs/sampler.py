@@ -27,7 +27,7 @@ class ScriptSampler(object):
     Sampler class for scripts
     """
     def __init__(self, scp, utt2dur):
-        self.val = Reader(scp, num_tokens=-1, restrict=False)
+        self.val = Reader(scp, num_tokens=2, restrict=True)
         self.dur = Reader(utt2dur, value_processor=lambda x: float(x))
 
     def __len__(self):
