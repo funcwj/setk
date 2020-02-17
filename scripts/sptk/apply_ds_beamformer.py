@@ -24,7 +24,19 @@ def run(args):
         "transpose": False
     }
 
-    utt2doa = Reader(args.utt2doa, value_processor=lambda x: float(x))
+    utt2doa = None
+    doa = None
+    if args.utt2doa:
+        utt2doa = Reader(args.utt2doa, value_processor=lambda x: float(x))
+        logger.info(f"Use utt2doa {args.utt2doa} for each utterance")
+    else:
+        doa = args.doa
+        if doa < 0:
+            doa = 180 + doa
+        if doa < 0 or doa > 180:
+            raise RuntimeError(f"Invalid doa {doa:.2f} for --doa")
+        logger.info(f"Use DoA {doa:.2f} for all utterances")
+
     spectrogram_reader = SpectrogramReader(
         args.wav_scp,
         round_power_of_two=args.round_power_of_two,
@@ -37,18 +49,16 @@ def run(args):
 
     with WaveWriter(args.dst_dir, fs=args.fs) as writer:
         for key, stft_src in spectrogram_reader:
-            if key not in utt2doa:
-                continue
-            doa = utt2doa[key]
-            if doa < 0:
-                doa = 180 + doa
-            if doa < 0 or doa > 180:
-                logger.info(f"Invalid doa {doa:.2f} for utterance {key}")
-                continue
-            stft_enh = beamformer.run(utt2doa[key],
-                                      stft_src,
-                                      c=args.speed,
-                                      sr=args.fs)
+            if utt2doa:
+                if key not in utt2doa:
+                    continue
+                doa = utt2doa[key]
+                if doa < 0:
+                    doa = 180 + doa
+                if doa < 0 or doa > 180:
+                    logger.info(f"Invalid doa {doa:.2f} for utterance {key}")
+                    continue
+            stft_enh = beamformer.run(doa, stft_src, c=args.speed, sr=args.fs)
             done += 1
             norm = spectrogram_reader.maxabs(key)
             samps = inverse_stft(stft_enh, **stft_kwargs, norm=norm)
@@ -81,7 +91,12 @@ if __name__ == "__main__":
                         help="Topology of linear microphone arrays")
     parser.add_argument("--utt2doa",
                         type=str,
-                        required=True,
+                        default="",
                         help="Given DoA for each utterances, in degrees")
+    parser.add_argument("--doa",
+                        type=float,
+                        default=0,
+                        help="DoA for all utterances if "
+                        "--utt2doa is not assigned")
     args = parser.parse_args()
     run(args)
