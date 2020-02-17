@@ -20,7 +20,7 @@ function usage {
 . ./path.sh
 . ./utils/parse_options.sh || exit 1
 
-[ $# -ne 3 ] && echo "Script format error: $0 <wav-scp> <weight-mat> <enhan-dir>" && usage && exit 1
+[ $# -ne 3 ] && echo "Script format error: $0 <wav-scp> <weight> <enhan-dir>" && usage && exit 1
 
 wav_scp=$1
 weight=$2
@@ -37,7 +37,7 @@ stft_opts=$(cat $stft_conf | xargs)
 
 mkdir -p $enhan_dir
 $cmd JOB=1:$nj $exp_dir/log/run_beamformer.JOB.log \
-  ./scripts/sptk/apply_fix_beamformer.py \
+  ./scripts/sptk/apply_fixed_beamformer.py \
   $stft_opts \
   $exp_dir/wav.JOB.scp \
   $weight $enhan_dir

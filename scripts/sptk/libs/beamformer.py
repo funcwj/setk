@@ -11,7 +11,7 @@ Implement for some classic beamformer
 """
 
 __all__ = [
-    "FixedBeamformer", "DSBeamformer", "SupperDirectiveBeamformer",
+    "FixedBeamformer", "LinearDSBeamformer", "LinearSDBeamformer",
     "MvdrBeamformer", "GevdBeamformer", "PmwfBeamformer",
     "OnlineMvdrBeamformer", "OnlineGevdBeamformer"
 ]
@@ -129,6 +129,42 @@ def beam_pattern(weight, steer_vector):
         raise RuntimeError(f"Expect 2/3D beam weights, got {weight.ndim}")
 
 
+def diffuse_covar(num_bins, dist_mat, sr=16000, c=340, diag_eps=1e-5):
+    """
+    Compute covarance matrices of the spherically isotropic noise field
+        Gamma(omega)_{ij} = sinc(omega * tau_{ij}) = sinc(2 * pi * f * tau_{ij})
+    Arguments:
+        num_bins: number of the FFT points
+        dist_mat: distance matrix
+        sr: sample rate
+        c: sound of the speed
+    Return:
+        covar: covariance matrix, F x N x N
+    """
+    N, _ = dist_mat.shape
+    eps = np.eye(N) * diag_eps
+    covar = np.zeros([num_bins, N, N])
+    for f in range(num_bins):
+        omega = np.pi * f * sr / (num_bins - 1)
+        covar[f] = np.sinc(dist_mat * omega / c) + eps
+    return covar
+
+
+def plane_steer_vector(distance, num_bins, c=340, sr=16000):
+    """
+    Compute steer vector for linear array:
+        [..., e^{-j omega tau_i}, ...], where omega = 2*pi * f
+    Arguments:
+        doa: direction of arrival, in angle
+        num_bins: number of frequency bins
+    Return:
+        steer_vector: F x N
+    """
+    omega = np.pi * np.arange(num_bins) * sr / (num_bins - 1)
+    steer_vector = np.exp(-1j * np.outer(omega, distance / c))
+    return steer_vector
+
+
 class Beamformer(object):
     def __init__(self):
         pass
@@ -144,9 +180,8 @@ class Beamformer(object):
         # N x F x T => F x N x T
         if weight.shape[0] != spectrogram.shape[1] or weight.shape[
                 1] != spectrogram.shape[0]:
-            raise ValueError(
-                "Input spectrogram do not match with weight, {} vs "
-                "{}".format(weight.shape, spectrogram.shape))
+            raise ValueError("Input spectrogram do not match with weight, " +
+                             f"{weight.shape} vs {spectrogram.shape}")
         spectrogram = np.transpose(spectrogram, (1, 0, 2))
         spectrogram = np.einsum("...n,...nt->...t", weight.conj(), spectrogram)
         return spectrogram
@@ -165,7 +200,6 @@ class SupervisedBeamformer(Beamformer):
     """
     BaseClass for TF-mask based beamformer
     """
-
     def __init__(self, num_bins):
         super(SupervisedBeamformer, self).__init__()
         self.num_bins = num_bins
@@ -180,13 +214,13 @@ class SupervisedBeamformer(Beamformer):
         """
         if target_mask.shape[1] != self.num_bins or target_mask.ndim != 2:
             raise ValueError(
-                "Input mask matrix should be shape as [num_frames x num_bins], now is {}"
-                .format(target_mask.shape))
+                "Input mask matrix should be shape as " +
+                f"[num_frames x num_bins], now is {target_mask.shape}")
         if spectrogram.shape[1] != target_mask.shape[1] or spectrogram.shape[
                 2] != target_mask.shape[0]:
             raise ValueError(
-                "Shape of input spectrogram do not match with mask matrix, {} vs {}"
-                .format(spectrogram.shape, target_mask.shape))
+                "Shape of input spectrogram do not match with " +
+                f"mask matrix, {spectrogram.shape} vs {target_mask.shape}")
         # num_bins x num_mics x num_frames
         spectrogram = np.transpose(spectrogram, (1, 0, 2))
         # num_bins x 1 x num_frames
@@ -225,7 +259,6 @@ class OnlineSupervisedBeamformer(SupervisedBeamformer):
     """
     Online version of SupervisedBeamformer
     """
-
     def __init__(self, num_bins, num_channels, alpha=0.8):
         super(OnlineSupervisedBeamformer, self).__init__(num_bins)
         self.covar_mat_shape = (num_bins, num_channels, num_channels)
@@ -263,7 +296,6 @@ class FixedBeamformer(Beamformer):
     """
     Fixed Beamformer, need predefined weights
     """
-
     def __init__(self, weight):
         super(FixedBeamformer, self).__init__()
         # F x N
@@ -279,20 +311,16 @@ class FixedBeamformer(Beamformer):
         return self.beamform(self.weight, spectrogram)
 
 
-class DSBeamformer(Beamformer):
+class LinearDSBeamformer(Beamformer):
     """
-    Delay and Sum Beamformer
+    Delay and Sum Beamformer (for linear array)
     """
-
     def __init__(self, linear_topo):
-        super(DSBeamformer, self).__init__()
-        if type(linear_topo) is not list:
-            raise TypeError(
-                "type of parameter \'linear_topo\' should be python list")
-        self.linear_topo = np.array(linear_topo)
+        super(LinearDSBeamformer, self).__init__()
         self.num_mics = len(linear_topo)
+        self.linear_topo = np.array(linear_topo)
 
-    def weight(self, doa, num_bins, c=340, sample_rate=16000):
+    def weight(self, doa, num_bins, c=340, sr=16000):
         """
         Arguments:
             doa: direction of arrival, in angle
@@ -300,12 +328,10 @@ class DSBeamformer(Beamformer):
         Return:
             weight: F x N
         """
-        # e^{-j \omega \tau}, \omega = 2 \pi f
-        tau = np.cos(doa * np.pi / 180) * self.linear_topo / c
-        omega = np.pi * np.arange(num_bins) * sample_rate / (num_bins - 1)
-        return np.exp(-1j * np.outer(omega, tau))
+        dist = np.cos(doa * np.pi / 180) * self.linear_topo
+        return plane_steer_vector(dist, num_bins, c=c, sr=sr)
 
-    def run(self, doa, spectrogram, c=340, sample_rate=16000):
+    def run(self, doa, spectrogram, c=340, sr=16000):
         """
         Arguments: (for N: num_mics, F: num_bins, T: num_frames)
             doa: direction of arrival, in angle
@@ -315,35 +341,21 @@ class DSBeamformer(Beamformer):
         """
         if spectrogram.shape[0] != self.num_mics:
             raise ValueError(
-                "Shape of spectrogram do not match with number of microphones, {} vs {}"
-                .format(self.num_mics, spectrogram.shape[0]))
+                "Shape of spectrogram do not match with number" +
+                f"of microphones, {self.num_mics} vs {spectrogram.shape[0]}")
         num_bins = spectrogram.shape[1]
-        weight = self.weight(doa, num_bins, c=c, sample_rate=sample_rate)
+        weight = self.weight(doa, num_bins, c=c, sr=sr)
         return self.beamform(weight, spectrogram)
 
 
-class SupperDirectiveBeamformer(DSBeamformer):
+class LinearSDBeamformer(LinearDSBeamformer):
     """
-    SupperDirective Beamformer in diffused noise field
+    Linear SupperDirective Beamformer in diffused noise field
     """
-
     def __init__(self, linear_topo):
-        super(SupperDirectiveBeamformer, self).__init__(linear_topo)
+        super(LinearSDBeamformer, self).__init__(linear_topo)
 
-    def compute_diffuse_covar(self, num_bins, c=340, sample_rate=16000):
-        """
-        Compute coherence matrix of diffuse field noise
-            \\Gamma(\\omega)_{ij} = \\sinc(\\omega \\tau_{ij}) = \\sinc(2 \\pi f \\tau_{ij})
-        """
-        covar = np.zeros([num_bins, self.num_mics, self.num_mics])
-        dist = np.tile(self.linear_topo, (4, 1))
-        for f in range(num_bins):
-            omega = np.pi * f * sample_rate / (num_bins - 1)
-            covar[f] = np.sinc((dist - np.transpose(dist)) * omega /
-                               c) + np.eye(self.num_mics) * 1.0e-5
-        return covar
-
-    def weight(self, doa, num_bins, c=340, sample_rate=16000):
+    def weight(self, doa, num_bins, c=340, sr=16000, diag_eps=1e-5):
         """
         Arguments:
             doa: direction of arrival, in angle
@@ -351,18 +363,57 @@ class SupperDirectiveBeamformer(DSBeamformer):
         Return:
             weight: shape as F x N
         """
-        steer_vector = super(SupperDirectiveBeamformer,
-                             self).weight(doa,
-                                          num_bins,
-                                          c=c,
-                                          sample_rate=sample_rate)
-        Rvv = self.compute_diffuse_covar(num_bins,
-                                         c=c,
-                                         sample_rate=sample_rate)
+        steer_vector = super(LinearSDBeamformer, self).weight(doa,
+                                                              num_bins,
+                                                              c=c,
+                                                              sr=sr)
+        # print(steer_vector)
+        mat = np.tile(self.linear_topo, (self.num_mics, 1))
+        Rvv = diffuse_covar(num_bins,
+                            mat - np.transpose(mat),
+                            sr=sr,
+                            c=c,
+                            diag_eps=diag_eps)
         numerator = np.linalg.solve(Rvv, steer_vector)
         denominator = np.einsum("...d,...d->...", steer_vector.conj(),
                                 numerator)
         return numerator / np.expand_dims(denominator, axis=-1)
+
+
+class GeneralSDBeamformer(Beamformer):
+    """
+    General SuperDirective Beamformer
+    """
+    def __init__(self, steer_vector, distance_mat):
+        self.steer_vector = steer_vector
+        self.distance_mat = distance_mat
+
+    def weight(self, num_bins, c=340, sr=16000, diag_eps=1e-5):
+        """
+        Arguments:
+            num_bins: number of the frequency bins
+        Return:
+            weight: shape as F x N
+        """
+        Rvv = diffuse_covar(num_bins,
+                            self.distance_mat,
+                            sr=sr,
+                            c=c,
+                            diag_eps=diag_eps)
+        numerator = np.linalg.solve(Rvv, self.steer_vector)
+        denominator = np.einsum("...d,...d->...", self.steer_vector.conj(),
+                                numerator)
+        return numerator / np.expand_dims(denominator, axis=-1)
+
+    def run(self, spectrogram, c=340, sr=16000):
+        """
+        Arguments: (for N: num_mics, F: num_bins, T: num_frames)
+            spectrogram: shape as N x F x T
+        Return:
+            stft_enhan: shape as F x T
+        """
+        weight = self.weight(spectrogram.shape[1], c=c, sr=sr)
+        return self.beamform(weight, spectrogram)
 
 
 class MvdrBeamformer(SupervisedBeamformer):
@@ -373,7 +424,6 @@ class MvdrBeamformer(SupervisedBeamformer):
     where
         d(f) = P(R(f)_{xx}) P: principle eigenvector
     """
-
     def __init__(self, num_bins):
         super(MvdrBeamformer, self).__init__(num_bins)
 
@@ -422,7 +472,6 @@ class PmwfBeamformer(SupervisedBeamformer):
                             = trace(R(f)_vv^{-1}*R(f)_yy^{-1}) - N
         u(f): pre-assigned or estimated using snr in 1)
     """
-
     def __init__(self, num_bins, beta=0, ref_channel=None):
         super(PmwfBeamformer, self).__init__(num_bins)
         self.ref_channel = ref_channel
@@ -472,7 +521,6 @@ class GevdBeamformer(SupervisedBeamformer):
     which maximum:
         snr(f) = h(f)^H*R(f)_xx^H*h(f) / h(f)^H*R(f)_vv^H*h(f)
     """
-
     def __init__(self, num_bins):
         super(GevdBeamformer, self).__init__(num_bins)
 
@@ -491,7 +539,6 @@ class OnlineGevdBeamformer(OnlineSupervisedBeamformer):
     """
     Online version of GEVD beamformer
     """
-
     def __init__(self, num_bins, num_channels, alpha=0.8):
         super(OnlineGevdBeamformer, self).__init__(num_bins,
                                                    num_channels,
@@ -512,7 +559,6 @@ class OnlineMvdrBeamformer(OnlineSupervisedBeamformer):
     """
     Online version of MVDR beamformer
     """
-
     def __init__(self, num_bins, num_channels, alpha=0.8):
         super(OnlineMvdrBeamformer, self).__init__(num_bins,
                                                    num_channels,

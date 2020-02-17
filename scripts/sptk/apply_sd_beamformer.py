@@ -10,7 +10,7 @@ import numpy as np
 from libs.utils import inverse_stft, get_logger
 from libs.opts import StftParser, str2tuple
 from libs.data_handler import SpectrogramReader, WaveWriter, Reader
-from libs.beamformer import LinearDSBeamformer
+from libs.beamformer import LinearSDBeamformer
 
 logger = get_logger(__name__)
 
@@ -32,8 +32,8 @@ def run(args):
 
     done = 0
     topo = str2tuple(args.linear_topo)
-    beamformer = LinearDSBeamformer(topo)
-    logger.info(f"Initialize channel LinearDSBeamformer for array: {topo}")
+    beamformer = LinearSDBeamformer(topo)
+    logger.info(f"Initialize channel LinearSDBeamformer for array: {topo}")
 
     with WaveWriter(args.dst_dir, fs=args.fs) as writer:
         for key, stft_src in spectrogram_reader:
@@ -58,7 +58,8 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Command to apply delay and sum beamformer (linear array).",
+        description=
+        "Command to apply supperdirective beamformer (linear array).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
