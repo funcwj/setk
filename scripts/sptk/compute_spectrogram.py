@@ -7,7 +7,7 @@ Compute spectrogram features(using librosa kernels) and write in kaldi format
 
 import argparse
 
-from libs.utils import stft, get_logger
+from libs.utils import get_logger
 from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 from libs.exraw import BinaryWriter
@@ -33,7 +33,10 @@ def run(args):
     with WriterImpl(args.dup_ark, args.scp) as writer:
         for key, feats in reader:
             # default using ch1 in multi-channel case
-            writer.write(key, feats[0] if feats.ndim == 3 else feats)
+            if feats.ndim == 3:
+                writer.write(key, feats[0])
+            else:
+                writer.write(key, feats)
     logger.info("Process {:d} utterances".format(len(reader)))
 
 

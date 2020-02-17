@@ -24,6 +24,7 @@ Here are some speech enhancement/separation tools integrated with kaldi. I use t
 * Unified data and IO handlers for Kaldi's scripts, archives, wave, spectrogram, numpy's ndarray...
 * Unsupervised mask estimation (CGMM/CACGMM)
 * Spatial/Spectral feature computation
+* DS (delay and sum) beamformer, SD (supper-directive) beamformer
 * AuxIVA, GWPE, FB (Fixed Beamformer)
 * Mask computation (iam, irm, ibm, psm, crm)
 * RIR simulation (1D/2D arrays)
@@ -33,7 +34,7 @@ Here are some speech enhancement/separation tools integrated with kaldi. I use t
 * Mask-based source localization
 * ...
 
-***This part is independent with Kaldi.***
+***This part is independent with Kaldi and some scripts may report errors as they are still in updating***
 
 ### Compile
 
@@ -51,9 +52,10 @@ Then run
 ```shell
 mkdir build
 cd build
-export KALDI_ROOT=/kaldi/root/dir
+export KALDI_ROOT=/path/to/kaldi/root
+export OPENFST_ROOT=/path/to/openfst/root
 # if on UNIX, need compile kaldi with openblas
-export OPENBLAS_ROOT=/openblas/root/dir
+export OPENBLAS_ROOT=/path/to/openblas/root
 cmake ..
 make -j
 ```

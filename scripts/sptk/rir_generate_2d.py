@@ -5,6 +5,7 @@
 Generate scripts for RIR simulation which use
     1) rir-simulate (see src/rir-simulate.cc)
     2) pyrirgen (see https://github.com/Marvin182/rir-generator)
+    3) gpurir (see https://github.com/DavidDiazGuerra/gpuRIR)
 """
 import os
 import json
@@ -17,7 +18,8 @@ import matplotlib.pyplot as plt
 
 from libs.scheduler import run_command
 from libs.utils import get_logger, make_dir, write_wav
-from libs.opts import StrToFloatTupleAction, str_to_float_tuple
+from libs.opts import StrToFloatTupleAction, StrToBoolAction, str2tuple
+from libs.sampler import UniformSampler
 
 try:
     import pyrirgen
@@ -25,26 +27,22 @@ try:
 except ImportError:
     pyrirgen_available = False
 
+try:
+    import gpuRIR as pygpurir
+    gpu_rir_available = True
+    pygpurir.activateMixedPrecision(False)
+    pygpurir.activateLUT(True)
+except ImportError:
+    gpu_rir_available = False
+
+plt.switch_backend("agg")
 logger = get_logger(__name__)
-
-
-class UniformSampler(object):
-    """
-    A simple uniform sampler
-    """
-
-    def __init__(self, a, b):
-        self.min, self.max = a, b
-
-    def sample(self):
-        return random.uniform(self.min, self.max)
 
 
 class Room(object):
     """
     Room instance
     """
-
     def __init__(self, l, w, h, rt60=None, refl=None):
         self.size = (l, w, h)
         self.beta = rt60 if rt60 is not None else [refl] * 6
@@ -107,11 +105,28 @@ class Room(object):
         plt.savefig(fig)
         plt.close()
 
-    def rir(self, fname, fs=16000, rir_nsamps=4096, v=340):
+    def rir(self, fname, fs=16000, rir_nsamps=4096, v=340, gpu=False):
         """
         Generate rir for current settings
         """
-        if shutil.which("rir-simulate"):
+        if gpu:
+            # self.beta: rt60
+            beta = pygpurir.beta_SabineEstimation(self.size, self.beta)
+            # NOTE: do not clear here
+            # diff = pygpurir.att2t_SabineEstimator(15, self.beta)
+            tmax = rir_nsamps / fs
+            nb_img = pygpurir.t2n(tmax, self.size)
+            # S x R x T
+            rir = pygpurir.simulateRIR(self.size,
+                                       beta,
+                                       np.array(self.spos)[None, ...],
+                                       np.array(self.rpos),
+                                       nb_img,
+                                       tmax,
+                                       fs,
+                                       mic_pattern="omni")
+            write_wav(fname, rir[0], fs=fs)
+        elif shutil.which("rir-simulate"):
             # format float
             ffloat = lambda f: "{:.3f}".format(f)
             # location for each microphone
@@ -156,7 +171,6 @@ class RoomGenerator(object):
     """
     Room generator
     """
-
     def __init__(self, rt60_opt, absc_opt, room_dim):
         """
         rt60_opt: "" or "a,b", higher priority than absc_opt
@@ -165,15 +179,15 @@ class RoomGenerator(object):
         """
         self.rt60_opt = rt60_opt
         if not rt60_opt:
-            self.absc = UniformSampler(*absc_opt)
+            self.absc = UniformSampler(absc_opt)
         else:
-            rt60_r = str_to_float_tuple(rt60_opt)
-            self.rt60 = UniformSampler(*rt60_r)
-        dim_range = [str_to_float_tuple(t) for t in room_dim.split(";")]
+            rt60_r = str2tuple(rt60_opt)
+            self.rt60 = UniformSampler(rt60_r)
+        dim_range = [str2tuple(t) for t in room_dim.split(";")]
         if len(dim_range) != 3:
             raise RuntimeError(
                 "Wrong format with --room-dim={}".format(room_dim))
-        self.dim_sampler = [UniformSampler(*c) for c in dim_range]
+        self.dim_sampler = [UniformSampler(c) for c in dim_range]
 
     def generate(self, v=340):
         # (l, w, h)
@@ -205,17 +219,16 @@ class RirSimulator(object):
     """
     RIR simulator
     """
-
     def __init__(self, args):
+        if args.gpu and not gpu_rir_available:
+            raise RuntimeError("Please install gpuRIR first if --gpu=True")
         # make dump dir
         make_dir(args.dump_dir)
         self.rirs_cfg = []
         self.room_generator = RoomGenerator(args.rt60, args.abs_range,
                                             args.room_dim)
         self.mx, self.my = args.array_relx, args.array_rely
-        self.array_topo = [
-            str_to_float_tuple(t) for t in args.array_topo.split(";")
-        ]
+        self.array_topo = [str2tuple(t) for t in args.array_topo.split(";")]
         self.args = args
 
     def _place_mic(self, room):
@@ -277,7 +290,7 @@ class RirSimulator(object):
             stats.append(stat)
             if done == num_rirs:
                 break
-        logger.info("try/done = {:d}/{:d}".format(ntry, done))
+        logger.info(f"Put speaker point: try/done = {ntry}/{done}")
         return done == num_rirs, stats
 
     def run_for_instance(self, room_id):
@@ -323,8 +336,8 @@ class RirSimulator(object):
         with open(os.path.join(args.dump_dir, "rir.json"), "w") as f:
             json.dump(self.rirs_cfg, f, indent=2)
         logger.info("Generate {:d} rirs, {:d} rooms done, "
-                    "retry = {:d}".format(self.args.num_rirs * num_rooms, done,
-                                          ntry))
+                    "try = {:d}".format(self.args.num_rirs * num_rooms, done,
+                                        ntry))
 
 
 def run(args):
@@ -339,14 +352,14 @@ $cmd JOB=1:$nj ./exp/rir_simu/rir_generate_2d.JOB.log \
     --num-rirs $num_rirs \
     --dump-dir $dump_dir/JOB \
     --array-height "1.2,1.8" \
-    --room-dim "4,10\;4,10\;2,4" \
+    --room-dim "4,10;4,10;2,4" \
     --rt60 "0.2,0.5" \
     --array-relx "0.3,0.7" \
     --array-rely "0.3,0.7" \
     --speaker-height "1,2" \
     --source-distance "1,4" \
     --rir-samples 4096 \
-    --dump-cfg \
+    --dump-cfg true \
     $num_room
 """
 if __name__ == "__main__":
@@ -364,7 +377,8 @@ if __name__ == "__main__":
                         default=1,
                         help="Number of rirs to simulate for each room")
     parser.add_argument("--dump-cfg",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=True,
                         help="If true, dump rir configures out in json format")
     parser.add_argument("--rir-samples",
                         type=int,
@@ -438,5 +452,10 @@ if __name__ == "__main__":
                         default=(1, 3),
                         help="Range of distance between "
                         "microphone arrays and speakers")
+    parser.add_argument("--gpu",
+                        action=StrToBoolAction,
+                        default=False,
+                        help="Use gpuRIR from "
+                        "https://github.com/DavidDiazGuerra/gpuRIR.git")
     args = parser.parse_args()
     run(args)

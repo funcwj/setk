@@ -7,7 +7,6 @@ set -eu
 nj=40
 cmd="run.pl"
 stft_conf=conf/stft.conf
-weight_key="weights"
 
 echo "$0 $@"
 
@@ -16,13 +15,12 @@ function usage {
   echo "  --nj          <nj>                  # number of jobs to run parallel, (default=40)"
   echo "  --cmd         <run.pl|queue.pl>     # how to run jobs, (default=run.pl)"
   echo "  --stft-conf   <stft-conf>           # stft configurations files, (default=conf/stft.conf)"
-  echo "  --weight-key  <weight-key>          # index keys to index matlab mat files, (default=weights)"
 }
 
 . ./path.sh
 . ./utils/parse_options.sh || exit 1
 
-[ $# -ne 3 ] && echo "Script format error: $0 <wav-scp> <weight-mat> <enhan-dir>" && usage && exit 1
+[ $# -ne 3 ] && echo "Script format error: $0 <wav-scp> <weight> <enhan-dir>" && usage && exit 1
 
 wav_scp=$1
 weight=$2
@@ -36,12 +34,11 @@ wav_split_scp="" && for n in $(seq $nj); do wav_split_scp="$wav_split_scp $exp_d
 ./utils/split_scp.pl $wav_scp $wav_split_scp
 
 stft_opts=$(cat $stft_conf | xargs)
-beamformer_opts="$stft_opts --weight-key $weight_key"
 
 mkdir -p $enhan_dir
 $cmd JOB=1:$nj $exp_dir/log/run_beamformer.JOB.log \
-  ./scripts/sptk/apply_fix_beamformer.py \
-  $beamformer_opts \
+  ./scripts/sptk/apply_fixed_beamformer.py \
+  $stft_opts \
   $exp_dir/wav.JOB.scp \
   $weight $enhan_dir
 

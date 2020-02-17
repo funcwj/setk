@@ -8,8 +8,8 @@ import os
 import numpy as np
 from tqdm import tqdm
 from libs.data_handler import SpectrogramReader
-from libs.utils import istft, get_logger, cmat_abs, write_wav, EPSILON
-from libs.opts import StftParser
+from libs.utils import inverse_stft, get_logger, cmat_abs, write_wav, EPSILON
+from libs.opts import StftParser, StrToBoolAction
 
 logger = get_logger(__name__)
 
@@ -76,7 +76,7 @@ def run(args):
         targets_list = [reader[key] for reader in targets_reader]
         spk_masks = compute_mask(mixture, targets_list, args.mask)
         for index, mask in enumerate(spk_masks):
-            samps = istft(mixture * mask, **stft_kwargs, nsamps=nsamps)
+            samps = inverse_stft(mixture * mask, **stft_kwargs, nsamps=nsamps)
             write_wav(os.path.join(args.dump_dir,
                                    "spk{:d}/{}.wav".format(index + 1, key)),
                       samps,
@@ -114,7 +114,8 @@ if __name__ == "__main__":
                         dest="fs",
                         help="Waveform data sample frequency")
     parser.add_argument("--keep-length",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=False,
                         help="If ture, keep result the same length as orginal")
     args = parser.parse_args()
     run(args)

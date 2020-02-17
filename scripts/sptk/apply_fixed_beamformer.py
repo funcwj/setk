@@ -6,9 +6,8 @@ import argparse
 import os
 
 import numpy as np
-from scipy.io import loadmat
 
-from libs.utils import istft, get_logger
+from libs.utils import inverse_stft, get_logger
 from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, WaveWriter
 from libs.beamformer import FixedBeamformer
@@ -28,18 +27,15 @@ def run(args):
         args.wav_scp,
         round_power_of_two=args.round_power_of_two,
         **stft_kwargs)
-    weights_dict = loadmat(args.weights)
-    if args.weight_key not in weights_dict:
-        raise KeyError(
-            f"Weight key error: no {args.weight_key} in {args.weights}")
-
-    beamformer = FixedBeamformer(weights_dict[args.weight_key])
+    # F x N
+    weights = np.load(args.weights)
+    beamformer = FixedBeamformer(weights)
     with WaveWriter(args.dump_dir) as writer:
         for key, stft_mat in spectrogram_reader:
             logger.info(f"Processing utterance {key}...")
             stft_enh = beamformer.run(stft_mat)
-            # do not normalize
-            samps = istft(stft_enh, **stft_kwargs)
+            norm = spectrogram_reader.maxabs(key)
+            samps = inverse_stft(stft_enh, **stft_kwargs, norm=norm)
             writer.write(key, samps)
     logger.info(f"Processed {len(spectrogram_reader):d} utterances")
 
@@ -47,7 +43,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to run fixed beamformer. Runing this command needs "
-        "design fixed beamformer first.",
+        "to design fixed beamformer first.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -55,13 +51,9 @@ if __name__ == "__main__":
                         help="Multi-channel wave scripts in kaldi format")
     parser.add_argument("weights",
                         type=str,
-                        help="Fixed beamformer weight in MATLAB format")
+                        help="Fixed beamformer weight in numpy format")
     parser.add_argument("dst_dir",
                         type=str,
                         help="Location to dump enhanced wave file")
-    parser.add_argument("--weight-key",
-                        default="weights",
-                        help="String key to index matrix in "
-                        "MATLAB's .mat file")
     args = parser.parse_args()
     run(args)

@@ -47,28 +47,26 @@ stft_opts=$(cat $stft_conf | xargs)
 beamformer_opts="--fs $fs --speed $speed --linear-topo $topo"
 
 if [ ! -z $utt2doa ]; then
-  echo "$0: Run DS beamformer on $utt2doa ..."
+  echo "$0: Run supper-directive beamformer on $utt2doa ..."
   mkdir -p $dst_dir/doa${doa}_$dirname
-  $cmd JOB=1:$nj $exp_dir/run_ds.JOB.log \
-    ./scripts/sptk/apply_ds_beamformer.py \
+  $cmd JOB=1:$nj $exp_dir/run_sd.JOB.log \
+    ./scripts/sptk/apply_sd_beamformer.py \
     $stft_opts $beamformer_opts \
     --utt2doa $utt2doa \
     $exp_dir/wav.JOB.scp \
     $dst_dir
-  echo "$0: Run delay and sum beamformer -- $utt2doa done"
+    echo "$0: Run supper-directive beamformer -- $utt2doa done"
 else
   dirname=$(basename $1)
   for doa in $doa_list; do
-    echo "$0: Run DS beamformer on DoA $doa ..."
+    echo "$0: Run supper-directive beamformer on DoA $doa ..."
     mkdir -p $dst_dir/doa${doa}_$dirname
-    $cmd JOB=1:$nj $exp_dir/$dirname.$doa.ds.JOB.log \
-      ./scripts/sptk/apply_ds_beamformer.py \
+    $cmd JOB=1:$nj $exp_dir/$dirname.$doa.sd.JOB.log \
+      ./scripts/sptk/apply_sd_beamformer.py \
       $stft_opts $beamformer_opts \
       --doa $doa \
       $exp_dir/wav.JOB.scp \
       $dst_dir/doa${doa}_$dirname
   done
-  echo "$0: Run delay and sum beamformer -- $doa_list done"
+    echo "$0: Run supper-directive beamformer -- $doa_list done"
 fi
-
-

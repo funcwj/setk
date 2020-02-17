@@ -13,7 +13,7 @@ from urllib import request
 
 from libs.cluster import CacgmmTrainer
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, NumpyWriter
-from libs.utils import get_logger, nfft
+from libs.utils import get_logger, nextpow2
 from libs.opts import StftParser, StrToBoolAction
 
 pb_bss_align_url = "https://raw.githubusercontent.com/fgnt/pb_bss/master/pb_bss/permutation_alignment.py"
@@ -59,7 +59,8 @@ def run(args):
     init_mask_reader = MaskReader[args.fmt](
         args.init_mask) if args.init_mask else None
 
-    n_fft = nfft(args.frame_len) if args.round_power_of_two else args.frame_len
+    n_fft = nextpow2(
+        args.frame_len) if args.round_power_of_two else args.frame_len
     # now use pb_bss
     # pb_perm_solver = load_module(pb_bss_align_url)
     aligner = pb_perm_solver.DHTVPermutationAlignment.from_stft_size(n_fft)

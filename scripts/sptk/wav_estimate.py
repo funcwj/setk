@@ -7,7 +7,7 @@ Esimate signal from fbank or (log)-magnitude/power spectrum using Griffin Lim al
 import argparse
 import numpy as np
 
-from libs.utils import get_logger, griffin_lim, istft
+from libs.utils import get_logger, griffin_lim, inverse_stft
 from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import ScriptReader, WaveWriter, SpectrogramReader, NumpyReader
 
@@ -56,7 +56,7 @@ def run(args):
                 ref = phase_reader[key]
                 angle = np.angle(ref[0] if ref.ndim == 3 else ref)
                 phase = np.exp(angle * 1j)
-                samps = istft(spec * phase, **stft_kwargs, norm=0.8)
+                samps = inverse_stft(spec * phase, **stft_kwargs, norm=0.8)
             writer.write(key, samps)
     logger.info(f"Processed {len(feature_reader)} utterance done")
 

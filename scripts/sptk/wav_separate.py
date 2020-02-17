@@ -7,7 +7,7 @@ import os
 
 import numpy as np
 
-from libs.utils import stft, istft, get_logger
+from libs.utils import forward_stft, inverse_stft, get_logger
 from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import SpectrogramReader, NumpyReader, ScriptReader, WaveWriter
 
@@ -59,21 +59,21 @@ def run(args):
                         "check configures")
                 nsamps = spectrogram_reader.nsamps(
                     key) if args.keep_length else None
-                norm = spectrogram_reader.samp_norm(
+                norm = spectrogram_reader.maxabs(
                     key) if args.mixed_norm else None
                 # use phase from ref
                 if phase_reader is not None:
                     angle = np.angle(phase_reader[key])
                     phase = np.exp(angle * 1j)
-                    samps = istft(np.abs(specs) * mask * phase,
-                                  **stft_kwargs,
-                                  norm=norm,
-                                  nsamps=nsamps)
+                    samps = inverse_stft(np.abs(specs) * mask * phase,
+                                         **stft_kwargs,
+                                         norm=norm,
+                                         nsamps=nsamps)
                 else:
-                    samps = istft(specs * mask,
-                                  **stft_kwargs,
-                                  norm=norm,
-                                  nsamps=nsamps)
+                    samps = inverse_stft(specs * mask,
+                                         **stft_kwargs,
+                                         norm=norm,
+                                         nsamps=nsamps)
                 writer.write(key, samps)
     logger.info(
         f"Processed {num_done:d} utterances over {len(spectrogram_reader):d}")
@@ -116,7 +116,8 @@ if __name__ == "__main__":
                         default=False,
                         help="If ture, keep result the same length as orginal")
     parser.add_argument("--use-mixed-norm",
-                        action="store_true",
+                        action=StrToBoolAction,
+                        default=True,
                         dest="mixed_norm",
                         help="If true, keep norm of separated "
                         "same as mixed one")

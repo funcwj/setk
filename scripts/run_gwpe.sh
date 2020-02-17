@@ -11,7 +11,8 @@ stft_conf=conf/gwpe.conf
 delay=3
 taps=10
 context=1
-fs=16000
+sr=16000
+nara_wpe=false
 
 echo "$0 $@"
 
@@ -24,7 +25,9 @@ function usage {
   echo "  --delay     <delay>               # time delay in GWPE, (default=$delay)"
   echo "  --taps      <taps>                # number of taps in GWPE, (default=$taps)"
   echo "  --context   <context>             # left/right context used in PSD matrix estimation, (default=$context)"
-  echo "  --fs        <fs>                  # sample rate for source wave, (default=$fs)"
+  echo "  --sr        <sr>                  # sample rate for source wave, (default=$sr)"
+  echo "  --nara-wpe  <true|false>          # use nara-wpe or not, (default=$nara_wpe)"
+
 }
 
 . ./path.sh
@@ -49,6 +52,8 @@ mkdir -p $dst_dir
 $cmd JOB=1:$nj $exp_dir/log/run_gwpe.JOB.log \
   ./scripts/sptk/apply_gwpe.py \
   $stft_opts --num-iters $iters \
+  --sample-rate $sr \
+  --nara-wpe $nara_wpe \
   --context $context \
   --taps $taps --delay $delay \
   $exp_dir/wav.JOB.scp \
