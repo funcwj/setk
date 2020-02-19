@@ -1,10 +1,10 @@
-# wujian@2018
+# wujian@2020
 
 import os
 import random
 import argparse
 
-from .data_handler import Reader, WaveReader, NumpyReader, ScriptReader
+from .data_handler import Reader
 from .opts import str2tuple
 
 

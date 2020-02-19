@@ -479,9 +479,9 @@ class PmwfBeamformer(SupervisedBeamformer):
 
     def _snr(self, weight, Rxx, Rvv):
         """
-        Estimate post-snr suppose we got weight, along whole frequency band
+        Estimate SNR suppose we have beam weight
         Formula:
-            snr(w) = \\sum_f w(f)^H*R(f)_xx*w(f) / \\sum_f w(f)^H*R(f)_vv*w(f) 
+            snr(w) = sum_f w(f)^H*R(f)_xx*w(f) / sum_f w(f)^H*R(f)_vv*w(f) 
         """
         pow_s = np.einsum("...fa,...fab,...fb->...", np.conj(weight), Rxx,
                           weight)
@@ -499,18 +499,21 @@ class PmwfBeamformer(SupervisedBeamformer):
         """
         _, N, _ = Rxx.shape
         numerator = np.linalg.solve(Rvv, Rxx)
+        denominator = self.beta + np.trace(numerator, axis1=1, axis2=2)
+        # F x N x N
+        weight_mat = numerator / denominator[..., None, None]
         if self.ref_channel is None:
             # using snr to select channel
-            ref_channel = np.argmax(
-                [self._snr(numerator[:, :, c], Rxx, Rvv) for c in range(N)])
+            est_snr = [
+                self._snr(weight_mat[..., c], Rxx, Rvv) for c in range(N)
+            ]
+            ref_channel = np.argmax(est_snr)
         else:
             ref_channel = self.ref_channel
         if ref_channel >= N:
-            raise RuntimeError(
-                "Reference channel ID exceeds total channels: {:d} vs {:d}".
-                format(ref_channel, N))
-        denominator = self.beta + np.trace(numerator, axis1=1, axis2=2)
-        return numerator[:, :, ref_channel] / denominator[:, None]
+            raise RuntimeError("Reference channel ID exceeds total " +
+                               f"channels: {ref_channel} vs {N}")
+        return weight_mat[..., ref_channel]
 
 
 class GevdBeamformer(SupervisedBeamformer):
