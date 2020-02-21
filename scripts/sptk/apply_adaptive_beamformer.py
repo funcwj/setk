@@ -97,12 +97,21 @@ def run(args):
         logger.info(f"Using interfering masks from {args.itf_mask}")
     online = False
     num_bins = nextpow2(args.frame_len) // 2 + 1
-    ref_channel = args.pmwf_ref if args.pmwf_ref >= 0 else None
     supported_beamformer = {
-        "mvdr": MvdrBeamformer(num_bins),
-        "gevd": GevdBeamformer(num_bins),
-        "pmwf-0": PmwfBeamformer(num_bins, beta=0, ref_channel=ref_channel),
-        "pmwf-1": PmwfBeamformer(num_bins, beta=1, ref_channel=ref_channel)
+        "mvdr":
+        MvdrBeamformer(num_bins),
+        "gevd":
+        GevdBeamformer(num_bins),
+        "pmwf-0":
+        PmwfBeamformer(num_bins,
+                       beta=0,
+                       ref_channel=args.pmwf_ref,
+                       rank1_appro=args.rank1_appro),
+        "pmwf-1":
+        PmwfBeamformer(num_bins,
+                       beta=1,
+                       ref_channel=args.pmwf_ref,
+                       rank1_appro=args.rank1_appro)
     }
     supported_online_beamformer = {
         "mvdr": OnlineMvdrBeamformer(num_bins, args.channels, args.alpha),
@@ -157,7 +166,7 @@ def run(args):
                         stft_enh = beamformer.run(speech_mask,
                                                   stft_mat,
                                                   noise_mask=interf_mask,
-                                                  normalize=args.ban)
+                                                  ban=args.ban)
                     else:
                         stft_enh = do_online_beamform(beamformer, speech_mask,
                                                       interf_mask, stft_mat,
@@ -219,6 +228,11 @@ if __name__ == "__main__":
                         action=StrToBoolAction,
                         default=False,
                         help="Do Blind Analytical Normalization (BAN) or not")
+    parser.add_argument("--rank1-appro",
+                        type=str,
+                        default="",
+                        choices=["none", "eig", "gev"],
+                        help="Weather to use rank1 approximation in PMWF")
     parser.add_argument("--post-masking",
                         dest="mask",
                         action=StrToBoolAction,

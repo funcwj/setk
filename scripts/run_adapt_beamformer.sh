@@ -18,24 +18,26 @@ alpha=0.8
 chunk_size=-1
 channels=4
 pmwf_ref=-1
+pmwf_rank1_appro="none"
 itf_mask=""
 
 echo "$0 $@"
 
 function usage {
   echo "Options:"
-  echo "  --nj          <nj>                # number of jobs to run parallel, (default=$nj)"
-  echo "  --cmd         <run.pl|queue.pl>   # how to run jobs, (default=$cmd)"
-  echo "  --stft-conf   <stft-conf>         # stft configurations files, (default=$stft_conf)"
-  echo "  --mask-format <kaldi|numpy>       # load masks from np.ndarray instead, (default=$mask_format)"
-  echo "  --itf-mask                        # scripts of interfering masks, (default=$itf_mask)"
+  echo "  --nj          <nj>                  # number of jobs to run parallel, (default=$nj)"
+  echo "  --cmd         <run.pl|queue.pl>     # how to run jobs, (default=$cmd)"
+  echo "  --stft-conf   <stft-conf>           # stft configurations files, (default=$stft_conf)"
+  echo "  --mask-format <kaldi|numpy>         # load masks from np.ndarray instead, (default=$mask_format)"
+  echo "  --itf-mask    <itf-mask>            # scripts of interfering masks, (default=$itf_mask)"
   echo "  --beamformer  <mvdr|pmwf-0|pmwf-1|gevd>    # type of adaptive beamformer to apply, (default=$beamformer)"
-  echo "  --ban         <true|false>        # do ban or not, (default=$normalize)"
-  echo "  --post-masking   <true|false>     # do TF-masking after beamforming or not, (default=$post_mask)"
-  echo "  --vad-proportion <proportion>     # vad proportion to filter silence masks, (default=$vad_proportion)"
-  echo "  --alpha       <alpha>             # remember coefficient used in online version, (default=$alpha)"
-  echo "  --chunk-size  <chunk-size>        # chunk size in online beamformer, (default=$chunk_size)"
-  echo "  --channels    <channels>          # number of channels, (default=$channels)"
+  echo "  --ban         <true|false>          # do ban or not, (default=$ban)"
+  echo "  --pmwf-rank1-appro <eig|gev|none>   # weather to use rank1 approximation in PMWF, (default=$pmwf_rank1_appro)"
+  echo "  --post-masking     <true|false>     # do TF-masking after beamforming or not, (default=$post_masking)"
+  echo "  --vad-proportion   <proportion>     # vad proportion to filter silence masks, (default=$vad_proportion)"
+  echo "  --alpha       <alpha>               # remember coefficient used in online version, (default=$alpha)"
+  echo "  --chunk-size  <chunk-size>          # chunk size in online beamformer, (default=$chunk_size)"
+  echo "  --channels    <channels>            # number of channels, (default=$channels)"
 }
 
 . ./path.sh
@@ -82,6 +84,7 @@ $cmd JOB=1:$nj $exp_dir/log/run_$beamformer.JOB.log \
   --mask-format $mask_format \
   --pmwf-ref $pmwf_ref \
   --ban $ban \
+  --rank1-appro $pmwf_rank1_appro \
   --vad-proportion $vad_proportion \
   --post-masking $post_masking \
   $exp_dir/wav.JOB.scp \
