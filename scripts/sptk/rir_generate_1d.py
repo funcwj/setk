@@ -35,6 +35,11 @@ try:
 except ImportError:
     gpu_rir_available = False
 
+if shutil.which("rir-simulate"):
+    cpp_rir_available = True
+else:
+    cpp_rir_available = False
+
 plt.switch_backend("agg")
 logger = get_logger(__name__)
 
@@ -130,7 +135,7 @@ class Room(object):
                                        fs,
                                        mic_pattern="omni")
             write_wav(fname, rir[0], fs=fs)
-        elif shutil.which("rir-simulate"):
+        elif cpp_rir_available:
             # format float
             ffloat = lambda f: "{:.3f}".format(f)
             # location for each microphone
@@ -233,6 +238,7 @@ class RirSimulator(object):
                                             args.room_dim)
         self.mx, self.my = args.array_relx, args.array_rely
         self.vertical = args.vertical
+        self.sr = args.sample_rate
         self.args = args
 
     def _place_mic(self, room):
@@ -312,8 +318,8 @@ class RirSimulator(object):
                 rir_loc = "{0}/Room{1}-{2}.wav".format(self.args.dump_dir,
                                                        room_id, idx + 1)
                 room.rir(rir_loc,
-                         fs=self.args.sample_rate,
-                         rir_nsamps=self.args.rir_samples,
+                         fs=self.sr,
+                         rir_nsamps=int(self.sr * self.args.rir_dur),
                          v=self.args.speed,
                          gpu=self.args.gpu)
                 scfg[idx]["loc"] = rir_loc
@@ -365,7 +371,7 @@ $cmd JOB=1:$nj ./exp/rir_simu/rir_generate_1d.JOB.log \
     --array-rely "0.05,0.1" \
     --speaker-height "1,2" \
     --source-distance "1,4" \
-    --rir-samples 4096 \
+    --rir-dur 0.5 \
     --dump-cfg true \
     $num_room
 """
@@ -381,16 +387,16 @@ if __name__ == "__main__":
                         help="Total number of rooms to simulate")
     parser.add_argument("--num-rirs",
                         type=int,
-                        default=1,
+                        default=40,
                         help="Number of rirs to simulate for each room")
     parser.add_argument("--dump-cfg",
                         action=StrToBoolAction,
                         default=True,
                         help="If true, dump rir configures out in json format")
-    parser.add_argument("--rir-samples",
-                        type=int,
-                        default=8000,
-                        help="Number samples of simulated rir")
+    parser.add_argument("--rir-dur",
+                        type=float,
+                        default=0.5,
+                        help="Duration of the simulated rir (s)")
     parser.add_argument("--sample-rate",
                         type=int,
                         default=16000,

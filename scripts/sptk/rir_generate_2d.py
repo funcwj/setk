@@ -35,6 +35,11 @@ try:
 except ImportError:
     gpu_rir_available = False
 
+if shutil.which("rir-simulate"):
+    cpp_rir_available = True
+else:
+    cpp_rir_available = False
+
 plt.switch_backend("agg")
 logger = get_logger(__name__)
 
@@ -126,7 +131,7 @@ class Room(object):
                                        fs,
                                        mic_pattern="omni")
             write_wav(fname, rir[0], fs=fs)
-        elif shutil.which("rir-simulate"):
+        elif cpp_rir_available:
             # format float
             ffloat = lambda f: "{:.3f}".format(f)
             # location for each microphone
@@ -229,6 +234,7 @@ class RirSimulator(object):
                                             args.room_dim)
         self.mx, self.my = args.array_relx, args.array_rely
         self.array_topo = [str2tuple(t) for t in args.array_topo.split(";")]
+        self.sr = args.sample_rate
         self.args = args
 
     def _place_mic(self, room):
@@ -307,9 +313,10 @@ class RirSimulator(object):
                 rir_loc = "{0}/Room{1}-{2}.wav".format(self.args.dump_dir,
                                                        room_id, idx + 1)
                 room.rir(rir_loc,
-                         fs=self.args.sample_rate,
-                         rir_nsamps=self.args.rir_samples,
-                         v=self.args.speed)
+                         fs=self.sr,
+                         rir_nsamps=int(self.sr * self.args.rir_dur),
+                         v=self.args.speed,
+                         gpu=self.args.gpu)
                 scfg[idx]["loc"] = rir_loc
             # plot room
             room.plot(scfg, "{0}/Room{1}.png".format(self.args.dump_dir,
@@ -358,7 +365,7 @@ $cmd JOB=1:$nj ./exp/rir_simu/rir_generate_2d.JOB.log \
     --array-rely "0.3,0.7" \
     --speaker-height "1,2" \
     --source-distance "1,4" \
-    --rir-samples 4096 \
+    --rir-dur 0.5 \
     --dump-cfg true \
     $num_room
 """
@@ -374,16 +381,16 @@ if __name__ == "__main__":
                         help="Total number of rooms to simulate")
     parser.add_argument("--num-rirs",
                         type=int,
-                        default=1,
+                        default=40,
                         help="Number of rirs to simulate for each room")
     parser.add_argument("--dump-cfg",
                         action=StrToBoolAction,
                         default=True,
                         help="If true, dump rir configures out in json format")
-    parser.add_argument("--rir-samples",
-                        type=int,
-                        default=8000,
-                        help="Number samples of simulated rir")
+    parser.add_argument("--rir-dur",
+                        type=float,
+                        default=0.5,
+                        help="Duration of the simulated rir (s)")
     parser.add_argument("--sample-rate",
                         type=int,
                         default=16000,
@@ -408,7 +415,7 @@ if __name__ == "__main__":
                         "(relative values to room's length)")
     parser.add_argument("--array-rely",
                         action=StrToFloatTupleAction,
-                        default=(0.05, 0.1),
+                        default=(0.4, 0.6),
                         help="Area of room to place microphone array randomly"
                         "(relative values to room's width)")
     parser.add_argument("--speaker-height",
@@ -420,7 +427,7 @@ if __name__ == "__main__":
                         default="0,0;0.06,0;0.03,0.05196;"
                         "-0.03,0.05196;-0.06,0;"
                         "-0.03,-0.05196;0.03,0.05196",
-                        help="Linear topology for microphone arrays.")
+                        help="Topology of the microphone arrays.")
     parser.add_argument("--absorption-coefficient-range",
                         action=StrToFloatTupleAction,
                         dest="abs_range",

@@ -66,8 +66,7 @@ def solve_pevd(Rxx, Rvv=None):
                 except np.linalg.LinAlgError:
                     raise RuntimeError(
                         "LinAlgError when computing eig on frequency "
-                        "{:d}: \nRxx = {}, \nRvv = {}".format(
-                            f, Rxx[f], Rvv[f]))
+                        "{f}: \nRxx = {Rxx[f]}, \nRvv = {Rvv[f]}")
         return pvec
 
 
@@ -78,27 +77,17 @@ def rank1_constraint(Rxx, Rvv=None):
         Rxx: shape as F x N x N
         Rvv: same as Rxx if not None
     Return:
-        rank1_mat: shape as F x N x N
+        rank1_appro: shape as F x N x N
     """
-    if Rvv is None:
-        eigenvals, eigenvecs = np.linalg.eigh(Rxx)
-        pvals = eigenvals[:, -1]
-        pvecs = eigenvecs[:, :, -1]
-        rank1_appro = np.einsum("...a,...b->...ab", pvals[:, None] * pvecs,
-                                pvecs.conj())
-    else:
-        num_bins = Rxx.shape[0]
-        rank1_appro = np.zeros_like(Rxx, dtype=Rxx.dtype)
-        for f in range(num_bins):
-            try:
-                # sp.linalg.eigh returns eigen values in ascending order
-                eigenvals, eigenvecs = sp.linalg.eigh(Rxx[f], Rvv[f])
-                rank1_appro[f] = eigenvals[-1] * np.outer(
-                    eigenvecs[:, -1], eigenvecs[:, -1].conj())
-            except np.linalg.LinAlgError:
-                raise RuntimeError(
-                    "LinAlgError when computing eig on frequency "
-                    "{:d}: \nRxx = {}, \nRvv = {}".format(f, Rxx[f], Rvv[f]))
+    pvecs = solve_pevd(Rxx, Rvv=Rvv)
+    if Rvv is not None:
+        pvecs = np.einsum('...ab,...b->...a', Rvv, pvecs)
+    # rank1 approximation
+    rank1_appro = np.einsum("...a,...b->...ab", pvecs, pvecs.conj())
+    # scale back
+    rank1_scale = np.trace(Rxx, axis1=-1, axis2=-2) / np.maximum(
+        np.trace(rank1_appro, axis1=-1, axis2=-2), EPSILON)
+    rank1_appro = rank1_scale[..., None, None] * rank1_appro
     return rank1_appro
 
 
@@ -237,7 +226,7 @@ class SupervisedBeamformer(Beamformer):
         """
         raise NotImplementedError
 
-    def run(self, speech_mask, spectrogram, noise_mask=None, normalize=False):
+    def run(self, speech_mask, spectrogram, noise_mask=None, ban=False):
         """
         Run beamformer based on TF-mask
         Arguments: (for N: num_mics, F: num_bins, T: num_frames)
@@ -252,7 +241,7 @@ class SupervisedBeamformer(Beamformer):
         # Rxx = rank1_constraint(Rxx)
         weight = self.weight(Rxx, Rvv)
         return self.beamform(
-            do_ban(weight, Rvv) if normalize else weight, spectrogram)
+            do_ban(weight, Rvv) if ban else weight, spectrogram)
 
 
 class OnlineSupervisedBeamformer(SupervisedBeamformer):
@@ -270,7 +259,7 @@ class OnlineSupervisedBeamformer(SupervisedBeamformer):
         self.alpha = alpha
         self.reset = True
 
-    def run(self, speech_mask, spectrogram, noise_mask=None, normalize=False):
+    def run(self, speech_mask, spectrogram, noise_mask=None, ban=False):
         """
         Run beamformer based on TF-mask, online version
         Arguments: (for N: num_mics, F: num_bins, T: num_frames)
@@ -289,7 +278,7 @@ class OnlineSupervisedBeamformer(SupervisedBeamformer):
         # do beamforming
         weight = self.weight(self.Rxx, self.Rvv)
         return self.beamform(
-            do_ban(weight, Rvv) if normalize else weight, spectrogram)
+            do_ban(weight, Rvv) if ban else weight, spectrogram)
 
 
 class FixedBeamformer(Beamformer):
@@ -472,16 +461,17 @@ class PmwfBeamformer(SupervisedBeamformer):
                             = trace(R(f)_vv^{-1}*R(f)_yy^{-1}) - N
         u(f): pre-assigned or estimated using snr in 1)
     """
-    def __init__(self, num_bins, beta=0, ref_channel=None):
+    def __init__(self, num_bins, beta=0, ref_channel=-1, rank1_appro=""):
         super(PmwfBeamformer, self).__init__(num_bins)
         self.ref_channel = ref_channel
+        self.rank1_appro = rank1_appro
         self.beta = beta
 
     def _snr(self, weight, Rxx, Rvv):
         """
-        Estimate post-snr suppose we got weight, along whole frequency band
+        Estimate SNR suppose we have beam weight
         Formula:
-            snr(w) = \\sum_f w(f)^H*R(f)_xx*w(f) / \\sum_f w(f)^H*R(f)_vv*w(f) 
+            snr(w) = sum_f w(f)^H*R(f)_xx*w(f) / sum_f w(f)^H*R(f)_vv*w(f) 
         """
         pow_s = np.einsum("...fa,...fab,...fb->...", np.conj(weight), Rxx,
                           weight)
@@ -498,19 +488,27 @@ class PmwfBeamformer(SupervisedBeamformer):
             weight: shape as F x N
         """
         _, N, _ = Rxx.shape
+        # use rank1 approximation
+        if self.rank1_appro == "eig":
+            Rxx = rank1_constraint(Rxx)
+        if self.rank1_appro == "gev":
+            Rxx = rank1_constraint(Rxx, Rvv=Rvv)
         numerator = np.linalg.solve(Rvv, Rxx)
-        if self.ref_channel is None:
+        denominator = self.beta + np.trace(numerator, axis1=1, axis2=2)
+        # F x N x N
+        weight_mat = numerator / denominator[..., None, None]
+        if self.ref_channel < 0:
             # using snr to select channel
-            ref_channel = np.argmax(
-                [self._snr(numerator[:, :, c], Rxx, Rvv) for c in range(N)])
+            est_snr = [
+                self._snr(weight_mat[..., c], Rxx, Rvv) for c in range(N)
+            ]
+            ref_channel = np.argmax(est_snr)
         else:
             ref_channel = self.ref_channel
         if ref_channel >= N:
-            raise RuntimeError(
-                "Reference channel ID exceeds total channels: {:d} vs {:d}".
-                format(ref_channel, N))
-        denominator = self.beta + np.trace(numerator, axis1=1, axis2=2)
-        return numerator[:, :, ref_channel] / denominator[:, None]
+            raise RuntimeError("Reference channel ID exceeds total " +
+                               f"channels: {ref_channel} vs {N}")
+        return weight_mat[..., ref_channel]
 
 
 class GevdBeamformer(SupervisedBeamformer):
