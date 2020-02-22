@@ -426,7 +426,7 @@ if __name__ == "__main__":
                         type=str,
                         default="0,0;0.06,0;0.03,0.05196;"
                         "-0.03,0.05196;-0.06,0;"
-                        "-0.03,-0.05196;0.03,0.05196",
+                        "-0.03,-0.05196;0.03,-0.05196",
                         help="Topology of the microphone arrays.")
     parser.add_argument("--absorption-coefficient-range",
                         action=StrToFloatTupleAction,
