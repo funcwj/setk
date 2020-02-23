@@ -19,9 +19,76 @@ Reference:
 import pickle
 import numpy as np
 
+from scipy.optimize import linear_sum_assignment
 from .utils import get_logger, EPSILON
 
 logger = get_logger(__name__)
+
+supported_plan = {
+    257: [[20, 70, 170], [2, 90, 190], [2, 50, 150], [2, 110, 210],
+          [2, 30, 130], [2, 130, 230], [2, 0, 110], [2, 150, 257]],
+    513: [[20, 100, 200], [2, 120, 220], [2, 80, 180], [2, 140, 240],
+          [2, 60, 160], [2, 160, 260], [2, 40, 140], [2, 180, 280],
+          [2, 0, 120], [2, 200, 300], [2, 220, 320], [2, 240, 340],
+          [2, 260, 360], [2, 280, 380], [2, 300, 400], [2, 320, 420],
+          [2, 340, 440], [2, 360, 460], [2, 380, 480], [2, 400, 513]]
+}
+
+
+def norm_observation(mat, axis=-1, eps=EPSILON):
+    """
+    L2 normalization for observation vectors
+    """
+    denorm = np.linalg.norm(mat, ord=2, axis=axis, keepdims=True)
+    denorm = np.maximum(denorm, eps)
+    return mat / denorm
+
+
+def permu_aligner(masks, transpose=False):
+    """
+    Solve permutation problems for clustering based mask algorithm
+    Reference: "https://raw.githubusercontent.com/fgnt/pb_bss/master/pb_bss/permutation_alignment.py"
+    args:
+        masks: K x T x F
+    return:
+        aligned_masks: K x T x F
+    """
+    if masks.ndim != 3:
+        raise RuntimeError("Expect 3D TF-masks, K x T x F or K x F x T")
+    if transpose:
+        masks = np.transpose(masks, (0, 2, 1))
+    K, _, F = masks.shape
+    # normalized masks, for cos distance, K x T x F
+    feature = norm_observation(masks, axis=1)
+    # K x F
+    mapping = np.stack([np.ones(F, dtype=np.int) * k for k in range(K)])
+
+    if F not in supported_plan:
+        raise ValueError(f"Unsupported num_bins: {F}")
+    for itr, beg, end in supported_plan[F]:
+        for _ in range(itr):
+            # normalized centroid, K x T
+            centroid = np.mean(feature[..., beg:end], axis=-1)
+            centroid = norm_observation(centroid, axis=-1)
+            go_on = False
+            for f in range(beg, end):
+                # K x K
+                score = feature[..., f] @ centroid.T
+                # derive permutation based on score matrix
+                index, permu = linear_sum_assignment(score, maximize=True)
+                # not ordered
+                if np.sum(permu != index) != 0:
+                    feature[..., f] = feature[permu, :, f]
+                    mapping[..., f] = mapping[permu, f]
+                    go_on = True
+            if not go_on:
+                break
+    # K x T x F
+    permu_masks = np.zeros_like(masks)
+    for f in range(F):
+        permu_masks[..., f] = masks[mapping[..., f], :, f]
+    return permu_masks
+
 
 class Distribution(object):
     """
@@ -362,8 +429,9 @@ class CacgmmTrainer(object):
             cgmm_init: init like cgmm papers
         """
         self.random_init = cacgmm is None
-        # F x M x T
-        self.obs = self._norm_obs(obs)
+        # obs (M x F x T) => z (F x M x T)
+        self.obs = np.einsum("mft->fmt", norm_observation(obs, axis=0))
+
         F, M, T = self.obs.shape
         logger.info(f"CACGMM instance: F = {F:d}, T = {T:}, M = {M}")
 
@@ -409,14 +477,3 @@ class CacgmmTrainer(object):
                                                         return_Q=True)
             logger.info(f"Epoch {e + 1:2d}: Q = {Q:.4f}")
         return self.gamma
-
-    def _norm_obs(self, obs):
-        """
-        Normalize observations
-        """
-        # obs (M x F x T) => z (F x M x T)
-        norm = np.maximum(EPSILON,
-                          np.linalg.norm(obs, ord=2, axis=0, keepdims=True))
-        obs = obs / norm
-        obs = np.einsum("mft->fmt", obs)
-        return obs

@@ -8,10 +8,11 @@ import argparse
 import torch as th
 import numpy as np
 
+from pathlib import Path
 from nnet import Nnet
 from kaldi_python_io import ScriptReader
 
-from libs.utils import load_json, get_logger, make_dir
+from libs.utils import load_json, get_logger
 from libs.dataset import Processor
 
 logger = get_logger(__name__)
@@ -55,7 +56,8 @@ def run(args):
     feats_conf = load_json(args.checkpoint, "feats.json")
     spectra = Processor(args.spectra, **feats_conf)
     spatial = ScriptReader(args.spatial) if args.spatial else None
-
+    dump_dir = Path(args.dump_dir)
+    dump_dir.mkdir(exist_ok=True, parents=True)
     for key, feats in spectra:
         logger.info("Compute on utterance {}...".format(key))
         if spatial:
@@ -63,9 +65,8 @@ def run(args):
             feats = np.hstack([feats, spa])
         spk_masks = computer.compute(feats)
         for i, m in enumerate(spk_masks):
-            fdir = os.path.join(args.dump_dir, "spk{:d}".format(i + 1))
-            make_dir(fdir)
-            np.save(os.path.join(fdir, key), m)
+            (dump_dir / f"spk{i + 1:d}").mkdir(exist_ok=True)
+            np.save(dump_dir / f"spk{i + 1:d}" / key, m)
         num_done += 1
     logger.info("Compute over {:d} utterances".format(num_done))
 
@@ -75,22 +76,22 @@ if __name__ == "__main__":
         description="Command to compute speaker masks from uPIT models",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("checkpoint", type=str, help="Directory of checkpoint")
-    parser.add_argument(
-        "--spectra",
-        type=str,
-        required=True,
-        help="Script for input spectra features")
-    parser.add_argument(
-        "--spatial", type=str, default="", help="Script for spatial features")
+    parser.add_argument("--spectra",
+                        type=str,
+                        required=True,
+                        help="Script for input spectra features")
+    parser.add_argument("--spatial",
+                        type=str,
+                        default="",
+                        help="Script for spatial features")
     parser.add_argument(
         "--gpu",
         type=int,
         default=-1,
         help="GPU-id to offload model to, -1 means running on CPU")
-    parser.add_argument(
-        "--dump-dir",
-        type=str,
-        default="masks",
-        help="Directory to dump masks out")
+    parser.add_argument("--dump-dir",
+                        type=str,
+                        default="masks",
+                        help="Directory to dump masks out")
     args = parser.parse_args()
     run(args)

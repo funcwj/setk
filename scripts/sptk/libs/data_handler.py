@@ -11,13 +11,15 @@ import _thread
 import threading
 import subprocess
 
+from pathlib import Path
+
 import librosa as audio_lib
 import numpy as np
 import scipy.io as sio
 
 from io import TextIOWrapper, BytesIO
 from . import kaldi_io as io
-from .utils import forward_stft, read_wav, write_wav, make_dir
+from .utils import forward_stft, read_wav, write_wav
 from .scheduler import run_command
 
 __all__ = [
@@ -184,15 +186,19 @@ class Writer(object):
     """
         Basic Writer class to be implemented
     """
-    def __init__(self, obj_path_or_dir, scp_path=None):
-        self.path_or_dir = obj_path_or_dir
+    def __init__(self, obj_path_or_dir, scp_path=None, is_dir=False):
         self.scp_path = scp_path
         # if dump ark to output, then ignore scp
         if obj_path_or_dir == "-" and scp_path:
             warnings.warn("Ignore script output discriptor cause "
                           "dump archives to stdout")
             self.scp_path = None
-        self.dump_out_dir = os.path.isdir(obj_path_or_dir)
+        self.dump_out_dir = is_dir
+        if is_dir:
+            self.path_or_dir = Path(obj_path_or_dir).absolute()
+            self.path_or_dir.mkdir(exist_ok=True, parents=True)
+        else:
+            self.path_or_dir = os.path.abspath(obj_path_or_dir)
 
     def __enter__(self):
         # "wb" is important
@@ -453,8 +459,8 @@ class ArchiveWriter(Writer):
 
     def write(self, key, obj):
         if not isinstance(obj, np.ndarray):
-            raise RuntimeError("Expect np.ndarray object, but got {}".format(
-                type(obj)))
+            raise RuntimeError(
+                f"Expect np.ndarray object, but got {type(obj)}")
         io.write_token(self.ark_file, key)
         # fix script generation bugs
         if self.path_or_dir != "-":
@@ -464,74 +470,60 @@ class ArchiveWriter(Writer):
         obj = obj.astype(self.dtype)
         self.dump_func(self.ark_file, obj)
         if self.scp_file:
-            record = "{0}\t{1}:{2}\n".format(key,
-                                             os.path.abspath(self.path_or_dir),
-                                             offset)
+            record = f"{key}\t{self.path_or_dir}:{offset:d}\n"
             self.scp_file.write(record)
 
 
-class DirWriter(Writer):
-    """
-        Writer to dump into directory
-    """
-    def __init__(self, dump_dir, scp_path=None):
-        make_dir(dump_dir)
-        super(DirWriter, self).__init__(dump_dir, scp_path)
-
-
-class WaveWriter(DirWriter):
+class WaveWriter(Writer):
     """
         Writer for wave files
     """
     def __init__(self, dump_dir, scp_path=None, **wav_kwargs):
-        super(WaveWriter, self).__init__(dump_dir, scp_path)
+        super(WaveWriter, self).__init__(dump_dir, scp_path, is_dir=True)
         self.wav_kwargs = wav_kwargs
 
     def write(self, key, obj):
         if not isinstance(obj, np.ndarray):
-            raise RuntimeError("Expect np.ndarray object, but got {}".format(
-                type(obj)))
-        obj_path = os.path.join(self.path_or_dir, "{}.wav".format(key))
+            raise RuntimeError(
+                f"Expect np.ndarray object, but got {type(obj)}")
+        obj_path = self.path_or_dir / f"{key}.wav"
         write_wav(obj_path, obj, **self.wav_kwargs)
         if self.scp_file:
-            record = "{0}\t{1}\n".format(key, os.path.abspath(obj_path))
-            self.scp_file.write(record)
+            self.scp_file.write(f"{key}\t{obj_path}\n")
 
 
-class NumpyWriter(DirWriter):
+class NumpyWriter(Writer):
     """
         Writer for numpy ndarray
     """
     def __init__(self, dump_dir, scp_path=None):
-        super(NumpyWriter, self).__init__(dump_dir, scp_path)
+        super(NumpyWriter, self).__init__(dump_dir, scp_path, is_dir=True)
 
     def write(self, key, obj):
         if not isinstance(obj, np.ndarray):
-            raise RuntimeError("Expect np.ndarray object, but got {}".format(
-                type(obj)))
-        obj_path = os.path.join(self.path_or_dir, "{}".format(key))
+            raise RuntimeError(
+                f"Expect np.ndarray object, but got {type(obj)}")
+        obj_path = self.path_or_dir / f"{key}.npy"
         np.save(obj_path, obj)
         if self.scp_file:
-            self.scp_file.write("{key}\t{path}.npy\n".format(
-                key=key, path=os.path.abspath(obj_path)))
+            self.scp_file.write(f"{key}\t{obj_path}\n")
 
 
-class MatWriter(DirWriter):
+class MatWriter(Writer):
     """
         Writer for Matlab's matrix
     """
     def __init__(self, dump_dir, scp_path=None):
-        super(MatWriter, self).__init__(dump_dir, scp_path)
+        super(MatWriter, self).__init__(dump_dir, scp_path, is_dir=True)
 
     def write(self, key, obj):
         if not isinstance(obj, np.ndarray):
-            raise RuntimeError("Expect np.ndarray object, but got {}".format(
-                type(obj)))
-        obj_path = os.path.join(self.path_or_dir, "{}".format(key))
+            raise RuntimeError(
+                f"Expect np.ndarray object, but got {type(obj)}")
+        obj_path = self.path_or_dir / f"{key}.npy"
         sio.savemat(obj_path, {"data": obj})
         if self.scp_file:
-            self.scp_file.write("{key}\t{path}.mat\n".format(
-                key=key, path=os.path.abspath(obj_path)))
+            self.scp_file.write(f"{key}\t{obj_path}\n")
 
 
 def test_archive_writer(ark, scp):

@@ -46,18 +46,3 @@ def load_json(fdir, name):
     with open(path, "r") as f:
         obj = json.load(f)
     return obj
-
-
-def make_dir(fdir):
-    """
-    Make directory 
-    """
-    if not fdir or os.path.exists(fdir):
-        return
-    try:
-        os.makedirs(fdir)
-    except OSError as e:
-        if e.errno == errno.EEXIST:
-            pass
-        else:
-            raise RuntimeError("Error exists when mkdir -p {}".format(fdir))

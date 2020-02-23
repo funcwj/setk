@@ -11,37 +11,12 @@ import numpy as np
 from pathlib import Path
 from urllib import request
 
-from libs.cluster import CacgmmTrainer
+from libs.cluster import CacgmmTrainer, permu_aligner
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, NumpyWriter
 from libs.utils import get_logger, nextpow2
 from libs.opts import StftParser, StrToBoolAction
 
-pb_bss_align_url = "https://raw.githubusercontent.com/fgnt/pb_bss/master/pb_bss/permutation_alignment.py"
-pb_bss_align_loc = "$SETK_ROOT/scripts/sptk/pb_perm_solver.py"
-
-try:
-    import pb_perm_solver
-except ImportError:
-    raise RuntimeError(
-        "Import pb_perm_solver error\n " +
-        f"Please download {pb_bss_align_url} to {pb_bss_align_loc}")
-
 logger = get_logger(__name__)
-
-
-def load_module(url):
-    """
-    Load module from url (simplest way)
-    https://python3-cookbook.readthedocs.io/zh_CN/latest/c10/p11_load_modules_from_remote_machine_by_hooks.html
-    """
-    u = request.urlopen(url)
-    source = u.read().decode("utf-8")
-    mod = sys.modules.setdefault(url, types.ModuleType(url))
-    code = compile(source, url, "exec")
-    mod.__file__ = url
-    mod.__package__ = ""
-    exec(code, mod.__dict__)
-    return mod
 
 
 def run(args):
@@ -53,17 +28,11 @@ def run(args):
         "center": args.center,
         "transpose": False
     }
-
+    np.random.seed(args.seed)
     spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
     MaskReader = {"numpy": NumpyReader, "kaldi": ScriptReader}
     init_mask_reader = MaskReader[args.fmt](
         args.init_mask) if args.init_mask else None
-
-    n_fft = nextpow2(
-        args.frame_len) if args.round_power_of_two else args.frame_len
-    # now use pb_bss
-    # pb_perm_solver = load_module(pb_bss_align_url)
-    aligner = pb_perm_solver.DHTVPermutationAlignment.from_stft_size(n_fft)
 
     num_done = 0
     with NumpyWriter(args.dst_dir) as writer:
@@ -85,11 +54,12 @@ def run(args):
                     masks = trainer.train(args.num_epoches)
                     # align if needed
                     if not args.cgmm_init or args.num_classes != 2:
-                        masks = aligner(masks)
+                        # K x F x T => K x T x F
+                        masks = permu_aligner(masks, transpose=True)
                         logger.info(
-                            "Permutation align done for each frequency")
+                            "Permutation alignment done on each frequency")
                     num_done += 1
-                    writer.write(key, masks.astype(np.float32))
+                    writer.write(key, masks.astype("float32"))
                     logger.info(f"Training utterance {key} ... Done")
                 except np.linalg.LinAlgError:
                     logger.warn(f"Training utterance {key} ... Failed")
@@ -120,6 +90,10 @@ if __name__ == "__main__":
                         default=2,
                         help="Number of the cluster "
                         "used in cacgmm model")
+    parser.add_argument("--seed",
+                        type=int,
+                        default=777,
+                        help="Random seed for initialization")
     parser.add_argument("--init-mask",
                         type=str,
                         default="",

@@ -23,7 +23,7 @@ def run(args):
         "center": args.center,
         "transpose": False
     }
-
+    np.random.seed(args.seed)
     spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
     MaskReader = {"numpy": NumpyReader, "kaldi": ScriptReader}
     init_mask_reader = MaskReader[args.fmt](
@@ -72,6 +72,10 @@ if __name__ == "__main__":
                         type=int,
                         default=20,
                         help="Number of epoches to train CGMM parameters")
+    parser.add_argument("--seed",
+                        type=int,
+                        default=777,
+                        help="Random seed for initialization")
     parser.add_argument("--init-speech-mask",
                         type=str,
                         default="",
