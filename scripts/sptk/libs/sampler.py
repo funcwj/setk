@@ -24,19 +24,32 @@ class UniformSampler(object):
 
 class ScriptSampler(object):
     """
-    Sampler class for scripts
+    Sampler class for audio location & duration pair
     """
-    def __init__(self, scp, utt2dur):
-        self.val = Reader(scp, num_tokens=2, restrict=True)
-        self.dur = Reader(utt2dur, value_processor=lambda x: float(x))
+    def __init__(self, scp, utt2dur, dur=""):
+        if not utt2dur:
+            raise RuntimeError("utt2dur is None")
+        self.location = Reader(scp, num_tokens=2, restrict=True)
+        self.duration = Reader(utt2dur, value_processor=lambda x: float(x))
+        self.index_keys = self.location.index_keys
+        if dur:
+            min_dur, max_dur = str2tuple(dur)
+            filter_keys = []
+            for key, dur in self.duration:
+                if dur >= min_dur and dur <= max_dur:
+                    filter_keys.append(key)
+            self.index_keys = filter_keys
 
     def __len__(self):
-        return len(self.val)
+        return len(self.index_keys)
 
     def __getitem__(self, key):
-        return self.val[key], self.dur[key]
+        return {"loc": self.location[key], "dur": self.duration[key]}
 
     def sample(self, num_items):
-        keys = random.sample(self.val.index_keys, num_items)
-        egs = [{"loc": self.val[key], "dur": self.dur[key]} for key in keys]
+        keys = random.sample(self.index_keys, num_items)
+        egs = [{
+            "loc": self.location[key],
+            "dur": self.duration[key]
+        } for key in keys]
         return egs[0] if num_items == 1 else egs

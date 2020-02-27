@@ -2,10 +2,11 @@
 # wujian@2018
 
 import os
+import sys
 import math
-import errno
-import warnings
+import codecs
 import logging
+import warnings
 
 import librosa
 # using wf to handle wave IO because it support better than librosa
@@ -17,6 +18,7 @@ import numpy as np
 
 MAX_INT16 = np.iinfo(np.int16).max
 EPSILON = np.finfo(np.float32).eps
+default_format_str = "%(asctime)s [%(pathname)s:%(lineno)s - %(levelname)s ] %(message)s"
 
 __all__ = [
     "forward_stft", "inverse_stft", "get_logger", "filekey", "write_wav",
@@ -209,7 +211,7 @@ def filekey(path):
     """
     fname = os.path.basename(path)
     if not fname:
-        raise ValueError("{}(Is directory path?)".format(path))
+        raise ValueError(f"{path}: is directory path?")
     token = fname.split(".")
     if len(token) == 1:
         return token[0]
@@ -217,11 +219,10 @@ def filekey(path):
         return '.'.join(token[:-1])
 
 
-def get_logger(
-        name,
-        format_str="%(asctime)s [%(pathname)s:%(lineno)s - %(levelname)s ] %(message)s",
-        date_format="%Y-%m-%d %H:%M:%S",
-        file=False):
+def get_logger(name,
+               format_str=default_format_str,
+               date_format="%Y-%m-%d %H:%M:%S",
+               file=False):
     """
     Get logger instance
     """

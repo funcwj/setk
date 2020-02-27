@@ -2,7 +2,6 @@
 # coding=utf-8
 # wujian@2020
 
-import os
 import argparse
 
 import numpy as np

@@ -4,7 +4,6 @@
 """
 Do GWPE Dereverbration Algorithm
 """
-import os
 import argparse
 
 from libs.opts import StrToBoolAction
