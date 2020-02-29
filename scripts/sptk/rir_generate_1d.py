@@ -13,11 +13,13 @@ import shutil
 import random
 import argparse
 
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 from libs.scheduler import run_command
-from libs.utils import get_logger, make_dir, write_wav
+from libs.utils import get_logger, write_wav
 from libs.opts import StrToFloatTupleAction, StrToBoolAction, str2tuple
 from libs.sampler import UniformSampler
 
@@ -232,7 +234,7 @@ class RirSimulator(object):
         if args.gpu and not gpu_rir_available:
             raise RuntimeError("Please install gpuRIR first if --gpu=True")
         # make dump dir
-        make_dir(args.dump_dir)
+        Path(args.dump_dir).mkdir(exist_ok=True, parents=True)
         self.rirs_cfg = []
         self.room_generator = RoomGenerator(args.rt60, args.abs_range,
                                             args.room_dim)
@@ -345,7 +347,7 @@ class RirSimulator(object):
             if done == num_rooms:
                 break
         # dump rir configurations
-        with open(os.path.join(args.dump_dir, "rir.json"), "w") as f:
+        with open(Path(args.dump_dir) / "rir.json", "w") as f:
             json.dump(self.rirs_cfg, f, indent=2)
         logger.info("Generate {:d} rirs, {:d} rooms done, "
                     "try = {:d}".format(self.args.num_rirs * num_rooms, done,

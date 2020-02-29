@@ -7,7 +7,6 @@ Do mvdr/gevd adaptive beamformer
 """
 
 import argparse
-import os
 
 import numpy as np
 from scipy.io import loadmat

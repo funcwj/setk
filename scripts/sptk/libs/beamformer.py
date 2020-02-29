@@ -118,7 +118,7 @@ def beam_pattern(weight, steer_vector):
         raise RuntimeError(f"Expect 2/3D beam weights, got {weight.ndim}")
 
 
-def diffuse_covar(num_bins, dist_mat, sr=16000, c=340, diag_eps=1e-5):
+def diffuse_covar(num_bins, dist_mat, sr=16000, c=340, diag_eps=0.1):
     """
     Compute covarance matrices of the spherically isotropic noise field
         Gamma(omega)_{ij} = sinc(omega * tau_{ij}) = sinc(2 * pi * f * tau_{ij})
@@ -344,7 +344,7 @@ class LinearSDBeamformer(LinearDSBeamformer):
     def __init__(self, linear_topo):
         super(LinearSDBeamformer, self).__init__(linear_topo)
 
-    def weight(self, doa, num_bins, c=340, sr=16000, diag_eps=1e-5):
+    def weight(self, doa, num_bins, c=340, sr=16000, diag_eps=0.1):
         """
         Arguments:
             doa: direction of arrival, in angle

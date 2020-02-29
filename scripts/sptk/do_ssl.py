@@ -10,7 +10,7 @@ from libs.ssl import ml_ssl
 
 from libs.data_handler import SpectrogramReader, NumpyReader
 from libs.utils import get_logger, EPSILON
-from libs.opts import StftParser
+from libs.opts import StftParser, str2tuple
 
 logger = get_logger(__name__)
 
@@ -39,7 +39,7 @@ def run(args):
     }
     steer_vector = np.load(args.steer_vector)
     num_doa, _, _ = steer_vector.shape
-    min_doa, max_doa = list(map(float, args.doa_range.split(",")))
+    min_doa, max_doa = str2tuple(args.doa_range)
     if args.output == "radian":
         angles = np.linspace(min_doa * np.pi / 180, max_doa * np.pi / 180,
                              num_doa + 1)
@@ -81,7 +81,7 @@ def run(args):
                 doa_out.write(f"{key}\t{doa:.4f}\n")
             else:
                 logger.info(f"Processing utterance {key}...")
-                T = stft.shape[-1]
+                _, T, _ = stft.shape
                 online_doa = []
                 for t in range(0, T, args.chunk_len):
                     s = max(t - args.look_back, 0)
@@ -89,7 +89,7 @@ def run(args):
                         chunk_mask = mask[..., s:t + args.chunk_len]
                     else:
                         chunk_mask = None
-                    idx = ml_ssl(stft[..., s:t + args.chunk_len],
+                    idx = ml_ssl(stft[:, s:t + args.chunk_len, :],
                                  steer_vector,
                                  mask=chunk_mask,
                                  compression=-1,
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     parser.add_argument("--output",
                         type=str,
                         default="radian",
-                        choices=["radian", "angle"],
+                        choices=["radian", "degree"],
                         help="Output type of the DoA")
     parser.add_argument("--winner-take-all",
                         type=float,

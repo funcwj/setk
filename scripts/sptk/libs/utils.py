@@ -2,10 +2,11 @@
 # wujian@2018
 
 import os
+import sys
 import math
-import errno
-import warnings
+import codecs
 import logging
+import warnings
 
 import librosa
 # using wf to handle wave IO because it support better than librosa
@@ -17,10 +18,11 @@ import numpy as np
 
 MAX_INT16 = np.iinfo(np.int16).max
 EPSILON = np.finfo(np.float32).eps
+default_format_str = "%(asctime)s [%(pathname)s:%(lineno)s - %(levelname)s ] %(message)s"
 
 __all__ = [
-    "forward_stft", "inverse_stft", "get_logger", "make_dir", "filekey",
-    "write_wav", "read_wav"
+    "forward_stft", "inverse_stft", "get_logger", "filekey", "write_wav",
+    "read_wav"
 ]
 
 
@@ -66,24 +68,25 @@ def write_wav(fname, samps, fs=16000, normalize=True):
     sf.write(fname, samps_int16, fs)
 
 
-def read_wav(fname, beg=None, end=None, normalize=True, return_rate=False):
+def read_wav(fname, beg=0, end=None, normalize=True, return_rate=False):
     """
     Read wave files using soundfile (support multi-channel & chunk)
     """
-    # samps_int16: N x C or N
+    # samps: N x C or N
     #   N: number of samples
     #   C: number of channels
-    samps_int16, samp_rate = sf.read(fname, start=beg, stop=end, dtype="int16")
+    samps, sr = sf.read(fname,
+                        start=beg,
+                        stop=end,
+                        dtype="float32" if normalize else "int16")
+    if not normalize:
+        samps = samps.astype("float32")
+    # put channel axis first
     # N x C => C x N
-    samps = samps_int16.astype(np.float)
-    # tranpose because I used to put channel axis first
     if samps.ndim != 1:
         samps = np.transpose(samps)
-    # normalize like MATLAB and librosa
-    if normalize:
-        samps = samps / MAX_INT16
     if return_rate:
-        return samp_rate, samps
+        return sr, samps
     return samps
 
 
@@ -208,7 +211,7 @@ def filekey(path):
     """
     fname = os.path.basename(path)
     if not fname:
-        raise ValueError("{}(Is directory path?)".format(path))
+        raise ValueError(f"{path}: is directory path?")
     token = fname.split(".")
     if len(token) == 1:
         return token[0]
@@ -216,11 +219,10 @@ def filekey(path):
         return '.'.join(token[:-1])
 
 
-def get_logger(
-    name,
-    format_str="%(asctime)s [%(pathname)s:%(lineno)s - %(levelname)s ] %(message)s",
-    date_format="%Y-%m-%d %H:%M:%S",
-    file=False):
+def get_logger(name,
+               format_str=default_format_str,
+               date_format="%Y-%m-%d %H:%M:%S",
+               file=False):
     """
     Get logger instance
     """
@@ -237,18 +239,3 @@ def get_logger(
     else:
         logger.addHandler(logging.StreamHandler())
     return logger
-
-
-def make_dir(fdir):
-    """
-    Make directory 
-    """
-    if not fdir or os.path.exists(fdir):
-        return
-    try:
-        os.makedirs(fdir)
-    except OSError as e:
-        if e.errno == errno.EEXIST:
-            pass
-        else:
-            raise RuntimeError("Error exists when mkdir -p {}".format(fdir))

@@ -3,7 +3,6 @@
 # wujian@2018
 
 import argparse
-import os
 
 import numpy as np
 
@@ -30,7 +29,7 @@ def run(args):
     # F x N
     weights = np.load(args.weights)
     beamformer = FixedBeamformer(weights)
-    with WaveWriter(args.dump_dir) as writer:
+    with WaveWriter(args.dst_dir) as writer:
         for key, stft_mat in spectrogram_reader:
             logger.info(f"Processing utterance {key}...")
             stft_enh = beamformer.run(stft_mat)
