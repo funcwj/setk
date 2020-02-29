@@ -35,7 +35,7 @@ def save_figure(key, mat, dest, hop=16, samp_tdoa=False, size=3):
     plt.ylabel("DoA" if not samp_tdoa else "TDoA Index")
     plt.savefig(dest)
     plt.close()
-    logger.info('Save utterance {} to {}.png'.format(key, dest))
+    logger.info(f'Save utterance {key} to {dest}.png')
 
 
 def run(args):
@@ -58,10 +58,10 @@ if __name__ == '__main__':
         description="Command to visualize augular spectrum.\n"
         "egs: ./visualize_angular_spectrum.py a.ark --cache-dir demo",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        "srp_ark",
-        type=str,
-        help="Path of augular spectrum in kaldi\'s archive format")
+    parser.add_argument("srp_ark",
+                        type=str,
+                        help="Path of augular spectrum in "
+                        "kaldi's archive format")
     parser.add_argument("--frame-hop",
                         type=int,
                         default=16,

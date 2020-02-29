@@ -4,6 +4,7 @@
 import os
 import sys
 import glob
+import codecs
 import pickle
 import warnings
 
@@ -60,23 +61,29 @@ def _fopen(fname, mode):
         2) "$cmd |" which means pipe.stdout
     """
     if mode not in ["w", "r", "wb", "rb"]:
-        raise ValueError("Unknown open mode: {mode}".format(mode=mode))
+        raise ValueError(f"Unknown open mode: {mode}")
     if not fname:
         return None
     fname = fname.strip()
     if fname == "-":
         if mode in ["w", "wb"]:
-            return sys.stdout.buffer if mode == "wb" else sys.stdout
+            stream = sys.stdout.buffer if mode == "wb" else sys.stdout
+            if mode == "w":
+                stream = codecs.getwriter("utf-8")(stream)
         else:
-            return sys.stdin.buffer if mode == "rb" else sys.stdin
+            stream = sys.stdin.buffer if mode == "rb" else sys.stdin
+            if mode == "r":
+                stream = codecs.getreader("utf-8")(stream)
     elif fname[-1] == "|":
         pin = pipe_fopen(fname[:-1], mode, background=(mode == "rb"))
         return pin if mode == "rb" else TextIOWrapper(pin)
     else:
         if mode in ["r", "rb"] and not os.path.exists(fname):
-            raise FileNotFoundError(
-                "Could not find common file: \"{}\"".format(fname))
-        return open(fname, mode)
+            raise FileNotFoundError(f"Could not find common file: \"{fname}\"")
+        if mode in ["r", "w"]:
+            return codecs.open(fname, mode, encoding="utf-8")
+        else:
+            return open(fname, mode)
 
 
 def _fclose(fname, fd):

@@ -31,7 +31,7 @@ def linear_tdoa_grid(dist,
         tau = np.linspace(max_tdoa, -max_tdoa, num_doa)
     # omega = 2 * pi * fk
     omega = np.linspace(0, sample_frequency / 2, num_bins) * 2 * np.pi
-    return np.exp(1j * np.outer(omega, tau))
+    return np.exp(-1j * np.outer(omega, tau))
 
 
 def gcc_phat_linear(si, sj, dij, normalize=True, apply_floor=True, **kwargs):

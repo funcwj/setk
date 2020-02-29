@@ -6,14 +6,13 @@ import argparse
 
 import numpy as np
 
-from libs.ssl import ml_ssl
+from libs.ssl import ml_ssl, srp_ssl
 
 from libs.data_handler import SpectrogramReader, NumpyReader
 from libs.utils import get_logger, EPSILON
 from libs.opts import StftParser, str2tuple
 
 logger = get_logger(__name__)
-
 
 def add_wta(masks_list, eps=1e-4):
     """
@@ -55,6 +54,16 @@ def run(args):
         logger.info("Set up in online mode: chunk_len " +
                     f"= {args.chunk_len}, look_back = {args.look_back}")
 
+    if args.backend == "srp":
+        split_index = lambda sstr: [
+            tuple(map(int, p.split(","))) for p in sstr.split(";")
+        ]
+        srp_pair = split_index(args.srp_pair)
+        srp_pair = ([t[0] for t in srp_pair], [t[1] for t in srp_pair])
+        logger.info(f"Choose srp-based algorithm, srp pair is {srp_pair}")
+    else:
+        srp_pair = None
+
     with open(args.doa_scp, "w") as doa_out:
         for key, stft in spectrogram_reader:
             # stft: M x T x F
@@ -71,11 +80,17 @@ def run(args):
             else:
                 mask = None
             if not online:
-                idx = ml_ssl(stft,
-                             steer_vector,
-                             mask=mask,
-                             compression=-1,
-                             eps=EPSILON)
+                if srp_pair:
+                    idx = srp_ssl(stft,
+                                  steer_vector,
+                                  srp_pair=srp_pair,
+                                  mask=mask)
+                else:
+                    idx = ml_ssl(stft,
+                                 steer_vector,
+                                 mask=mask,
+                                 compression=-1,
+                                 eps=EPSILON)
                 doa = angles[idx]
                 logger.info(f"Processing utterance {key}: {doa:.4f}")
                 doa_out.write(f"{key}\t{doa:.4f}\n")
@@ -89,11 +104,18 @@ def run(args):
                         chunk_mask = mask[..., s:t + args.chunk_len]
                     else:
                         chunk_mask = None
-                    idx = ml_ssl(stft[:, s:t + args.chunk_len, :],
-                                 steer_vector,
-                                 mask=chunk_mask,
-                                 compression=-1,
-                                 eps=EPSILON)
+                    stft_chunk = stft[:, s:t + args.chunk_len, :]
+                    if srp_pair:
+                        idx = srp_ssl(stft_chunk,
+                                      steer_vector,
+                                      srp_pair=srp_pair,
+                                      mask=chunk_mask)
+                    else:
+                        idx = ml_ssl(stft_chunk,
+                                     steer_vector,
+                                     mask=chunk_mask,
+                                     compression=-1,
+                                     eps=EPSILON)
                     doa = angles[idx]
                     online_doa.append(doa)
                 doa_str = " ".join([f"{d:.4f}" for d in online_doa])
@@ -103,7 +125,7 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Command to ML-based SSL",
+        description="Command to ML/SRP based sound souce localization (SSL)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -117,6 +139,15 @@ if __name__ == "__main__":
     parser.add_argument("doa_scp",
                         type=str,
                         help="Wspecifier for estimated DoA")
+    parser.add_argument("--backend",
+                        type=str,
+                        default="ml",
+                        choices=["ml", "srp"],
+                        help="Which algorithm to choose for SSL")
+    parser.add_argument("--srp-pair",
+                        type=str,
+                        default="",
+                        help="Microphone index pair to compute srp response")
     parser.add_argument("--doa-range",
                         type=str,
                         default="0,360",
