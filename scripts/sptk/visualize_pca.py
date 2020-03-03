@@ -33,9 +33,7 @@ def run(args):
     is_dir = os.path.isdir(args.rspec_or_dir)
     samples = []
     feats_reader = ArchiveReader(
-        args.rspec_or_dir,
-        matrix=(args.input == "matrix")) if not is_dir else NumpyReader(
-            args.rspec_or_dir)
+        args.rspec_or_dir) if not is_dir else NumpyReader(args.rspec_or_dir)
     for _, feats in feats_reader:
         if feats.ndim != 1:
             feats = np.average(feats, 0)
@@ -60,11 +58,6 @@ if __name__ == "__main__":
                         type=str,
                         help="Read specifier of "
                         "archives/Directory of ndarrays")
-    parser.add_argument("--input",
-                        type=str,
-                        default="vector",
-                        choices=["matrix", "vector"],
-                        help="Input data type")
     parser.add_argument("--dim",
                         type=int,
                         default=3,

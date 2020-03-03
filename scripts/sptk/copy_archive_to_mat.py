@@ -16,11 +16,8 @@ logger = get_logger(__name__)
 
 
 def run(args):
-    src_format = args.input == "matrix"
     src_reader = ScriptReader(
-        args.src_dec,
-        matrix=src_format) if args.src == "scp" else ArchiveReader(
-            args.src_dec, matrix=src_format)
+        args.src_dec) if args.src == "scp" else ArchiveReader(args.src_dec)
     num_done = 0
     WriterImpl = {"npy": NumpyWriter, "mat": MatWriter}[args.dst]
     with WriterImpl(args.dst_dir, args.scp) as writer:
@@ -29,8 +26,7 @@ def run(args):
                 mat = np.transpose(mat)
             writer.write(key, mat)
             num_done += 1
-    logger.info("Copy {0} {1} into directory {2}".format(
-        num_done, "matrices" if src_format else "vectors", args.dst_dir))
+    logger.info(f"Copy {num_done} into directory {args.dst_dir}")
 
 
 if __name__ == "__main__":
@@ -61,11 +57,6 @@ if __name__ == "__main__":
                         dest="trans",
                         help="If true, transpose matrix "
                         "before write to ndarray")
-    parser.add_argument("--input",
-                        type=str,
-                        choices=["matrix", "vector"],
-                        default="matrix",
-                        help="Type of the data in source rspecifier")
     parser.add_argument("--scp",
                         type=str,
                         default="",

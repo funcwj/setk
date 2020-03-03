@@ -1,1 +1,0 @@
-Those scripts work with early version of this repo, which are out of date now.

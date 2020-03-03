@@ -227,14 +227,13 @@ class ArchiveReader(object):
     """
         Sequential Reader for Kalid's archive(.ark) object(support matrix/vector)
     """
-    def __init__(self, ark_or_pipe, matrix=True):
+    def __init__(self, ark_or_pipe):
         self.ark_or_pipe = ark_or_pipe
-        self.matrix = matrix
 
     def __iter__(self):
         # to support stdin as input
         with ext_open(self.ark_or_pipe, "rb") as fd:
-            for key, mat in io.read_ark(fd, matrix=self.matrix):
+            for key, mat in io.read_float_ark(fd):
                 yield key, mat
 
 
@@ -419,7 +418,7 @@ class ScriptReader(Reader):
     """
         Reader for kaldi's scripts(for BaseFloat matrix)
     """
-    def __init__(self, ark_scp, matrix=True):
+    def __init__(self, ark_scp):
         def addr_processor(addr):
             addr_token = addr.split(":")
             if len(addr_token) == 1:
@@ -429,7 +428,6 @@ class ScriptReader(Reader):
 
         super(ScriptReader, self).__init__(ark_scp,
                                            value_processor=addr_processor)
-        self.matrix = matrix
         self.fmgr = dict()
 
     def _open(self, obj, addr):
@@ -442,10 +440,9 @@ class ScriptReader(Reader):
     def _load(self, key):
         path, addr = self.index_dict[key]
         fd = self._open(path, addr)
-        io.expect_binary(fd)
-        obj = io.read_general_mat(fd) if self.matrix else io.read_float_vec(fd)
+        # io.expect_binary(fd)
+        obj = io.read_float_mat_vec(fd, direct_access=True)
         return obj
-
 
 class BinaryReader(Reader):
     """
@@ -476,12 +473,11 @@ class ArchiveWriter(Writer):
     """
         Writer for kaldi's scripts && archive(for BaseFloat matrix)
     """
-    def __init__(self, ark_path, scp_path=None, matrix=True, dtype=np.float32):
+    def __init__(self, ark_path, scp_path=None, dtype=np.float32):
         if not ark_path:
             raise RuntimeError("Seem configure path of archives as None")
         super(ArchiveWriter, self).__init__(ark_path, scp_path)
         self.dtype = dtype
-        self.dump_func = io.write_common_mat if matrix else io.write_float_vec
 
     def write(self, key, obj):
         if not isinstance(obj, np.ndarray):
@@ -494,7 +490,7 @@ class ArchiveWriter(Writer):
         io.write_binary_symbol(self.ark_file)
         # cast to target type
         obj = obj.astype(self.dtype)
-        self.dump_func(self.ark_file, obj)
+        io.write_float_mat_vec(self.ark_file, obj)
         if self.scp_file:
             record = f"{key}\t{self.path_or_dir}:{offset:d}\n"
             self.scp_file.write(record)
