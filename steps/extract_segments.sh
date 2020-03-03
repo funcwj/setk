@@ -7,7 +7,7 @@ nj=32
 cmd="run.pl"
 
 . ./path.sh
-. parse_options.sh || exit 1
+. ./utils/parse_options.sh || exit 1
 
 [ $# -ne 2 ] && echo "format error: $0 <data-dir> <segment-dir>" && exit 1
 
@@ -15,6 +15,10 @@ data_dir=$(cd $1; pwd)
 segment_dir=$2
 
 mkdir -p $segment_dir && segment_dir=$(cd $segment_dir; pwd)
+
+for dep in "segments" "wav.scp"; do
+  [ ! -f $data_dir/$dep ] && echo "$0: Missing dependence $dep in $data_dir" && exit 
+done
 
 split_id=$(seq $nj)
 mkdir -p $data_dir/split$nj

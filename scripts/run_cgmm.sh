@@ -20,11 +20,11 @@ echo "$0 $@"
 
 function usage {
   echo "Options:"
-  echo "  --nj          <nj>                  # number of jobs to run parallel, (default=40)"
-  echo "  --cmd         <run.pl|queue.pl>     # how to run jobs, (default=run.pl)"
-  echo "  --stft-conf   <stft-conf>           # stft configurations files, (default=conf/stft.conf)"
-  echo "  --epoches     <epoches>             # number of epoches to run CGMM, (default=20)"
-  echo "  --init-mask   <init-mask>           # dir or script for mask initialization, (default="")"
+  echo "  --nj          <nj>                  # number of jobs to run parallel, (default=$nj)"
+  echo "  --cmd         <run.pl|queue.pl>     # how to run jobs, (default=$cmd)"
+  echo "  --stft-conf   <stft-conf>           # stft configurations files, (default=$stft_conf)"
+  echo "  --epoches     <epoches>             # number of epoches to run CGMM, (default=$epoches)"
+  echo "  --init-mask   <init-mask>           # dir or script for mask initialization, (default=$init_mask)"
   echo "  --mask-format <kaldi|numpy>         # mask storage type, (default=$mask_format)"
 }
 

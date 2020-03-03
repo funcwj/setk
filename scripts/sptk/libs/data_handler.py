@@ -250,20 +250,39 @@ class WaveReader(Reader):
         or output from commands, egs:
             key1 sox /home/data/key1.wav -t wav - remix 1 |
     """
-    def __init__(self, wav_scp, sample_rate=None, normalize=True):
+    def __init__(self, wav_scp, sample_rate=16000, normalize=True):
         super(WaveReader, self).__init__(wav_scp)
         self.samp_rate = sample_rate
         self.normalize = normalize
+        self.wav_ark_mgr = {}
 
     def read_internal(self, addr, beg=None, end=None):
         # return C x N or N
-        sr, samps = read_wav(addr,
-                             beg=beg,
-                             end=end,
-                             normalize=self.normalize,
-                             return_rate=True)
-        # if given samp_rate, check it
-        if self.samp_rate is not None and sr != self.samp_rate:
+        # for ark_addr:ark_offset format
+        if ":" in addr:
+            tokens = addr.split(":")
+            if len(tokens) != 2:
+                raise RuntimeError(f"Value format error: {addr}")
+            fname, offset = tokens[0], int(tokens[1])
+            # get ark object
+            if fname not in self.wav_ark_mgr:
+                self.wav_ark_mgr[fname] = open(fname, "rb")
+            wav_ark = self.wav_ark_mgr[fname]
+            # seek and read
+            wav_ark.seek(offset)
+            sr, samps = read_wav(wav_ark,
+                                 beg=beg,
+                                 end=end,
+                                 normalize=self.normalize,
+                                 return_rate=True)
+        else:
+            sr, samps = read_wav(addr,
+                                 beg=beg,
+                                 end=end,
+                                 normalize=self.normalize,
+                                 return_rate=True)
+        # check it sample rate
+        if sr != self.samp_rate:
             raise RuntimeError(
                 f"SampleRate mismatch: {sr:d} vs {self.samp_rate:d}")
         return samps
@@ -274,8 +293,8 @@ class WaveReader(Reader):
         fname = fname.rstrip()
         # pipe open
         if fname[-1] == "|":
-            stdout_shell, _ = run_command(fname[:-1], wait=True)
-            return self.read_internal(BytesIO(stdout_shell))
+            stdout, _ = run_command(fname[:-1], wait=True)
+            return self.read_internal(BytesIO(stdout))
         else:
             wav_list = glob.glob(fname)
             N = len(wav_list)

@@ -82,7 +82,6 @@ if __name__ == "__main__":
         "IPD: Interchannel Phase Difference)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-
     parser.add_argument("wav_scp",
                         type=str,
                         help="Multi-Channel wave scripts in kaldi format")

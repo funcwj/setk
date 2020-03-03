@@ -14,6 +14,7 @@ from libs.opts import StftParser, str2tuple
 
 logger = get_logger(__name__)
 
+
 def add_wta(masks_list, eps=1e-4):
     """
     Produce winner-take-all masks
@@ -37,6 +38,7 @@ def run(args):
         "transpose": True
     }
     steer_vector = np.load(args.steer_vector)
+    logger.info(f"Shape of the steer vector: {steer_vector.shape}")
     num_doa, _, _ = steer_vector.shape
     min_doa, max_doa = str2tuple(args.doa_range)
     if args.output == "radian":
@@ -71,8 +73,8 @@ def run(args):
             if mask_reader:
                 # T x F => F x T
                 mask = [r[key] for r in mask_reader] if mask_reader else None
-                if args.winner_take_all >= 0 and len(mask_reader) > 1:
-                    mask = add_wta(mask, eps=args.winner_take_all)
+                if args.mask_eps >= 0 and len(mask_reader) > 1:
+                    mask = add_wta(mask, eps=args.mask_eps)
                 mask = mask[0]
                 # F x T => T x F
                 if mask.shape[-1] != F:
@@ -158,13 +160,13 @@ if __name__ == "__main__":
                         help="Rspecifier for TF-masks in numpy format")
     parser.add_argument("--output",
                         type=str,
-                        default="radian",
+                        default="degree",
                         choices=["radian", "degree"],
                         help="Output type of the DoA")
-    parser.add_argument("--winner-take-all",
+    parser.add_argument("--mask-eps",
                         type=float,
                         default=-1,
-                        help="Value of winner-take-all")
+                        help="Value of eps used in masking winner-take-all")
     parser.add_argument("--chunk-len",
                         type=int,
                         default=-1,

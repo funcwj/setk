@@ -6,8 +6,8 @@ Compute melspectrogram/fbank features(using librosa kernels) and write in kaldi 
 """
 
 import argparse
-import librosa as audio_lib
 import numpy as np
+import librosa.filters as filters
 
 from libs.utils import get_logger, nextpow2, EPSILON
 from libs.opts import StftParser, StrToBoolAction
@@ -41,7 +41,7 @@ def run(args):
         raise RuntimeError("Max frequency for mel exceeds sample frequency")
     spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
     # N x F
-    mel_weights = audio_lib.filters.mel(
+    mel_weights = filters.mel(
         args.samp_freq,
         nextpow2(args.frame_len)
         if args.round_power_of_two else args.frame_len, **mel_kwargs)
