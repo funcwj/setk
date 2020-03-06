@@ -39,8 +39,8 @@ def pipe_fopen(command, mode, background=True):
     def background_command_waiter(command, p):
         p.wait()
         if p.returncode != 0:
-            warnings.warn("Command \"{0}\" exited with status {1}".format(
-                command, p.returncode))
+            warnings.warn(
+                f"Command \"{command}\" exited with status {p.returncode}")
             _thread.interrupt_main()
 
     if background:
@@ -68,12 +68,13 @@ def _fopen(fname, mode):
     if fname == "-":
         if mode in ["w", "wb"]:
             stream = sys.stdout.buffer if mode == "wb" else sys.stdout
-            if mode == "w":
-                stream = codecs.getwriter("utf-8")(stream)
+            # if mode == "w":
+            # stream = codecs.getwriter("utf-8")(stream)
         else:
             stream = sys.stdin.buffer if mode == "rb" else sys.stdin
-            if mode == "r":
-                stream = codecs.getreader("utf-8")(stream)
+            # if mode == "r":
+            #     stream = codecs.getreader("utf-8")(stream)
+        return stream
     elif fname[-1] == "|":
         pin = pipe_fopen(fname[:-1], mode, background=(mode == "rb"))
         return pin if mode == "rb" else TextIOWrapper(pin)
@@ -218,6 +219,12 @@ class Writer(object):
         if not self.dump_out_dir:
             _fclose(self.path_or_dir, self.ark_file)
         _fclose(self.scp_path, self.scp_file)
+
+    def check_args(self, data):
+        if not isinstance(data, np.ndarray):
+            raise RuntimeError(
+                "Instance of Writer accepts np.ndarray object, " +
+                f"but got {type(data)}")
 
     def write(self, key, data):
         raise NotImplementedError
@@ -387,8 +394,8 @@ class MatReader(Reader):
         mat_path = self.index_dict[key]
         mat_dict = sio.loadmat(mat_path)
         if self.key not in mat_dict:
-            raise KeyError("Could not find \'{}\' in python "
-                           "dictionary".format(self.key))
+            raise KeyError(
+                f"Could not find \'{self.key}\' in python dictionary")
         return mat_dict[self.key]
 
 
@@ -440,9 +447,9 @@ class ScriptReader(Reader):
     def _load(self, key):
         path, addr = self.index_dict[key]
         fd = self._open(path, addr)
-        # io.expect_binary(fd)
         obj = io.read_float_mat_vec(fd, direct_access=True)
         return obj
+
 
 class BinaryReader(Reader):
     """
@@ -457,15 +464,15 @@ class BinaryReader(Reader):
             "int64": np.int64
         }
         if data_type not in supported_data:
-            raise RuntimeError("Unsupported data type: {}".format(data_type))
+            raise RuntimeError(f"Unsupported data type: {data_type}")
         self.fmt = supported_data[data_type]
         self.length = length
 
     def _load(self, key):
         obj = np.fromfile(self.index_dict[key], dtype=self.fmt)
         if self.length is not None and obj.size != self.length:
-            raise RuntimeError("Expect length {:d}, but got {:d}".format(
-                self.length, obj.size))
+            raise RuntimeError(
+                f"Expect length {self.length:d}, but got {obj.size:d}")
         return obj
 
 
@@ -480,9 +487,7 @@ class ArchiveWriter(Writer):
         self.dtype = dtype
 
     def write(self, key, obj):
-        if not isinstance(obj, np.ndarray):
-            raise RuntimeError(
-                f"Expect np.ndarray object, but got {type(obj)}")
+        self.check_args(obj)
         io.write_token(self.ark_file, key)
         # fix script generation bugs
         if self.path_or_dir != "-":
@@ -505,9 +510,7 @@ class WaveWriter(Writer):
         self.wav_kwargs = wav_kwargs
 
     def write(self, key, obj):
-        if not isinstance(obj, np.ndarray):
-            raise RuntimeError(
-                f"Expect np.ndarray object, but got {type(obj)}")
+        self.check_args(obj)
         obj_path = self.path_or_dir / f"{key}.wav"
         write_wav(obj_path, obj, **self.wav_kwargs)
         if self.scp_file:
@@ -522,9 +525,7 @@ class NumpyWriter(Writer):
         super(NumpyWriter, self).__init__(dump_dir, scp_path, is_dir=True)
 
     def write(self, key, obj):
-        if not isinstance(obj, np.ndarray):
-            raise RuntimeError(
-                f"Expect np.ndarray object, but got {type(obj)}")
+        self.check_args(obj)
         obj_path = self.path_or_dir / f"{key}.npy"
         np.save(obj_path, obj)
         if self.scp_file:
@@ -539,30 +540,8 @@ class MatWriter(Writer):
         super(MatWriter, self).__init__(dump_dir, scp_path, is_dir=True)
 
     def write(self, key, obj):
-        if not isinstance(obj, np.ndarray):
-            raise RuntimeError(
-                f"Expect np.ndarray object, but got {type(obj)}")
+        self.check_args(obj)
         obj_path = self.path_or_dir / f"{key}.npy"
         sio.savemat(obj_path, {"data": obj})
         if self.scp_file:
             self.scp_file.write(f"{key}\t{obj_path}\n")
-
-
-def test_archive_writer(ark, scp):
-    with ArchiveWriter(ark, scp) as writer:
-        for i in range(10):
-            mat = np.random.rand(100, 20)
-            writer.write("mat-{:d}".format(i), mat)
-    print("TEST *test_archive_writer* DONE!")
-
-
-def test_script_reader(egs):
-    scp_reader = ScriptReader(egs)
-    for key, mat in scp_reader:
-        print("{}: {}".format(key, mat.shape))
-    print("TEST *test_script_reader* DONE!")
-
-
-if __name__ == "__main__":
-    test_archive_writer("egs.ark", "egs.scp")
-    test_script_reader("egs.scp")

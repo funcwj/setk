@@ -24,7 +24,6 @@ def run(args):
         "center": args.center,  # false to comparable with kaldi
         "apply_log": args.apply_log,
         "apply_pow": args.apply_pow,
-        "normalize": args.normalize,
         "apply_abs": True,
         "transpose": True  # T x F
     }

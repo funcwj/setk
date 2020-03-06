@@ -13,29 +13,34 @@ from libs.data_handler import ArchiveReader
 from libs.utils import get_logger
 from libs.opts import StrToBoolAction
 
+default_font = "Times New Roman"
+default_dpi = 200
+default_fmt = "jpg"
+
 logger = get_logger(__name__)
 
 
 def save_figure(key, mat, dest, hop=16, samp_tdoa=False, size=3):
+    logger.info(f"Plot utterance {key} to {dest}.{default_fmt}...")
     num_frames, num_doas = mat.shape
     plt.figure(figsize=(max(size * num_frames / num_doas, size + 2), size + 2))
-    # binary: black -> higher
     plt.imshow(mat.T,
                origin="lower",
                cmap="binary",
                aspect="auto",
                interpolation="none")
-    plt.title(key)
-    # plt.colorbar()
     xp = np.linspace(0, num_frames - 1, 5)
     yp = np.linspace(0, num_doas - 1, 7)
-    plt.xticks(xp, ["{:.02f}".format(t) for t in (xp * hop)])
-    plt.yticks(yp, ["%d" % d for d in yp])
-    plt.xlabel("Time(s)")
-    plt.ylabel("DoA" if not samp_tdoa else "TDoA Index")
-    plt.savefig(dest)
+
+    plt.title(key)
+    plt.xticks(xp, [f"{t:.2f}" for t in (xp * hop)],
+               fontproperties=default_font)
+    plt.yticks(yp, ["%d" % d for d in yp], fontproperties=default_font)
+    plt.xlabel("Time(s)", fontdict={"family": default_font})
+    plt.ylabel("DoA" if not samp_tdoa else "TDoA Index",
+               fontdict={"family": default_font})
+    plt.savefig(f"{dest}.{default_fmt}", dpi=default_dpi, format=default_fmt)
     plt.close()
-    logger.info(f'Save utterance {key} to {dest}.png')
 
 
 def run(args):
@@ -44,7 +49,7 @@ def run(args):
 
     ark_reader = ArchiveReader(args.srp_ark)
     for key, mat in ark_reader:
-        dst = os.path.join(args.cache_dir, key.replace('.', '-'))
+        dst = os.path.join(args.cache_dir, key.replace(".", "-"))
         save_figure(key,
                     mat,
                     dst,
