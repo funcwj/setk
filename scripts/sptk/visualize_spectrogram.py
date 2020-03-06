@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
-# wujian@2018
+# wujian@2020
 
 import glob
 import argparse
@@ -9,31 +9,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pathlib import Path
-from libs.data_handler import ScriptReader, ArchiveReader
-from libs.utils import get_logger, filekey
-from libs.opts import StrToBoolAction
+from libs.data_handler import SpectrogramReader
+from libs.utils import get_logger
+from libs.opts import StrToBoolAction, StftParser
 
 default_font = "Times New Roman"
 default_dpi = 200
 default_fmt = "jpg"
 
 logger = get_logger(__name__)
-
-
-class NumpyReader(object):
-    """
-    Simple directory reader for .npy objects
-    """
-    def __init__(self, src_dir):
-        src_dir = Path(src_dir)
-        if not src_dir.is_dir():
-            raise RuntimeError("NumpyReader expect dir as input")
-        flist = glob.glob((src_dir / "*.npy").as_posix())
-        self.index_dict = {filekey(f): f for f in flist}
-
-    def __iter__(self):
-        for key, path in self.index_dict.items():
-            yield key, np.load(path)
 
 
 def save_figure(key,
@@ -66,7 +50,8 @@ def save_figure(key,
         plt.yticks(yp, [f"{t:.1f}" for t in fs], fontproperties=default_font)
         plt.ylabel("Frequency(kHz)", fontdict={"family": default_font})
 
-    logger.info(f"Plot TF-mask of utterance {key} to {dest}.{default_fmt}...")
+    logger.info(
+        f"Plot spectrogram of utterance {key} to {dest}.{default_fmt}...")
     if mat.ndim == 3:
         N, T, F = mat.shape
     else:
@@ -90,74 +75,46 @@ def save_figure(key,
 def run(args):
     cache_dir = Path(args.cache_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
-    reader_templ = {
-        "dir": NumpyReader,
-        "scp": ScriptReader,
-        "ark": ArchiveReader
+    stft_kwargs = {
+        "frame_len": args.frame_len,
+        "frame_hop": args.frame_hop,
+        "round_power_of_two": args.round_power_of_two,
+        "window": args.window,
+        "center": args.center  # false to comparable with kaldi
     }
-    # ndarrays or archives
-    mat_reader = reader_templ[args.input](args.rspec)
-    for key, mat in mat_reader:
+    reader = SpectrogramReader(args.wav_scp,
+                               **stft_kwargs,
+                               apply_abs=True,
+                               apply_log=True,
+                               transpose=True)
+
+    for key, mat in reader:
         if mat.ndim == 3 and args.index >= 0:
             mat = mat[args.index]
-        if args.apply_log:
-            mat = np.log10(mat)
-        if args.trans:
-            mat = np.swapaxes(mat, -1, -2)
-        if args.norm:
-            mat = mat / np.max(np.abs(mat))
         save_figure(key,
                     mat,
                     cache_dir / key.replace(".", "-"),
                     cmap=args.cmap,
-                    hop=args.frame_hop * 1e-3,
+                    hop=args.frame_hop,
                     sr=args.sr,
                     size=args.size,
                     title=args.title)
 
 
-# now support input from stdin
-# shuf mask.scp | head | copy-feats scp:- ark:- | ./scripts/sptk/visualize_tf_matrix.py -
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=
-        "Command to visualize kaldi's features/numpy's ndarray on T-F domain. "
-        "egs: spectral/spatial features or T-F mask. ",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("rspec",
-                        type=str,
-                        help="Read specifier of archives "
-                        "or directory of ndarrays")
-    parser.add_argument("--input",
-                        type=str,
-                        choices=["ark", "scp", "dir"],
-                        default="dir",
-                        help="Type of the input read specifier")
-    parser.add_argument("--frame-hop",
-                        type=int,
-                        default=256,
-                        help="Frame shift in samples")
+        description="Command to visualize audio spectrogram.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[StftParser.parser])
+    parser.add_argument("wav_scp", type=str, help="Read specifier of audio")
     parser.add_argument("--sr",
                         type=int,
                         default=16000,
                         help="Sample frequency (Hz)")
     parser.add_argument("--cache-dir",
                         type=str,
-                        default="figure",
-                        help="Directory to cache pictures")
-    parser.add_argument("--apply-log",
-                        action=StrToBoolAction,
-                        default=False,
-                        help="Apply log on input features")
-    parser.add_argument("--trans",
-                        action=StrToBoolAction,
-                        default=False,
-                        help="Apply matrix transpose on input features")
-    parser.add_argument("--norm",
-                        action=StrToBoolAction,
-                        default=False,
-                        help="Normalize values in [-1, 1] "
-                        "before visualization")
+                        default="spectrogram",
+                        help="Directory to dump spectrograms")
     parser.add_argument("--cmap",
                         choices=["binary", "jet", "hot"],
                         default="jet",

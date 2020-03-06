@@ -4,6 +4,7 @@
 import os
 import sys
 import glob
+import codecs
 import pickle
 import warnings
 
@@ -38,8 +39,8 @@ def pipe_fopen(command, mode, background=True):
     def background_command_waiter(command, p):
         p.wait()
         if p.returncode != 0:
-            warnings.warn("Command \"{0}\" exited with status {1}".format(
-                command, p.returncode))
+            warnings.warn(
+                f"Command \"{command}\" exited with status {p.returncode}")
             _thread.interrupt_main()
 
     if background:
@@ -60,23 +61,30 @@ def _fopen(fname, mode):
         2) "$cmd |" which means pipe.stdout
     """
     if mode not in ["w", "r", "wb", "rb"]:
-        raise ValueError("Unknown open mode: {mode}".format(mode=mode))
+        raise ValueError(f"Unknown open mode: {mode}")
     if not fname:
         return None
     fname = fname.strip()
     if fname == "-":
         if mode in ["w", "wb"]:
-            return sys.stdout.buffer if mode == "wb" else sys.stdout
+            stream = sys.stdout.buffer if mode == "wb" else sys.stdout
+            # if mode == "w":
+            # stream = codecs.getwriter("utf-8")(stream)
         else:
-            return sys.stdin.buffer if mode == "rb" else sys.stdin
+            stream = sys.stdin.buffer if mode == "rb" else sys.stdin
+            # if mode == "r":
+            #     stream = codecs.getreader("utf-8")(stream)
+        return stream
     elif fname[-1] == "|":
         pin = pipe_fopen(fname[:-1], mode, background=(mode == "rb"))
         return pin if mode == "rb" else TextIOWrapper(pin)
     else:
         if mode in ["r", "rb"] and not os.path.exists(fname):
-            raise FileNotFoundError(
-                "Could not find common file: \"{}\"".format(fname))
-        return open(fname, mode)
+            raise FileNotFoundError(f"Could not find common file: \"{fname}\"")
+        if mode in ["r", "w"]:
+            return codecs.open(fname, mode, encoding="utf-8")
+        else:
+            return open(fname, mode)
 
 
 def _fclose(fname, fd):
@@ -212,6 +220,12 @@ class Writer(object):
             _fclose(self.path_or_dir, self.ark_file)
         _fclose(self.scp_path, self.scp_file)
 
+    def check_args(self, data):
+        if not isinstance(data, np.ndarray):
+            raise RuntimeError(
+                "Instance of Writer accepts np.ndarray object, " +
+                f"but got {type(data)}")
+
     def write(self, key, data):
         raise NotImplementedError
 
@@ -220,14 +234,13 @@ class ArchiveReader(object):
     """
         Sequential Reader for Kalid's archive(.ark) object(support matrix/vector)
     """
-    def __init__(self, ark_or_pipe, matrix=True):
+    def __init__(self, ark_or_pipe):
         self.ark_or_pipe = ark_or_pipe
-        self.matrix = matrix
 
     def __iter__(self):
         # to support stdin as input
         with ext_open(self.ark_or_pipe, "rb") as fd:
-            for key, mat in io.read_ark(fd, matrix=self.matrix):
+            for key, mat in io.read_float_ark(fd):
                 yield key, mat
 
 
@@ -243,20 +256,39 @@ class WaveReader(Reader):
         or output from commands, egs:
             key1 sox /home/data/key1.wav -t wav - remix 1 |
     """
-    def __init__(self, wav_scp, sample_rate=None, normalize=True):
+    def __init__(self, wav_scp, sample_rate=16000, normalize=True):
         super(WaveReader, self).__init__(wav_scp)
         self.samp_rate = sample_rate
         self.normalize = normalize
+        self.wav_ark_mgr = {}
 
     def read_internal(self, addr, beg=None, end=None):
         # return C x N or N
-        sr, samps = read_wav(addr,
-                             beg=beg,
-                             end=end,
-                             normalize=self.normalize,
-                             return_rate=True)
-        # if given samp_rate, check it
-        if self.samp_rate is not None and sr != self.samp_rate:
+        # for ark_addr:ark_offset format
+        if ":" in addr:
+            tokens = addr.split(":")
+            if len(tokens) != 2:
+                raise RuntimeError(f"Value format error: {addr}")
+            fname, offset = tokens[0], int(tokens[1])
+            # get ark object
+            if fname not in self.wav_ark_mgr:
+                self.wav_ark_mgr[fname] = open(fname, "rb")
+            wav_ark = self.wav_ark_mgr[fname]
+            # seek and read
+            wav_ark.seek(offset)
+            sr, samps = read_wav(wav_ark,
+                                 beg=beg,
+                                 end=end,
+                                 normalize=self.normalize,
+                                 return_rate=True)
+        else:
+            sr, samps = read_wav(addr,
+                                 beg=beg,
+                                 end=end,
+                                 normalize=self.normalize,
+                                 return_rate=True)
+        # check it sample rate
+        if sr != self.samp_rate:
             raise RuntimeError(
                 f"SampleRate mismatch: {sr:d} vs {self.samp_rate:d}")
         return samps
@@ -267,8 +299,8 @@ class WaveReader(Reader):
         fname = fname.rstrip()
         # pipe open
         if fname[-1] == "|":
-            stdout_shell, _ = run_command(fname[:-1], wait=True)
-            return self.read_internal(BytesIO(stdout_shell))
+            stdout, _ = run_command(fname[:-1], wait=True)
+            return self.read_internal(BytesIO(stdout))
         else:
             wav_list = glob.glob(fname)
             N = len(wav_list)
@@ -362,8 +394,8 @@ class MatReader(Reader):
         mat_path = self.index_dict[key]
         mat_dict = sio.loadmat(mat_path)
         if self.key not in mat_dict:
-            raise KeyError("Could not find \'{}\' in python "
-                           "dictionary".format(self.key))
+            raise KeyError(
+                f"Could not find \'{self.key}\' in python dictionary")
         return mat_dict[self.key]
 
 
@@ -393,7 +425,7 @@ class ScriptReader(Reader):
     """
         Reader for kaldi's scripts(for BaseFloat matrix)
     """
-    def __init__(self, ark_scp, matrix=True):
+    def __init__(self, ark_scp):
         def addr_processor(addr):
             addr_token = addr.split(":")
             if len(addr_token) == 1:
@@ -403,7 +435,6 @@ class ScriptReader(Reader):
 
         super(ScriptReader, self).__init__(ark_scp,
                                            value_processor=addr_processor)
-        self.matrix = matrix
         self.fmgr = dict()
 
     def _open(self, obj, addr):
@@ -416,8 +447,7 @@ class ScriptReader(Reader):
     def _load(self, key):
         path, addr = self.index_dict[key]
         fd = self._open(path, addr)
-        io.expect_binary(fd)
-        obj = io.read_general_mat(fd) if self.matrix else io.read_float_vec(fd)
+        obj = io.read_float_mat_vec(fd, direct_access=True)
         return obj
 
 
@@ -434,15 +464,15 @@ class BinaryReader(Reader):
             "int64": np.int64
         }
         if data_type not in supported_data:
-            raise RuntimeError("Unsupported data type: {}".format(data_type))
+            raise RuntimeError(f"Unsupported data type: {data_type}")
         self.fmt = supported_data[data_type]
         self.length = length
 
     def _load(self, key):
         obj = np.fromfile(self.index_dict[key], dtype=self.fmt)
         if self.length is not None and obj.size != self.length:
-            raise RuntimeError("Expect length {:d}, but got {:d}".format(
-                self.length, obj.size))
+            raise RuntimeError(
+                f"Expect length {self.length:d}, but got {obj.size:d}")
         return obj
 
 
@@ -450,17 +480,14 @@ class ArchiveWriter(Writer):
     """
         Writer for kaldi's scripts && archive(for BaseFloat matrix)
     """
-    def __init__(self, ark_path, scp_path=None, matrix=True, dtype=np.float32):
+    def __init__(self, ark_path, scp_path=None, dtype=np.float32):
         if not ark_path:
             raise RuntimeError("Seem configure path of archives as None")
         super(ArchiveWriter, self).__init__(ark_path, scp_path)
         self.dtype = dtype
-        self.dump_func = io.write_common_mat if matrix else io.write_float_vec
 
     def write(self, key, obj):
-        if not isinstance(obj, np.ndarray):
-            raise RuntimeError(
-                f"Expect np.ndarray object, but got {type(obj)}")
+        self.check_args(obj)
         io.write_token(self.ark_file, key)
         # fix script generation bugs
         if self.path_or_dir != "-":
@@ -468,7 +495,7 @@ class ArchiveWriter(Writer):
         io.write_binary_symbol(self.ark_file)
         # cast to target type
         obj = obj.astype(self.dtype)
-        self.dump_func(self.ark_file, obj)
+        io.write_float_mat_vec(self.ark_file, obj)
         if self.scp_file:
             record = f"{key}\t{self.path_or_dir}:{offset:d}\n"
             self.scp_file.write(record)
@@ -483,9 +510,7 @@ class WaveWriter(Writer):
         self.wav_kwargs = wav_kwargs
 
     def write(self, key, obj):
-        if not isinstance(obj, np.ndarray):
-            raise RuntimeError(
-                f"Expect np.ndarray object, but got {type(obj)}")
+        self.check_args(obj)
         obj_path = self.path_or_dir / f"{key}.wav"
         write_wav(obj_path, obj, **self.wav_kwargs)
         if self.scp_file:
@@ -500,9 +525,7 @@ class NumpyWriter(Writer):
         super(NumpyWriter, self).__init__(dump_dir, scp_path, is_dir=True)
 
     def write(self, key, obj):
-        if not isinstance(obj, np.ndarray):
-            raise RuntimeError(
-                f"Expect np.ndarray object, but got {type(obj)}")
+        self.check_args(obj)
         obj_path = self.path_or_dir / f"{key}.npy"
         np.save(obj_path, obj)
         if self.scp_file:
@@ -517,30 +540,8 @@ class MatWriter(Writer):
         super(MatWriter, self).__init__(dump_dir, scp_path, is_dir=True)
 
     def write(self, key, obj):
-        if not isinstance(obj, np.ndarray):
-            raise RuntimeError(
-                f"Expect np.ndarray object, but got {type(obj)}")
+        self.check_args(obj)
         obj_path = self.path_or_dir / f"{key}.npy"
         sio.savemat(obj_path, {"data": obj})
         if self.scp_file:
             self.scp_file.write(f"{key}\t{obj_path}\n")
-
-
-def test_archive_writer(ark, scp):
-    with ArchiveWriter(ark, scp) as writer:
-        for i in range(10):
-            mat = np.random.rand(100, 20)
-            writer.write("mat-{:d}".format(i), mat)
-    print("TEST *test_archive_writer* DONE!")
-
-
-def test_script_reader(egs):
-    scp_reader = ScriptReader(egs)
-    for key, mat in scp_reader:
-        print("{}: {}".format(key, mat.shape))
-    print("TEST *test_script_reader* DONE!")
-
-
-if __name__ == "__main__":
-    test_archive_writer("egs.ark", "egs.scp")
-    test_script_reader("egs.scp")

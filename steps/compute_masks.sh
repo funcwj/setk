@@ -12,7 +12,7 @@ noise=false
 
 . ./path.sh || exit 1
 
-. parse_options.sh || exit 1
+. ./utils/parse_options.sh || exit 1
 
 [ $# -ne 3 ] && echo "format error: $0 <data-in-dir> <log-out-dir> <mask-out-dir>" && exit 1
 

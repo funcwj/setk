@@ -20,13 +20,12 @@ def run(args):
         args.src_scp, args.key)
     num_mat = 0
     mat_list = []
-    mat = (args.output == "matrix")
     ops = args.op.split(",")
     for op in ops:
         if op and op not in supported_op:
-            raise RuntimeError("Unknown operation: {}".format(op))
+            raise RuntimeError(f"Unknown operation: {op}")
     stack = "stack" in ops
-    with ArchiveWriter(args.dst_ark, args.scp, matrix=mat) as writer:
+    with ArchiveWriter(args.dst_ark, args.scp) as writer:
         for key, mat in src_reader:
             for op in ops:
                 if op == "trans":
@@ -87,10 +86,5 @@ if __name__ == "__main__":
                         choices=["npy", "mat"],
                         default="npy",
                         help="Data format in the input rspecifier")
-    parser.add_argument("--output",
-                        type=str,
-                        choices=["matrix", "vector"],
-                        default="matrix",
-                        help="Type of the data to dump in archives")
     args = parser.parse_args()
     run(args)

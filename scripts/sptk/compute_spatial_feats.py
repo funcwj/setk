@@ -70,9 +70,8 @@ def run(args):
             writer.write(key, feats)
             num_utts += 1
             if not num_utts % 1000:
-                logger.info("Processed {:d} utterance...".format(num_utts))
-    logger.info("Processed {} for {:d} utterances".format(
-        args.type.upper(), num_utts))
+                logger.info(f"Processed {num_utts} utterance...")
+    logger.info(f"Processed {args.type.upper()} for {num_utts} utterances")
 
 
 if __name__ == "__main__":
@@ -83,7 +82,6 @@ if __name__ == "__main__":
         "IPD: Interchannel Phase Difference)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-
     parser.add_argument("wav_scp",
                         type=str,
                         help="Multi-Channel wave scripts in kaldi format")

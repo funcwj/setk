@@ -175,15 +175,6 @@ class Beamformer(object):
         spectrogram = np.einsum("...n,...nt->...t", weight.conj(), spectrogram)
         return spectrogram
 
-    def run(self, spectrogram):
-        """
-        Arguments: (for N: num_mics, F: num_bins, T: num_frames)
-            spectrogram: shape as N x F x T
-        Return:
-            stft_enhan: shape as F x T
-        """
-        raise NotImplementedError
-
 
 class SupervisedBeamformer(Beamformer):
     """
@@ -306,8 +297,8 @@ class LinearDSBeamformer(Beamformer):
     """
     def __init__(self, linear_topo):
         super(LinearDSBeamformer, self).__init__()
-        self.num_mics = len(linear_topo)
         self.linear_topo = np.array(linear_topo)
+        self.num_mics = len(linear_topo)
 
     def weight(self, doa, num_bins, c=340, sr=16000):
         """

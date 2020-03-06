@@ -16,7 +16,7 @@ write_utt2num_frames=false  # if true writes utt2num_frames
 echo "$0 $@"  # Print the command line for logging
 
 if [ -f path.sh ]; then . ./path.sh; fi
-. parse_options.sh || exit 1;
+. ./utils/parse_options.sh || exit 1;
 
 if [ $# -lt 1 ] || [ $# -gt 3 ]; then
     echo "Usage: $0 [options] <data-dir> [<log-dir> [<stft-dir>] ]";

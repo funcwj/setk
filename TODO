@@ -1,6 +1,5 @@
 TODO:
 
 1. FastICA/SNMF (Sparse Non-negative Matrix Factor) algorithm
-2. Some pipeline based on this tookit
-3. Signal processing methods for enhancement/separation tasks
-4. ...
+2. Signal processing methods for speech enhancement/separation
+3. ...

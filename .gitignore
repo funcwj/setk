@@ -26,6 +26,8 @@ scripts/sptk/test_*
 scripts/sptk/\.*.py
 scripts/sptk/pb_perm_solver.py
 
+# old local dir
+local/
 # clang format
 .clang-format
 

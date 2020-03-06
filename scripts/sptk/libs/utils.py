@@ -48,29 +48,36 @@ def cmat_abs(cmat):
 
 def write_wav(fname, samps, fs=16000, normalize=True):
     """
-    Write wav files in int16, support single/multi-channel
+    Write wav files, support single/multi-channel
     """
     if normalize:
-        samps = samps * MAX_INT16
+        samps = samps.astype("int16")
     # scipy.io.wavfile/soundfile could write single/multi-channel files
     # for multi-channel, accept ndarray [Nsamples, Nchannels]
     if samps.ndim != 1 and samps.shape[0] < samps.shape[1]:
         samps = np.transpose(samps)
         samps = np.squeeze(samps)
-    # same as MATLAB and kaldi
-    samps_int16 = samps.astype(np.int16)
+    # make dirs
     fdir = os.path.dirname(fname)
     if fdir and not os.path.exists(fdir):
         os.makedirs(fdir)
     # NOTE: librosa 0.6.0 seems could not write non-float narray
     #       so use scipy.io.wavfile/soundfile instead
     # wf.write(fname, fs, samps_int16)
-    sf.write(fname, samps_int16, fs)
+    sf.write(fname, samps, fs)
 
 
 def read_wav(fname, beg=0, end=None, normalize=True, return_rate=False):
     """
     Read wave files using soundfile (support multi-channel & chunk)
+    args:
+        fname: file name or object
+        beg, end: begin and end index for chunk-level reading
+        norm: normalized samples between -1 and 1
+        return_sr: return audio sample rate
+    return:
+        samps: in shape C x N
+        sr: sample rate
     """
     # samps: N x C or N
     #   N: number of samples
@@ -236,6 +243,7 @@ def get_logger(name,
     logger.setLevel(logging.INFO)
     if file:
         logger.addHandler(get_handler(logging.FileHandler(name)))
+        logger.addHandler(logging.StreamHandler())
     else:
         logger.addHandler(logging.StreamHandler())
     return logger
