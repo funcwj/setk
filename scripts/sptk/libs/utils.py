@@ -50,8 +50,7 @@ def write_wav(fname, samps, fs=16000, normalize=True):
     """
     Write wav files, support single/multi-channel
     """
-    if normalize:
-        samps = samps.astype("int16")
+    samps = samps.astype("float32" if normalize else "int16")
     # scipy.io.wavfile/soundfile could write single/multi-channel files
     # for multi-channel, accept ndarray [Nsamples, Nchannels]
     if samps.ndim != 1 and samps.shape[0] < samps.shape[1]:
