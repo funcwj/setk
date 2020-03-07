@@ -46,6 +46,7 @@ def run(args):
                 try:
                     speech_masks = trainer.train(args.num_epoches)
                     num_done += 1
+                    speech_masks = np.transpose(speech_masks)
                     writer.write(key, speech_masks.astype(np.float32))
                     logger.info(f"Training utterance {key} ... Done")
                 except RuntimeError:

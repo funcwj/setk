@@ -14,7 +14,7 @@ from libs.utils import get_logger
 from libs.opts import StrToBoolAction, StftParser
 
 default_font = "Times New Roman"
-default_dpi = 200
+default_dpi = 300
 default_fmt = "jpg"
 
 logger = get_logger(__name__)
@@ -39,7 +39,7 @@ def save_figure(key,
                    interpolation="none")
         if xticks:
             xp = np.linspace(0, num_frames - 1, 5)
-            plt.xticks(xp, [f"{t:.2f}" for t in (xp * hop * 1e3 / sr)],
+            plt.xticks(xp, [f"{t:.2f}" for t in (xp * hop / sr)],
                        fontproperties=default_font)
             plt.xlabel("Time(s)", fontdict={"family": default_font})
         else:

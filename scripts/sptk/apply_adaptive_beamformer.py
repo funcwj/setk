@@ -148,7 +148,7 @@ def run(args):
                 # make sure speech_mask at shape T x F
                 _, F, _ = stft_mat.shape
                 # if in F x T
-                if speech_mask.shape[0] == F:
+                if speech_mask.shape[0] == F and speech_mask.shape[1] != F:
                     speech_mask = np.transpose(speech_mask)
                     if interf_mask is not None:
                         interf_mask = np.transpose(interf_mask)
