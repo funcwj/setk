@@ -6,7 +6,7 @@ import subprocess
 def run_command(command, wait=True):
     """ 
     Runs shell commands. These are usually a sequence of 
-        commands connected by pipes, so we use shell=True
+    commands connected by pipes, so we use shell=True
     """
     p = subprocess.Popen(
         command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

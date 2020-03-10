@@ -214,7 +214,7 @@ class DirReader(Reader):
 
 class Writer(object):
     """
-        Basic Writer class to be implemented
+    Basic Writer class to be implemented
     """
     def __init__(self, obj_path_or_dir, scp_path=None, is_dir=False):
         self.scp_path = scp_path
@@ -254,7 +254,7 @@ class Writer(object):
 
 class ArchiveReader(object):
     """
-        Sequential Reader for Kalid's archive(.ark) object(support matrix/vector)
+    Sequential Reader for Kalid's archive(.ark) object(support matrix/vector)
     """
     def __init__(self, ark_or_pipe):
         self.ark_or_pipe = ark_or_pipe
@@ -268,15 +268,15 @@ class ArchiveReader(object):
 
 class WaveReader(ScpReader):
     """
-        Sequential/Random Reader for single/multiple channel wave
-        Format of wav.scp follows Kaldi's definition:
-            key1 /path/to/wav
-            ...
-        And /path/to/wav allowed to be a pattern, for example:
-            key1 /home/data/key1.CH*.wav
-        /home/data/key1.CH*.wav matches file /home/data/key1.CH{1,2,3..}.wav
-        or output from commands, egs:
-            key1 sox /home/data/key1.wav -t wav - remix 1 |
+    Sequential/Random Reader for single/multiple channel wave
+    Format of wav.scp follows Kaldi's definition:
+        key1 /path/to/wav
+        ...
+    And /path/to/wav allowed to be a pattern, for example:
+        key1 /home/data/key1.CH*.wav
+    /home/data/key1.CH*.wav matches file /home/data/key1.CH{1,2,3..}.wav
+    or output from commands, egs:
+        key1 sox /home/data/key1.wav -t wav - remix 1 |
     """
     def __init__(self, wav_scp, sample_rate=16000, normalize=True):
         super(WaveReader, self).__init__(wav_scp)
@@ -382,7 +382,7 @@ class SegmentWaveReader(ScpReader):
 
 class NumpyReader(ScpReader):
     """
-        Sequential/Random Reader for numpy's ndarray(*.npy) file
+    Sequential/Random Reader for numpy's ndarray(*.npy) file
     """
     def __init__(self, npy_scp):
         super(NumpyReader, self).__init__(npy_scp)
@@ -393,7 +393,7 @@ class NumpyReader(ScpReader):
 
 class PickleReader(ScpReader):
     """
-        Sequential/Random Reader for pickle object
+    Sequential/Random Reader for pickle object
     """
     def __init__(self, obj_scp):
         super(PickleReader, self).__init__(obj_scp)
@@ -406,7 +406,7 @@ class PickleReader(ScpReader):
 
 class MatReader(ScpReader):
     """
-        Sequential/Random Reader for matlab matrix object
+    Sequential/Random Reader for matlab matrix object
     """
     def __init__(self, mat_scp, key):
         super(MatReader, self).__init__(mat_scp)
@@ -423,7 +423,7 @@ class MatReader(ScpReader):
 
 class SpectrogramReader(WaveReader):
     """
-        Sequential/Random Reader for single/multiple channel STFT
+    Sequential/Random Reader for single/multiple channel STFT
     """
     def __init__(self, wav_scp, normalize=True, **kwargs):
         super(SpectrogramReader, self).__init__(wav_scp, normalize=normalize)
@@ -445,7 +445,7 @@ class SpectrogramReader(WaveReader):
 
 class ScriptReader(ScpReader):
     """
-        Reader for kaldi's scripts(for BaseFloat matrix)
+    Reader for kaldi's scripts(for BaseFloat matrix)
     """
     def __init__(self, ark_scp):
         def addr_processor(addr):
@@ -500,7 +500,7 @@ class BinaryReader(ScpReader):
 
 class ArchiveWriter(Writer):
     """
-        Writer for kaldi's scripts && archive(for BaseFloat matrix)
+    Writer for kaldi's scripts && archive(for BaseFloat matrix)
     """
     def __init__(self, ark_path, scp_path=None, dtype=np.float32):
         if not ark_path:
@@ -525,7 +525,7 @@ class ArchiveWriter(Writer):
 
 class WaveWriter(Writer):
     """
-        Writer for wave files
+    Writer for wave files
     """
     def __init__(self, dump_dir, scp_path=None, **wav_kwargs):
         super(WaveWriter, self).__init__(dump_dir, scp_path, is_dir=True)
@@ -541,7 +541,7 @@ class WaveWriter(Writer):
 
 class NumpyWriter(Writer):
     """
-        Writer for numpy ndarray
+    Writer for numpy ndarray
     """
     def __init__(self, dump_dir, scp_path=None):
         super(NumpyWriter, self).__init__(dump_dir, scp_path, is_dir=True)
@@ -556,7 +556,7 @@ class NumpyWriter(Writer):
 
 class MatWriter(Writer):
     """
-        Writer for Matlab's matrix
+    Writer for Matlab's matrix
     """
     def __init__(self, dump_dir, scp_path=None):
         super(MatWriter, self).__init__(dump_dir, scp_path, is_dir=True)

@@ -2,8 +2,8 @@
 # coding=utf-8
 # wujian@2018
 
-import argparse
 import os
+import argparse
 import logging
 
 import numpy as np

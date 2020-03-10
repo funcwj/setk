@@ -5,7 +5,7 @@
 import argparse
 
 from collections import defaultdict
-from libs.data_handler import Reader as BaseReader
+from libs.data_handler import ScpReader
 from libs.metric import permute_ed
 
 
@@ -15,7 +15,7 @@ class TransReader(object):
     """
     def __init__(self, text):
         self.text_reader = [
-            BaseReader(t, num_tokens=-1, restrict=False)
+            ScpReader(t, num_tokens=-1, restrict=False)
             for t in text.split(",")
         ]
 

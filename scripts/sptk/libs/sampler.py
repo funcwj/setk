@@ -4,7 +4,7 @@ import os
 import random
 import argparse
 
-from .data_handler import Reader
+from .data_handler import ScpReader
 from .opts import str2tuple
 
 
@@ -29,8 +29,8 @@ class ScriptSampler(object):
     def __init__(self, scp, utt2dur, dur=""):
         if not utt2dur:
             raise RuntimeError("utt2dur is None")
-        self.location = Reader(scp, num_tokens=2, restrict=True)
-        self.duration = Reader(utt2dur, value_processor=lambda x: float(x))
+        self.location = ScpReader(scp, num_tokens=2, restrict=True)
+        self.duration = ScpReader(utt2dur, value_processor=lambda x: float(x))
         self.index_keys = self.location.index_keys
         if dur:
             min_dur, max_dur = str2tuple(dur)

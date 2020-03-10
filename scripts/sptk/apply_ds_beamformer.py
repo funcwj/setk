@@ -8,7 +8,7 @@ import numpy as np
 
 from libs.utils import inverse_stft, get_logger
 from libs.opts import StftParser, str2tuple
-from libs.data_handler import SpectrogramReader, WaveWriter, Reader
+from libs.data_handler import SpectrogramReader, WaveWriter, ScpReader
 from libs.beamformer import LinearDSBeamformer
 
 logger = get_logger(__name__)
@@ -26,7 +26,7 @@ def run(args):
     utt2doa = None
     doa = None
     if args.utt2doa:
-        utt2doa = Reader(args.utt2doa, value_processor=lambda x: float(x))
+        utt2doa = ScpReader(args.utt2doa, value_processor=lambda x: float(x))
         logger.info(f"Use utt2doa {args.utt2doa} for each utterance")
     else:
         doa = args.doa

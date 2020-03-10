@@ -8,7 +8,7 @@ import numpy as np
 
 from libs.utils import inverse_stft, get_logger
 from libs.opts import StftParser
-from libs.data_handler import SpectrogramReader, WaveWriter, Reader
+from libs.data_handler import SpectrogramReader, WaveWriter, ScpReader
 from libs.beamformer import FixedBeamformer
 
 logger = get_logger(__name__)
@@ -36,7 +36,7 @@ def run(args):
         if not args.beam:
             raise RuntimeError(
                 "--beam must be assigned, as there are multiple beams")
-        beam_index = Reader(args.beam, value_processor=lambda x: int)
+        beam_index = ScpReader(args.beam, value_processor=lambda x: int)
     with WaveWriter(args.dst_dir) as writer:
         for key, stft_mat in spectrogram_reader:
             logger.info(f"Processing utterance {key}...")

@@ -19,8 +19,7 @@ def run(args):
     utt2spk = parse_scps(args.utt2spk)
 
     def Reader(scp, t):
-        return NumpyReader(scp) if t == "numpy" else ScriptReader(scp,
-                                                                  matrix=False)
+        return NumpyReader(scp) if t == "numpy" else ScriptReader(scp)
 
     spks_reader = Reader(args.spks_scp, args.type)
     spks_keys, spks_embs = [], []
