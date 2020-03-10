@@ -14,7 +14,8 @@ from libs.utils import get_logger
 from libs.opts import StrToBoolAction, StftParser
 
 default_font = "Times New Roman"
-default_dpi = 300
+default_font_size = 10
+default_dpi = 200
 default_fmt = "jpg"
 
 logger = get_logger(__name__)
@@ -38,13 +39,10 @@ def save_figure(key,
                    aspect="auto",
                    interpolation="none")
         if xticks:
-            xp = np.linspace(0, num_frames - 1, 5)
-            plt.xticks(xp, [f"{t:.2f}" for t in (xp * hop / sr)],
-                       fontproperties=default_font)
             plt.xlabel("Time(s)", fontdict={"family": default_font})
-        else:
-            # disble xticks
-            plt.xticks([])
+        xp = np.linspace(0, num_frames - 1, 5)
+        plt.xticks(xp, [f"{t:.2f}" for t in (xp * hop / sr)],
+                   fontproperties=default_font)
         yp = np.linspace(0, num_bins - 1, 6)
         fs = np.linspace(0, sr / 2, 6) / 1000
         plt.yticks(yp, [f"{t:.1f}" for t in fs], fontproperties=default_font)
@@ -57,14 +55,17 @@ def save_figure(key,
     else:
         T, F = mat.shape
         N = 1
-    plt.figure(figsize=(max(size * T / F, size) + 2, size + 2))
+    plt.figure(figsize=(max(size * T / F, size) + 2, size + 1))
     if N != 1:
         ts = title.split(";")
         for i in range(N):
             plt.subplot(int(f"{N}1{i + 1}"))
-            plot(mat[i], T, F, xticks=i == N - 1)
             plt.title(ts[i] if len(ts) == N else title,
-                      fontdict={"family": default_font})
+                      fontdict={
+                          "family": default_font,
+                          "size": 12
+                      })
+            plot(mat[i], T, F, xticks=i == N - 1)
     else:
         plot(mat, T, F)
         plt.title(title, fontdict={"family": default_font})
@@ -121,7 +122,7 @@ if __name__ == "__main__":
                         help="Colormap used when save figures")
     parser.add_argument("--size",
                         type=int,
-                        default=3,
+                        default=4,
                         help="Minimum height of images (in inches)")
     parser.add_argument("--index",
                         type=int,

@@ -31,7 +31,7 @@ function usage {
 data_dir=$(cd $1; pwd)
 mask_dir=$3
 
-denominator_scp=noise.scp
+denominator_scp=wav.scp
 case $mask in 
   "iam"|"psm"|"psa"|"crm" )
     denominator_scp=wav.scp

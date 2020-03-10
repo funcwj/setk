@@ -55,7 +55,7 @@ def save_figure(key,
                    interpolation="none")
         if xticks:
             xp = np.linspace(0, num_frames - 1, 5)
-            plt.xticks(xp, [f"{t:.2f}" for t in (xp * hop * 1e3 / sr)],
+            plt.xticks(xp, [f"{t:.2f}" for t in (xp * hop / sr)],
                        fontproperties=default_font)
             plt.xlabel("Time(s)", fontdict={"family": default_font})
         else:
@@ -72,7 +72,7 @@ def save_figure(key,
     else:
         T, F = mat.shape
         N = 1
-    plt.figure(figsize=(max(size * T / F, size) + 2, size + 2))
+    plt.figure(figsize=(max(size * T / F, size) + 2, size + 1))
     if N != 1:
         ts = title.split(";")
         for i in range(N):
@@ -110,7 +110,7 @@ def run(args):
                     mat,
                     cache_dir / key.replace(".", "-"),
                     cmap=args.cmap,
-                    hop=args.frame_hop * 1e-3,
+                    hop=args.frame_hop,
                     sr=args.sr,
                     size=args.size,
                     title=args.title)
@@ -164,7 +164,7 @@ if __name__ == "__main__":
                         help="Colormap used when save figures")
     parser.add_argument("--size",
                         type=int,
-                        default=3,
+                        default=5,
                         help="Minimum height of images (in inches)")
     parser.add_argument("--index",
                         type=int,
