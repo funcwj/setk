@@ -23,24 +23,25 @@ logger = get_logger(__name__)
 def save_figure(key, mat, dest, hop=16, samp_tdoa=False, size=3):
     logger.info(f"Plot utterance {key} to {dest}.{default_fmt}...")
     num_frames, num_doas = mat.shape
-    plt.figure(figsize=(max(size * num_frames / num_doas, size + 2), size + 2))
-    plt.imshow(mat.T,
-               origin="lower",
-               cmap="binary",
-               aspect="auto",
-               interpolation="none")
+    # plt.figure(figsize=(max(size * num_frames / num_doas, size + 2), size + 2))
+    fig, ax = plt.subplots()
+    ax.imshow(np.transpose(mat),
+              origin="lower",
+              cmap="binary",
+              aspect="auto",
+              interpolation="none")
     xp = np.linspace(0, num_frames - 1, 5)
     yp = np.linspace(0, num_doas - 1, 7)
-
-    plt.title(key)
-    plt.xticks(xp, [f"{t:.2f}" for t in (xp * hop)],
-               fontproperties=default_font)
-    plt.yticks(yp, ["%d" % d for d in yp], fontproperties=default_font)
-    plt.xlabel("Time(s)", fontdict={"family": default_font})
-    plt.ylabel("DoA" if not samp_tdoa else "TDoA Index",
-               fontdict={"family": default_font})
-    plt.savefig(f"{dest}.{default_fmt}", dpi=default_dpi, format=default_fmt)
-    plt.close()
+    ax.set_title(key)
+    ax.set_xticks(xp)
+    ax.set_xticklabels([f"{t:.2f}" for t in (xp * hop)],
+                       fontproperties=default_font)
+    ax.set_yticks(yp)
+    ax.set_yticklabels(["%d" % d for d in yp], fontproperties=default_font)
+    ax.set_xlabel("Time(s)", fontdict={"family": default_font})
+    ax.set_ylabel("DoA" if not samp_tdoa else "TDoA Index",
+                  fontdict={"family": default_font})
+    fig.savefig(f"{dest}.{default_fmt}", dpi=default_dpi, format=default_fmt)
 
 
 def run(args):

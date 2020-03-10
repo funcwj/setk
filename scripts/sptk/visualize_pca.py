@@ -11,20 +11,19 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from sklearn.decomposition import PCA
-from libs.data_handler import ArchiveReader
+from libs.data_handler import ArchiveReader, DirReader
 from libs.utils import filekey
 
 
-class NumpyReader(object):
-    def __init__(self, src_dir):
-        if not os.path.isdir(src_dir):
-            raise RuntimeError("NumpyReader expect dir as input")
-        flist = glob.glob(os.path.join(src_dir, "*.npy"))
-        self.index_dict = {filekey(f): f for f in flist}
+class NumpyReader(DirReader):
+    """
+    Numpy matrix reader
+    """
+    def __init__(self, obj_dir):
+        super(NumpyReader, self).__init__(obj_dir, "npy")
 
-    def __iter__(self):
-        for key, path in self.index_dict.items():
-            yield key, np.load(path)
+    def _load(self, key):
+        return np.load(self.index_dict[key])
 
 
 def run(args):

@@ -20,7 +20,7 @@ import scipy.io as sio
 
 from io import TextIOWrapper, BytesIO
 from . import kaldi_io as io
-from .utils import forward_stft, read_wav, write_wav
+from .utils import forward_stft, read_wav, write_wav, filekey
 from .scheduler import run_command
 
 __all__ = [
@@ -151,10 +151,10 @@ def parse_scps(scp_path,
 
 class Reader(object):
     """
-        Base class for sequential/random accessing, to be implemented
+    Reader template
     """
-    def __init__(self, scp_rspecifier, **kwargs):
-        self.index_dict = parse_scps(scp_rspecifier, **kwargs)
+    def __init__(self, index_dict):
+        self.index_dict = index_dict
         self.index_keys = list(self.index_dict.keys())
 
     def _load(self, key):
@@ -188,6 +188,28 @@ class Reader(object):
         if index not in self.index_dict:
             raise KeyError(f"Missing utterance {index}!")
         return self._load(index)
+
+
+class ScpReader(Reader):
+    """
+    Kaldi's scp reader
+    """
+    def __init__(self, scp_rspecifier, **kwargs):
+        index_dict = parse_scps(scp_rspecifier, **kwargs)
+        super(ScpReader, self).__init__(index_dict)
+
+
+class DirReader(Reader):
+    """
+    Directory reader
+    """
+    def __init__(self, obj_dir, prefix):
+        obj_dir = Path(obj_dir)
+        if not obj_dir.is_dir():
+            raise RuntimeError("DirReader expect directory as input")
+        flist = glob.glob((obj_dir / f"*.{prefix}").as_posix())
+        index_dict = {filekey(f): f for f in flist}
+        super(DirReader, self).__init__(index_dict)
 
 
 class Writer(object):
@@ -244,7 +266,7 @@ class ArchiveReader(object):
                 yield key, mat
 
 
-class WaveReader(Reader):
+class WaveReader(ScpReader):
     """
         Sequential/Random Reader for single/multiple channel wave
         Format of wav.scp follows Kaldi's definition:
@@ -337,7 +359,7 @@ class WaveReader(Reader):
         return np.linalg.norm(s, 2)**2 / s.size
 
 
-class SegmentWaveReader(Reader):
+class SegmentWaveReader(ScpReader):
     """
     WaveReader with segments
     """
@@ -358,7 +380,7 @@ class SegmentWaveReader(Reader):
                                     end=info["end"])
 
 
-class NumpyReader(Reader):
+class NumpyReader(ScpReader):
     """
         Sequential/Random Reader for numpy's ndarray(*.npy) file
     """
@@ -369,7 +391,7 @@ class NumpyReader(Reader):
         return np.load(self.index_dict[key])
 
 
-class PickleReader(Reader):
+class PickleReader(ScpReader):
     """
         Sequential/Random Reader for pickle object
     """
@@ -382,7 +404,7 @@ class PickleReader(Reader):
         return obj
 
 
-class MatReader(Reader):
+class MatReader(ScpReader):
     """
         Sequential/Random Reader for matlab matrix object
     """
@@ -421,7 +443,7 @@ class SpectrogramReader(WaveReader):
                 [forward_stft(samps[c], **self.stft_kwargs) for c in range(N)])
 
 
-class ScriptReader(Reader):
+class ScriptReader(ScpReader):
     """
         Reader for kaldi's scripts(for BaseFloat matrix)
     """
@@ -451,7 +473,7 @@ class ScriptReader(Reader):
         return obj
 
 
-class BinaryReader(Reader):
+class BinaryReader(ScpReader):
     """
     Reader for binary objects(raw data)
     """
