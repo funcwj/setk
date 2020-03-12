@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from collections import defaultdict
 from libs.metric import si_snr, permute_si_snr
-from libs.data_handler import WaveReader, Reader
+from libs.data_handler import WaveReader, ScpReader
 
 
 class SpeakersReader(object):
@@ -43,7 +43,7 @@ class SpeakersReader(object):
 
 class Report(object):
     def __init__(self, spk2class=None):
-        self.s2c = Reader(spk2class) if spk2class else None
+        self.s2c = ScpReader(spk2class) if spk2class else None
         self.snr = defaultdict(float)
         self.cnt = defaultdict(int)
 

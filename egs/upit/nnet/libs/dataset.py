@@ -6,7 +6,7 @@ import numpy as np
 from queue import PriorityQueue
 
 from torch.nn.utils.rnn import pad_sequence
-from kaldi_python_io import ArchiveReader, ScriptReader, Reader
+from kaldi_python_io import ArchiveReader, ScriptReader, ScpReader
 
 
 def make_pitloader(feats_scp,

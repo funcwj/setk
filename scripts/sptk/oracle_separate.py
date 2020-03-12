@@ -51,13 +51,13 @@ def run(args):
         "window": args.window,
         "center": args.center
     }
-    logger.info("Using mask: {}".format(args.mask.upper()))
+    logger.info(f"Using mask: {args.mask.upper()}")
     mixture_reader = SpectrogramReader(
         args.mix_scp,
         round_power_of_two=args.round_power_of_two,
         **stft_kwargs)
     ref_scp_list = args.ref_scp.split(",")
-    logger.info("Number of speakers: {:d}".format(len(ref_scp_list)))
+    logger.info(f"Number of speakers: {len(ref_scp_list)}")
     targets_reader = [
         SpectrogramReader(scp, **stft_kwargs) for scp in ref_scp_list
     ]
@@ -67,7 +67,7 @@ def run(args):
         skip = False
         for reader in targets_reader:
             if key not in reader:
-                logger.info("Skip utterance {}, missing targets".format(key))
+                logger.info(f"Skip utterance {key}, missing targets")
                 skip = True
                 break
         if skip:
@@ -77,11 +77,10 @@ def run(args):
         spk_masks = compute_mask(mixture, targets_list, args.mask)
         for index, mask in enumerate(spk_masks):
             samps = inverse_stft(mixture * mask, **stft_kwargs, nsamps=nsamps)
-            write_wav(os.path.join(args.dump_dir,
-                                   "spk{:d}/{}.wav".format(index + 1, key)),
+            write_wav(os.path.join(args.dump_dir, f"spk{index + 1}/{key}.wav"),
                       samps,
                       fs=args.fs)
-    logger.info("Processed {} utterance!".format(num_utts))
+    logger.info(f"Processed {num_utts} utterance")
 
 
 if __name__ == "__main__":
@@ -101,7 +100,7 @@ if __name__ == "__main__":
                         "separated using \',\'")
     parser.add_argument("--dump-dir",
                         type=str,
-                        default="cache",
+                        default="sep",
                         help="Location to dump seperated speakers")
     parser.add_argument("--mask",
                         type=str,

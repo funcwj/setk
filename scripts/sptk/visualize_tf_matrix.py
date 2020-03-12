@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pathlib import Path
-from libs.data_handler import ScriptReader, ArchiveReader
+from libs.data_handler import ScriptReader, ArchiveReader, DirReader
 from libs.utils import get_logger, filekey
 from libs.opts import StrToBoolAction
 
@@ -20,20 +20,15 @@ default_fmt = "jpg"
 logger = get_logger(__name__)
 
 
-class NumpyReader(object):
+class NumpyReader(DirReader):
     """
-    Simple directory reader for .npy objects
+    Numpy matrix reader
     """
-    def __init__(self, src_dir):
-        src_dir = Path(src_dir)
-        if not src_dir.is_dir():
-            raise RuntimeError("NumpyReader expect dir as input")
-        flist = glob.glob((src_dir / "*.npy").as_posix())
-        self.index_dict = {filekey(f): f for f in flist}
+    def __init__(self, obj_dir):
+        super(NumpyReader, self).__init__(obj_dir, "npy")
 
-    def __iter__(self):
-        for key, path in self.index_dict.items():
-            yield key, np.load(path)
+    def _load(self, key):
+        return np.load(self.index_dict[key])
 
 
 def save_figure(key,
@@ -47,24 +42,28 @@ def save_figure(key,
     """
     Save figure to disk
     """
-    def plot(mat, num_frames, num_bins, xticks=True):
-        plt.imshow(np.transpose(mat),
-                   origin="lower",
-                   cmap=cmap,
-                   aspect="auto",
-                   interpolation="none")
+    def sub_plot(ax, mat, num_frames, num_bins, xticks=True, title=""):
+        ax.imshow(np.transpose(mat),
+                  origin="lower",
+                  cmap=cmap,
+                  aspect="auto",
+                  interpolation="none")
         if xticks:
             xp = np.linspace(0, num_frames - 1, 5)
-            plt.xticks(xp, [f"{t:.2f}" for t in (xp * hop * 1e3 / sr)],
-                       fontproperties=default_font)
-            plt.xlabel("Time(s)", fontdict={"family": default_font})
+            ax.set_xticks(xp)
+            ax.set_xticklabels([f"{t:.2f}" for t in (xp * hop / sr)],
+                               fontproperties=default_font)
+            ax.set_xlabel("Time(s)", fontdict={"family": default_font})
         else:
-            # disble xticks
-            plt.xticks([])
+            ax.set_xticks([])
         yp = np.linspace(0, num_bins - 1, 6)
         fs = np.linspace(0, sr / 2, 6) / 1000
-        plt.yticks(yp, [f"{t:.1f}" for t in fs], fontproperties=default_font)
-        plt.ylabel("Frequency(kHz)", fontdict={"family": default_font})
+        ax.set_yticks(yp)
+        ax.set_yticklabels([f"{t:.1f}" for t in fs],
+                           fontproperties=default_font)
+        ax.set_ylabel("Frequency(kHz)", fontdict={"family": default_font})
+        if title:
+            ax.set_title(title, fontdict={"family": default_font})
 
     logger.info(f"Plot TF-mask of utterance {key} to {dest}.{default_fmt}...")
     if mat.ndim == 3:
@@ -72,19 +71,17 @@ def save_figure(key,
     else:
         T, F = mat.shape
         N = 1
-    plt.figure(figsize=(max(size * T / F, size) + 2, size + 2))
+    fig, ax = plt.subplots(nrows=N)
     if N != 1:
         ts = title.split(";")
         for i in range(N):
-            plt.subplot(int(f"{N}1{i + 1}"))
-            plot(mat[i], T, F, xticks=i == N - 1)
-            plt.title(ts[i] if len(ts) == N else title,
-                      fontdict={"family": default_font})
+            if len(ts) == N:
+                sub_plot(ax[i], mat[i], T, F, xticks=i == N - 1, title=ts[i])
+            else:
+                sub_plot(ax[i], mat[i], T, F, xticks=i == N - 1)
     else:
-        plot(mat, T, F)
-        plt.title(title, fontdict={"family": default_font})
-    plt.savefig(f"{dest}.{default_fmt}", dpi=default_dpi, format=default_fmt)
-    plt.close()
+        sub_plot(ax, mat, T, F, title=title)
+    fig.savefig(f"{dest}.{default_fmt}", dpi=default_dpi, format=default_fmt)
 
 
 def run(args):
@@ -110,7 +107,7 @@ def run(args):
                     mat,
                     cache_dir / key.replace(".", "-"),
                     cmap=args.cmap,
-                    hop=args.frame_hop * 1e-3,
+                    hop=args.frame_hop,
                     sr=args.sr,
                     size=args.size,
                     title=args.title)
@@ -164,7 +161,7 @@ if __name__ == "__main__":
                         help="Colormap used when save figures")
     parser.add_argument("--size",
                         type=int,
-                        default=3,
+                        default=5,
                         help="Minimum height of images (in inches)")
     parser.add_argument("--index",
                         type=int,

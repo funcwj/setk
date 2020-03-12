@@ -55,7 +55,7 @@ def tangent(x, K=10, C=0.1):
     return s
 
 
-def compute_mask(speech, noise_or_mixture, mask):
+def compute_mask(tgt, mix, mask):
     """
     for signal model:
         y = x1 + x2
@@ -63,7 +63,7 @@ def compute_mask(speech, noise_or_mixture, mask):
         f(y) = f(x1) + f(x2) => |f(y)| = |f(x1) + f(x2)| < |f(x1)| + |f(x2)|
     for irm:
         1) M(x1) = |f(x1)| / (|f(x1)| + |f(x2)|)            DongYu
-        2) M(x1) = |f(x1)| / sqrt(|f(x1)|^2 + |f(x2)|^2)    DeliangWang
+        2) M(x1) = |f(x1)| / sqrt(|f(x1)|^2 + |f(x2)|^2)    Deliang Wang
         s.t. 1 >= 2) >= 1) >= 0
     for iam(FFT-mask, smm):
         M(x1) = |f(x1)| / |f(y)| = |f(x1)| / |f(x1) + f(x2)| in [0, oo]
@@ -72,34 +72,36 @@ def compute_mask(speech, noise_or_mixture, mask):
     for crm:
         M(x1) = f(x1) / f(y)
     """
+    # target speech
+    tgt_abs = cmat_abs(tgt)
+    # mixture
+    mix_abs = cmat_abs(mix)
+    # interference speech
+    inf_abs = cmat_abs(mix - tgt)
     if mask == "ibm":
-        binary_mask = cmat_abs(speech) > cmat_abs(noise_or_mixture)
-        return binary_mask.astype(np.float)
+        return (tgt_abs > inf_abs).astype(np.float32)
     # irm/iam/psm
     if mask == "irm":
-        # denominator = cmat_abs(speech) + cmat_abs(noise_or_mixture)
-        denominator = np.sqrt(
-            cmat_abs(speech)**2 + cmat_abs(noise_or_mixture)**2)
+        # denominator = tgt_abs + inf_abs
+        denominator = np.sqrt(tgt_abs**2 + inf_abs**2 + EPSILON)
     elif mask == "crm":
-        denominator = noise_or_mixture + EPSILON
+        denominator = mix + EPSILON
     else:
-        denominator = cmat_abs(noise_or_mixture)
+        denominator = mix_abs
     if mask == "psm":
-        return cmat_abs(speech) * np.cos(
-            np.angle(noise_or_mixture) - np.angle(speech)) / denominator
+        return tgt_abs * np.cos(np.angle(mix) - np.angle(tgt)) / denominator
     elif mask == "psa":
         # keep nominator only
-        return cmat_abs(speech) * np.cos(
-            np.angle(noise_or_mixture) - np.angle(speech))
+        return tgt_abs * np.cos(np.angle(mix) - np.angle(tgt))
     elif mask == "crm":
         # stack real/imag part
-        cpx_mask = speech / denominator
+        cpx_mask = tgt / denominator
         return np.hstack(
             [tangent(np.real(cpx_mask)),
              tangent(np.imag(cpx_mask))])
     else:
         # irm/iam
-        return cmat_abs(speech) / denominator
+        return tgt_abs / denominator
 
 
 def run(args):
@@ -112,20 +114,20 @@ def run(args):
         "center": args.center,  # false to comparable with kaldi
     }
 
-    speech_reader = SpectrogramReader(args.speech_scp, **stft_kwargs)
-    denorm_reader = SpectrogramReader(args.denorm_scp, **stft_kwargs)
+    clean_reader = SpectrogramReader(args.clean_scp, **stft_kwargs)
+    noisy_reader = SpectrogramReader(args.noisy_scp, **stft_kwargs)
 
     num_utts = 0
     cutoff = args.cutoff
     WriterImpl = {"kaldi": ArchiveWriter, "exraw": BinaryWriter}[args.format]
 
     with WriterImpl(args.mask_ark, args.scp) as writer:
-        for key, speech in speech_reader:
-            if key in denorm_reader:
+        for key, clean in clean_reader:
+            if key in noisy_reader:
                 num_utts += 1
-                denorm = denorm_reader[key]
-                mask = compute_mask(speech[0] if speech.ndim == 3 else speech,
-                                    denorm[0] if denorm.ndim == 3 else denorm,
+                noisy = noisy_reader[key]
+                mask = compute_mask(clean[0] if clean.ndim == 3 else clean,
+                                    noisy[0] if noisy.ndim == 3 else noisy,
                                     args.mask)
                 # iam, psm, psa
                 if cutoff > 0:
@@ -134,21 +136,21 @@ def run(args):
                     if num_items:
                         percent = float(num_items) / mask.size
                         logger.info(
-                            "Clip {:d}({:.2f}) items over {:.2f} for utterance {}"
-                            .format(num_items, percent, cutoff, key))
+                            f"Clip {num_items:d}({percent:.2f}) items over " +
+                            f"{cutoff:.2f} for utterance {key}")
                 num_items = np.sum(mask < 0)
                 # psm, psa
                 if num_items:
                     percent = float(num_items) / mask.size
                     average = np.sum(mask[mask < 0]) / num_items
                     logger.info(
-                        "Clip {:d}({:.2f}, {:.2f}) items below zero for utterance {}"
-                        .format(num_items, percent, average, key))
+                        f"Clip {num_items}({percent:.2f}, {average:.2f}) " +
+                        f"items below zero for utterance {key}")
                     mask = np.maximum(mask, 0)
                 writer.write(key, mask)
             else:
-                logger.warn("Missing bg-noise for utterance {}".format(key))
-    logger.info("Processed {} utterances".format(num_utts))
+                logger.warn(f"Missing bg-noise for utterance {key}")
+    logger.info(f"Processed {num_utts} utterances")
 
 
 if __name__ == "__main__":
@@ -157,12 +159,12 @@ if __name__ == "__main__":
         "only for 2 component case, egs: speech & noise)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
-    parser.add_argument("speech_scp",
+    parser.add_argument("clean_scp",
                         type=str,
-                        help="Scripts for target speech in Kaldi format")
-    parser.add_argument("denorm_scp",
+                        help="Scripts for clean speech in Kaldi format")
+    parser.add_argument("noisy_scp",
                         type=str,
-                        help="Scripts for bg-noise or mixture in Kaldi format")
+                        help="Scripts for noisy speech in Kaldi format")
     parser.add_argument("mask_ark",
                         type=str,
                         help="Location to dump mask archives")

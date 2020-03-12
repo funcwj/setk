@@ -7,7 +7,7 @@ import numpy as np
 
 from collections import defaultdict
 
-from libs.data_handler import WaveReader, Reader
+from libs.data_handler import WaveReader, ScpReader
 from mir_eval.separation import bss_eval_sources
 
 
@@ -33,7 +33,7 @@ class AudioReader(object):
 
 class Report(object):
     def __init__(self, spk2class=None):
-        self.s2c = Reader(spk2class) if spk2class else None
+        self.s2c = ScpReader(spk2class) if spk2class else None
         self.snr = defaultdict(float)
         self.cnt = defaultdict(int)
 
