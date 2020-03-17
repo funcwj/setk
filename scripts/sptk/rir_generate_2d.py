@@ -42,6 +42,10 @@ else:
     cpp_rir_available = False
 
 plt.switch_backend("agg")
+
+default_dpi = 200
+default_fmt = "jpg"
+
 logger = get_logger(__name__)
 
 
@@ -86,30 +90,29 @@ class Room(object):
             self.topo
         }
 
-    def plot(self, scfg, fig, room_id):
+    def plot(self, scfg, dest, room_id):
         """
         Visualize microphone array and speakers in current room
         """
-        ax = plt.subplot(111)
+        fig, ax = plt.subplots()
         ax.set_aspect("equal", "box")
         # constraint length and width
         l, w, _ = self.size
-        plt.xlim((0, l))
-        plt.ylim((0, w))
+        ax.set_xlim((0, l))
+        ax.set_ylim((0, w))
         # draw microphone array
-        plt.plot([p[0] for p in self.rpos], [p[1] for p in self.rpos], "k.")
-        plt.plot([self.rcen[0]], [self.rcen[1]], "r+")
+        ax.plot([p[0] for p in self.rpos], [p[1] for p in self.rpos], "k.")
+        ax.plot([self.rcen[0]], [self.rcen[1]], "r+")
         # draw each speaker
-        for idx, cfg in enumerate(scfg):
-            x, y, _ = cfg["pos"]
-            plt.plot([x], [y], "k+")
-            # "({:.2f}, {:.2f})".format(cfg["doa"], cfg["dst"])
-            plt.annotate(str(idx + 1), xy=(x, y), xytext=(x + 0.1, y + 0.1))
-        plt.xlabel("Length({:.2f}m)".format(l))
-        plt.ylabel("Width({:.2f}m)".format(w))
-        plt.title("{0}({1})".format(room_id, self.memo))
-        plt.savefig(fig)
-        plt.close()
+        spkx = [cfg["pos"][0] for cfg in scfg]
+        spky = [cfg["pos"][1] for cfg in scfg]
+        ax.plot(spkx, spky, "k+")
+        ax.set_xlabel(f"Length ({l:.2f}m)")
+        ax.set_xticks([round(x, 1) for y in np.linspace(0, l, 5)])
+        ax.set_ylabel(f"Width ({w:.2f}m)")
+        ax.set_yticks([round(y, 1) for y in np.linspace(0, w, 5)])
+        ax.set_title(f"{room_id} ({self.memo})")
+        fig.savefig(dest, dpi=default_dpi, format=default_fmt)
 
     def rir(self, fname, fs=16000, rir_nsamps=4096, v=340, gpu=False):
         """
@@ -117,21 +120,24 @@ class Room(object):
         """
         if gpu:
             # self.beta: rt60
+            # beta: reflection coefficients
             beta = pygpurir.beta_SabineEstimation(self.size, self.beta)
             # NOTE: do not clear here
             # diff = pygpurir.att2t_SabineEstimator(15, self.beta)
             tmax = rir_nsamps / fs
             nb_img = pygpurir.t2n(tmax, self.size)
             # S x R x T
-            rir = pygpurir.simulateRIR(self.size,
-                                       beta,
-                                       np.array(self.spos)[None, ...],
-                                       np.array(self.rpos),
-                                       nb_img,
-                                       tmax,
-                                       fs,
-                                       mic_pattern="omni")
-            write_wav(fname, rir[0], fs=fs)
+            rirs = pygpurir.simulateRIR(self.size,
+                                        beta,
+                                        np.array(self.spos),
+                                        np.array(self.rpos),
+                                        nb_img,
+                                        tmax,
+                                        fs,
+                                        mic_pattern="omni")
+            S, _, _ = rirs.shape
+            for s in range(S):
+                write_wav(f"{fname}-{s + 1}.wav", rirs[s], fs=fs)
         elif cpp_rir_available:
             # format float
             ffloat = lambda f: "{:.3f}".format(f)
@@ -191,8 +197,7 @@ class RoomGenerator(object):
             self.rt60 = UniformSampler(rt60_r)
         dim_range = [str2tuple(t) for t in room_dim.split(";")]
         if len(dim_range) != 3:
-            raise RuntimeError(
-                "Wrong format with --room-dim={}".format(room_dim))
+            raise RuntimeError(f"Wrong format with --room-dim={room_dim}")
         self.dim_sampler = [UniformSampler(c) for c in dim_range]
 
     def generate(self, v=340):
@@ -209,10 +214,6 @@ class RoomGenerator(object):
                 rt60_min = 24 * V * np.log(10) / (v * S)
                 if rt60_min >= self.rt60.max:
                     return None
-                    # raise RuntimeError(
-                    #     "Configuration error in rt60: {}, minimum {:.2f} "
-                    #     "required with ({:.2f}x{:.2f}x{:.2f})".format(
-                    #         self.rt60_opt, rt60_min, l, w, h))
                 else:
                     rt60 = random.uniform(rt60_min, self.rt60.max)
                     return Room(l, w, h, rt60=rt60)
@@ -308,21 +309,28 @@ class RirSimulator(object):
         succ, scfg = self._place_spk(rpos, room)
         if succ:
             rcfg = room.conf()
-            for idx, stat in enumerate(scfg):
-                # place spk and generate rir
-                room.set_spk(stat["pos"])
-                rir_loc = "{0}/Room{1}-{2}.wav".format(self.args.dump_dir,
-                                                       room_id, idx + 1)
-                room.rir(rir_loc,
+            for idx, cfg in enumerate(scfg):
+                cfg["loc"] = f"{self.args.dump_dir}/Room{room_id}-{idx + 1}.wav"
+            if gpu_rir_available and self.args.gpu:
+                # place all spakers and generate at once
+                room.set_spk([cfg["pos"] for cfg in scfg])
+                room.rir(f"{self.args.dump_dir}/Room{room_id}",
                          fs=self.sr,
                          rir_nsamps=int(self.sr * self.args.rir_dur),
                          v=self.args.speed,
-                         gpu=self.args.gpu)
-                scfg[idx]["loc"] = rir_loc
+                         gpu=True)
+            else:
+                for cfg in scfg:
+                    # place one spk and generate rir one by one
+                    room.set_spk(cfg["pos"])
+                    room.rir(cfg["loc"],
+                             fs=self.sr,
+                             rir_nsamps=int(self.sr * self.args.rir_dur),
+                             v=self.args.speed)
             # plot room
-            room.plot(scfg, "{0}/Room{1}.png".format(self.args.dump_dir,
-                                                     room_id),
-                      "Room{:d}".format(room_id))
+            room.plot(scfg,
+                      f"{self.args.dump_dir}/Room{room_id}.{default_fmt}",
+                      f"Room{room_id}")
             rcfg["spk"] = scfg
             self.rirs_cfg.append(rcfg)
         return succ
@@ -343,9 +351,8 @@ class RirSimulator(object):
         # dump rir configurations
         with open(Path(args.dump_dir) / "rir.json", "w") as f:
             json.dump(self.rirs_cfg, f, indent=2)
-        logger.info("Generate {:d} rirs, {:d} rooms done, "
-                    "try = {:d}".format(self.args.num_rirs * num_rooms, done,
-                                        ntry))
+        logger.info(f"Generate {self.args.num_rirs * num_rooms:d} rirs, " +
+                    f"{done:d} rooms done, try = {ntry}")
 
 
 def run(args):

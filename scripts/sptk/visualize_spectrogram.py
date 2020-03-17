@@ -43,7 +43,7 @@ def save_figure(key,
             ax.set_xticks(xp)
             ax.set_xticklabels([f"{t:.2f}" for t in (xp * hop / sr)],
                                fontproperties=default_font)
-            ax.set_xlabel("Time(s)", fontdict={"family": default_font})
+            ax.set_xlabel("Time (s)", fontdict={"family": default_font})
         else:
             ax.set_xticks([])
         yp = np.linspace(0, num_bins - 1, 6)
@@ -51,7 +51,7 @@ def save_figure(key,
         ax.set_yticks(yp)
         ax.set_yticklabels([f"{t:.1f}" for t in fs],
                            fontproperties=default_font)
-        ax.set_ylabel("Frequency(kHz)", fontdict={"family": default_font})
+        ax.set_ylabel("Frequency (kHz)", fontdict={"family": default_font})
         if title:
             ax.set_title(title, fontdict={"family": default_font})
 
