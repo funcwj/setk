@@ -32,8 +32,8 @@ def run(args):
     plt.imshow(pattern.T, cmap="jet", origin="lower")
     plt.xticks(xp, [f"{t:.1f}" for t in xt])
     plt.yticks(yp, [f"{int(t)}" for t in (yp * args.doa_range / A)])
-    plt.ylabel("DoA(degree)")
-    plt.xlabel("Frequency(kHz)")
+    plt.ylabel("DoA (degree)")
+    plt.xlabel("Frequency (kHz)")
     if multi_beam:
         plt.title(f"BeamPattern of Beam-{args.beam+1}")
     else:

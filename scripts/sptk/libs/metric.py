@@ -15,9 +15,8 @@ def si_snr(x, s, eps=1e-8, remove_dc=True):
     Compute Si-SNR
     Arguments:
         x: vector, enhanced/separated signal
-        s: vector, reference signal(ground truth)
+        s: vector, reference signal (ground truth)
     """
-
     def vec_l2norm(x):
         return np.linalg.norm(x, 2)
 
@@ -38,16 +37,15 @@ def permute_si_snr(xlist, slist, align=False):
     Compute Si-SNR between N pairs
     Arguments:
         x: list[vector], enhanced/separated signal
-        s: list[vector], reference signal(ground truth)
+        s: list[vector], reference signal (ground truth)
     """
-
     def si_snr_avg(xlist, slist):
         return sum([si_snr(x, s) for x, s in zip(xlist, slist)]) / len(xlist)
 
     N = len(xlist)
     if N != len(slist):
-        raise RuntimeError("size do not match between xlist "
-                           "and slist: {:d} vs {:d}".format(N, len(slist)))
+        raise RuntimeError("size do not match between xlist " +
+                           f"and slist: {N} vs {len(slist)}")
     si_snrs = []
     perm = []
     for order in permutations(range(N)):
@@ -67,14 +65,13 @@ def permute_ed(hlist, rlist):
         hlist: list[vector], hypothesis
         rlist: list[vector], reference 
     """
-
     def distance(hlist, rlist):
         return sum([ed.eval(h, r) for h, r in zip(hlist, rlist)])
 
     N = len(hlist)
     if N != len(rlist):
-        raise RuntimeError("size do not match between hlist "
-                           "and rlist: {:d} vs {:d}".format(N, len(rlist)))
+        raise RuntimeError("size do not match between hlist " +
+                           f"and rlist: {N} vs {len(rlist)}")
     wers = []
     for order in permutations(range(N)):
         wers.append(distance(hlist, [rlist[n] for n in order]))
