@@ -108,7 +108,7 @@ class Room(object):
         spky = [cfg["pos"][1] for cfg in scfg]
         ax.plot(spkx, spky, "k+")
         ax.set_xlabel(f"Length ({l:.2f}m)")
-        ax.set_xticks([round(x, 1) for y in np.linspace(0, l, 5)])
+        ax.set_xticks([round(x, 1) for x in np.linspace(0, l, 5)])
         ax.set_ylabel(f"Width ({w:.2f}m)")
         ax.set_yticks([round(y, 1) for y in np.linspace(0, w, 5)])
         ax.set_title(f"{room_id} ({self.memo})")

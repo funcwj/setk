@@ -141,17 +141,59 @@ def diffuse_covar(num_bins, dist_mat, sr=16000, c=340, diag_eps=0.1):
 
 def plane_steer_vector(distance, num_bins, c=340, sr=16000):
     """
-    Compute steer vector for linear array:
-        [..., e^{-j omega tau_i}, ...], where omega = 2*pi * f
+    Compute steer vector given projected distance on DoA:
+    ---------> 0 degree
     Arguments:
-        doa: direction of arrival, in angle
+        distance: numpy array, N
         num_bins: number of frequency bins
     Return:
         steer_vector: F x N
     """
     omega = np.pi * np.arange(num_bins) * sr / (num_bins - 1)
-    steer_vector = np.exp(-1j * np.outer(omega, distance / c))
+    steer_vector = np.exp(-1j * np.outer(omega, -distance / c))
     return steer_vector
+
+
+def linear_steer_vector(topo, doa, num_bins, c=340, sr=16000):
+    """
+    Compute steer vector for linear array:
+        [..., e^{-j omega tau_i}, ...], where omega = 2*pi * f
+    Arguments:
+        topo: linear topo, N
+        doa: direction of arrival, in angle
+        num_bins: number of frequency bins
+    Return:
+        steer_vector: F x N
+    """
+    dist = np.cos(doa * np.pi / 180) * topo
+    return plane_steer_vector(dist, num_bins, c=c, sr=sr)
+
+
+def circular_steer_vector(redius,
+                          num_channels,
+                          doa,
+                          num_bins,
+                          c=349,
+                          sr=16000,
+                          center=False):
+    """
+    Compute steer vector for circle array:
+        [..., e^{-j omega tau_i}, ...], where omega = 2*pi * f
+    Arguments:
+        redius: redius for circular array
+        num_channels: number of microphones
+        doa: direction of arrival, in angle
+        num_bins: number of frequency bins
+        center: is there a microphone in the centor?
+    Return:
+        steer_vector: F x N
+    """
+    # N
+    dirc = np.arange(num_channels) * 2 / num_channels * np.pi
+    dist = np.cos(dirc - doa) * redius
+    if center:
+        dist = np.concatenate([np.array([0]), dist])
+    return plane_steer_vector(dist, num_bins, c=c, sr=sr)
 
 
 class Beamformer(object):
@@ -308,8 +350,8 @@ class LinearDSBeamformer(Beamformer):
         Return:
             weight: F x N
         """
-        dist = np.cos(doa * np.pi / 180) * self.linear_topo
-        return plane_steer_vector(dist, num_bins, c=c, sr=sr)
+        sv = linear_steer_vector(self.linear_topo, doa, num_bins, c=c, sr=sr)
+        return sv / self.num_mics
 
     def run(self, doa, spectrogram, c=340, sr=16000):
         """
