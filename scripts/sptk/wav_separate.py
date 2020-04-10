@@ -7,7 +7,7 @@ import os
 
 import numpy as np
 
-from libs.utils import forward_stft, inverse_stft, get_logger
+from libs.utils import inverse_stft, get_logger
 from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import SpectrogramReader, NumpyReader, ScriptReader, WaveWriter
 

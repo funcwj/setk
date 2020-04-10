@@ -60,7 +60,7 @@ class StftParser(object):
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--frame-len",
                         type=int,
-                        default=1024,
+                        default=512,
                         help="Frame length in number of samples "
                         "(related to sample frequency)")
     parser.add_argument("--frame-hop",

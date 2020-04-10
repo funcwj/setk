@@ -36,7 +36,7 @@ def run(args):
         if not args.beam:
             raise RuntimeError(
                 "--beam must be assigned, as there are multiple beams")
-        beam_index = ScpReader(args.beam, value_processor=lambda x: int)
+        beam_index = ScpReader(args.beam, value_processor=int)
     with WaveWriter(args.dst_dir) as writer:
         for key, stft_mat in spectrogram_reader:
             logger.info(f"Processing utterance {key}...")
