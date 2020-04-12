@@ -5,7 +5,7 @@
 import yaml
 import argparse
 
-from libs.ns import OMLSA
+from libs.ns import iMCRA, MCRA
 from libs.opts import StftParser
 from libs.utils import inverse_stft, get_logger
 from libs.data_handler import SpectrogramReader, NumpyWriter, WaveWriter
@@ -31,9 +31,10 @@ def run(args):
     if args.conf:
         with open(args.conf, "r") as conf:
             omlsa_conf = yaml.full_load(conf)
-            suppressor = OMLSA(**omlsa_conf)
+            suppressor = MCRA(**omlsa_conf)
     else:
-        suppressor = OMLSA()
+        # suppressor = MCRA(M=args.frame_hop)
+        suppressor = iMCRA()
 
     if args.output == "wave":
         with WaveWriter(args.dst_dir, fs=args.sr) as writer:
@@ -53,8 +54,7 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Command to do noise suppression using OMLSA with iMCRA "
-        "noise spectrum estimation",
+        description="Command to do single channel noise suppression",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",

@@ -7,9 +7,210 @@ import scipy.signal as ss
 import scipy.integrate as si
 
 
-class OMLSA(object):
+class MCRA(object):
     """
-    OM-LSA (Optimally Modified Log-Spectral Amplitude) with iMCRA
+    OM-LSA (Optimally Modified Log-Spectral Amplitude Estimator) with MCRA
+    Reference:
+        1) Cohen I, Berdugo B. Speech enhancement for non-stationary noise environments[J]. 
+           Signal processing, 2001, 81(11): 2403-2418.
+    """
+    def __init__(self,
+                 alpha=0.92,
+                 delta=5,
+                 beta=0.7,
+                 alpha_s=0.9,
+                 alpha_d=0.85,
+                 alpha_p=0.2,
+                 gmin_db=-10,
+                 xi_min_db=-18,
+                 w_mcra=1,
+                 w_local=1,
+                 w_global=15,
+                 h_mcra="hann",
+                 h_local="hann",
+                 h_global="hann",
+                 q_max=0.95,
+                 zeta_min_db=-10,
+                 zeta_max_db=-5,
+                 zeta_p_max_db=10,
+                 zeta_p_min_db=0,
+                 L=60,
+                 M=128):
+        self.delta = delta
+        self.alpha = {"s": alpha_s, "d": alpha_d, "p": alpha_p, "t": alpha}
+        self.gmin = 10**(gmin_db / 10)
+        self.beta = beta
+        self.w_m = ss.get_window(h_mcra, w_mcra * 2 + 1)
+        self.w_g = ss.get_window(h_global, w_global * 2 + 1)
+        self.w_l = ss.get_window(h_local, w_local * 2 + 1)
+        self.xi_min = 10**(xi_min_db / 10)
+        self.zeta_min = 10**(zeta_min_db / 10)
+        self.zeta_max = 10**(zeta_max_db / 10)
+        self.zeta_p_min = 10**(zeta_p_min_db / 10)
+        self.zeta_p_max = 10**(zeta_p_max_db / 10)
+        self.L = L
+        self.M = M
+        self.q_max = q_max
+
+    def run(self, stft, eps=1e-7):
+        """
+        Arguments:
+            stft: complex STFT, T x F
+        Return:
+            gain: real array, T x F
+        """
+        obs_power = np.abs(stft)**2
+        T, F = obs_power.shape
+
+        def expint(v):
+            return si.quad(lambda t: np.exp(-t) / t, v, np.inf)[0]
+
+        exp_para = np.vectorize(expint)
+
+        gh1 = 1
+        p_hat = np.ones(F)
+        zeta = np.ones(F)
+        zeta_peak = 0
+        zeta_frame_pre = 1000
+        gamma = obs_power[0]
+        lambda_d_hat = obs_power[0]
+
+        g = []
+        for t in range(T):
+            # >>> eq.32
+            var_sf = np.convolve(obs_power[t], self.w_m, mode="same")
+            # <<< eq.32
+
+            if t == 0:
+                var_s = obs_power[t]
+                var_s_min = var_s
+                var_s_tmp = var_s
+            else:
+                # >>> eq.33
+                var_s = self.alpha["s"] * var_s + (1 -
+                                                   self.alpha["s"]) * var_sf
+                # <<< eq.33
+
+            if (t + 1) % self.L == 0:
+                # >>> eq.34 & eq.35
+                var_s_min = np.minimum(var_s_tmp, var_s)
+                var_s_tmp = var_s
+                # <<< eq.34 & eq.35
+            else:
+                # >>> eq.36 & eq.37
+                var_s_min = np.minimum(var_s_min, var_s)
+                var_s_tmp = np.minimum(var_s_tmp, var_s)
+                # <<< eq.36 & eq.37
+
+            # >>> eq.39
+            var_sr = var_s / np.maximum(eps, var_s_min)
+            sr_ind = var_sr > self.delta
+            # <<< eq.39
+
+            # >>> eq.40
+            p_hat = self.alpha["p"] * p_hat + (1 - self.alpha["p"]) * sr_ind
+            # >>> eq.40
+
+            # >>> eq.31
+            alpha_d_hat = self.alpha["d"] + (1 - self.alpha["d"]) * p_hat
+            # <<< eq.31
+
+            # >>> eq.30
+            lambda_d_hat = alpha_d_hat * lambda_d_hat + (
+                1 - alpha_d_hat) * obs_power[t]
+            # <<< eq.30
+
+            # >>> eq.18: a priori SNR
+            xi_hat = self.alpha["t"] * gh1**2 * gamma + (
+                1 - self.alpha["t"]) * np.maximum(gamma - 1, 0)
+            xi_hat = np.maximum(xi_hat, self.xi_min)
+            # <<< eq.18
+
+            # >>> eq.23
+            zeta = self.beta * zeta + (1 - self.beta) * xi_hat
+            # <<< eq.23
+
+            # >>> eq.24
+            zeta_g = np.convolve(zeta, self.w_g, mode="same")
+            zeta_l = np.convolve(zeta, self.w_l, mode="same")
+            # <<< eq.24
+
+            # >>> eq.25
+            var_p_g = np.zeros(F)
+            pg_idx = np.logical_and(zeta_g > self.zeta_min,
+                                    zeta_g < self.zeta_max)
+            var_p_g[pg_idx] = np.log10(
+                zeta_g[pg_idx] / self.zeta_min) / np.log10(
+                    self.zeta_max / self.zeta_min)
+            pg_idx = zeta_g >= self.zeta_max
+            var_p_g[pg_idx] = 1
+            # <<< eq.25
+
+            # >>> eq.25
+            var_p_l = np.zeros(F)
+            pl_idx = np.logical_and(zeta_l > self.zeta_min,
+                                    zeta_l < self.zeta_max)
+            var_p_l[pl_idx] = np.log10(
+                zeta_l[pl_idx] / self.zeta_min) / np.log10(
+                    self.zeta_max / self.zeta_min)
+            pl_idx = zeta_l >= self.zeta_max
+            var_p_l[pl_idx] = 1
+            # <<< eq.25
+
+            # >>> eq.26
+            zeta_frame_cur = np.mean(zeta[:self.M // 2 + 1])
+            # <<< eq.26
+
+            # >>> eq.27
+            if zeta_frame_cur > self.zeta_min:
+                if zeta_frame_cur > zeta_frame_pre:
+                    zeta_peak = min(max(zeta_frame_cur, self.zeta_p_min),
+                                    self.zeta_p_max)
+                    p_frame = 1
+                elif zeta_frame_cur <= self.zeta_min * zeta_peak:
+                    p_frame = 0
+                elif zeta_frame_cur >= self.zeta_max * zeta_peak:
+                    p_frame = 1
+                else:
+                    p_frame = np.log10(zeta_frame_cur /
+                                       (self.zeta_min * zeta_peak))
+                    p_frame = p_frame / np.log10(self.zeta_max / self.zeta_min)
+            else:
+                p_frame = 0
+            # <<< eq.27
+
+            # >>> eq.28
+            q_hat = np.minimum(self.q_max, 1 - var_p_l * p_frame * var_p_g)
+            # <<< eq.28
+
+            zeta_frame_pre = zeta_frame_cur
+
+            # >>> eq.10
+            # a posteriori SNR
+            gamma = obs_power[t] / np.maximum(lambda_d_hat, eps)
+            gamma = np.maximum(gamma, eps)
+            v = gamma * xi_hat / (1 + xi_hat)
+            # <<< eq.10
+
+            # >>> eq.9
+            p_inv = 1 + q_hat * (1 + xi_hat) * np.exp(-v) / (1 + q_hat)
+            p = 1 / p_inv
+            # <<< eq.10
+
+            # >>> eq.15
+            gh1 = xi_hat * np.exp(0.5 * exp_para(v)) / (1 + xi_hat)
+            # <<< eq.15
+
+            # >>> eq.16
+            gt = gh1**p * self.gmin**(1 - p)
+            g.append(gt)
+            # <<< eq.16
+        return np.stack(g)
+
+
+class iMCRA(object):
+    """
+    OM-LSA (Optimally Modified Log-Spectral Amplitude Estimator) with iMCRA
     Reference:
         1) Cohen I. Noise spectrum estimation in adverse environments: Improved minima controlled 
            recursive averaging[J]. IEEE Transactions on speech and audio processing, 2003, 11(5): 
@@ -24,6 +225,7 @@ class OMLSA(object):
                  gamma1=3,
                  zeta0=1.67,
                  xi_min_db=-18,
+                 gmin_db=-10,
                  w_mcra=1,
                  h_mcra="hann",
                  lambda_d_scaler=1,
@@ -35,7 +237,7 @@ class OMLSA(object):
         self.zeta0 = zeta0
         self.b_min = 1 / b_min
         self.xi_min = 10**(xi_min_db / 10)
-        self.gain_min = self.xi_min**0.5
+        self.gain_min = 10**(gmin_db / 10)
         self.w_m = ss.get_window(h_mcra, w_mcra * 2 + 1)
         self.V = V
         self.U = U
@@ -66,9 +268,10 @@ class OMLSA(object):
         """
         obs_power = np.abs(stft)**2
         T, F = obs_power.shape
-        lambda_d = obs_power[0]
         lambda_d_hat = obs_power[0]
         gh1 = 1
+        xi_hat = np.ones(F) * self.alpha["t"]
+        v = lambda_d_hat * xi_hat / (1 + xi_hat)
 
         def expint(v):
             return si.quad(lambda t: np.exp(-t) / t, v, np.inf)[0]
@@ -79,11 +282,6 @@ class OMLSA(object):
         s_min_sw = []
         g = []
         for t in range(T):
-
-            v, xi_hat = self._derive_var_v(obs_power[t],
-                                           lambda_d,
-                                           gh1,
-                                           eps=eps)
 
             # >>> eq.14 in ref{1}
             var_sf = np.convolve(obs_power[t], self.w_m, mode="same")
