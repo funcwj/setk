@@ -5,7 +5,7 @@
 import yaml
 import argparse
 
-from libs.ns import iMCRA, MCRA
+from libs.ns import iMCRA
 from libs.opts import StftParser
 from libs.utils import inverse_stft, get_logger
 from libs.data_handler import SpectrogramReader, NumpyWriter, WaveWriter
@@ -31,9 +31,8 @@ def run(args):
     if args.conf:
         with open(args.conf, "r") as conf:
             omlsa_conf = yaml.full_load(conf)
-            suppressor = MCRA(**omlsa_conf)
+            suppressor = iMCRA(**omlsa_conf)
     else:
-        # suppressor = MCRA(M=args.frame_hop)
         suppressor = iMCRA()
 
     if args.output == "wave":

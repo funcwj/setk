@@ -34,7 +34,7 @@ class MCRA(object):
                  zeta_max_db=-5,
                  zeta_p_max_db=10,
                  zeta_p_min_db=0,
-                 L=60,
+                 L=125,
                  M=128):
         self.delta = delta
         self.alpha = {"s": alpha_s, "d": alpha_d, "p": alpha_p, "t": alpha}
@@ -59,24 +59,41 @@ class MCRA(object):
         Return:
             gain: real array, T x F
         """
-        obs_power = np.abs(stft)**2
-        T, F = obs_power.shape
+        T, F = stft.shape
 
         def expint(v):
             return si.quad(lambda t: np.exp(-t) / t, v, np.inf)[0]
 
         exp_para = np.vectorize(expint)
 
+        obs_power = np.abs(stft)**2
         gh1 = 1
         p_hat = np.ones(F)
         zeta = np.ones(F)
         zeta_peak = 0
-        zeta_frame_pre = 1000
-        gamma = obs_power[0]
+        beg = 10
         lambda_d_hat = obs_power[0]
 
-        g = []
+        G = []
         for t in range(T):
+
+            # >>> eq.10
+            # a posteriori SNR
+            gamma = obs_power[t] / np.maximum(lambda_d_hat, eps)
+            gamma = np.maximum(gamma, eps)
+            # <<< eq.10
+
+            # >>> eq.18: a priori SNR
+            xi_hat = self.alpha["t"] * gh1**2 * gamma + (
+                1 - self.alpha["t"]) * np.maximum(gamma - 1, 0)
+            xi_hat = np.maximum(xi_hat, self.xi_min)
+            # <<< eq.18
+
+            # >>> eq.15
+            v = gamma * xi_hat / (1 + xi_hat)
+            gh1 = xi_hat * np.exp(0.5 * exp_para(v)) / (1 + xi_hat)
+            # <<< eq.15
+
             # >>> eq.32
             var_sf = np.convolve(obs_power[t], self.w_m, mode="same")
             # <<< eq.32
@@ -91,7 +108,7 @@ class MCRA(object):
                                                    self.alpha["s"]) * var_sf
                 # <<< eq.33
 
-            if (t + 1) % self.L == 0:
+            if (t + 1) % self.L == beg:
                 # >>> eq.34 & eq.35
                 var_s_min = np.minimum(var_s_tmp, var_s)
                 var_s_tmp = var_s
@@ -119,12 +136,6 @@ class MCRA(object):
             lambda_d_hat = alpha_d_hat * lambda_d_hat + (
                 1 - alpha_d_hat) * obs_power[t]
             # <<< eq.30
-
-            # >>> eq.18: a priori SNR
-            xi_hat = self.alpha["t"] * gh1**2 * gamma + (
-                1 - self.alpha["t"]) * np.maximum(gamma - 1, 0)
-            xi_hat = np.maximum(xi_hat, self.xi_min)
-            # <<< eq.18
 
             # >>> eq.23
             zeta = self.beta * zeta + (1 - self.beta) * xi_hat
@@ -162,6 +173,8 @@ class MCRA(object):
             # <<< eq.26
 
             # >>> eq.27
+            if t == 0:
+                zeta_frame_pre = zeta_frame_cur
             if zeta_frame_cur > self.zeta_min:
                 if zeta_frame_cur > zeta_frame_pre:
                     zeta_peak = min(max(zeta_frame_cur, self.zeta_p_min),
@@ -177,35 +190,23 @@ class MCRA(object):
                     p_frame = p_frame / np.log10(self.zeta_max / self.zeta_min)
             else:
                 p_frame = 0
+            zeta_frame_pre = zeta_frame_cur
             # <<< eq.27
 
             # >>> eq.28
             q_hat = np.minimum(self.q_max, 1 - var_p_l * p_frame * var_p_g)
             # <<< eq.28
 
-            zeta_frame_pre = zeta_frame_cur
-
-            # >>> eq.10
-            # a posteriori SNR
-            gamma = obs_power[t] / np.maximum(lambda_d_hat, eps)
-            gamma = np.maximum(gamma, eps)
-            v = gamma * xi_hat / (1 + xi_hat)
-            # <<< eq.10
-
             # >>> eq.9
             p_inv = 1 + q_hat * (1 + xi_hat) * np.exp(-v) / (1 + q_hat)
             p = 1 / p_inv
             # <<< eq.10
 
-            # >>> eq.15
-            gh1 = xi_hat * np.exp(0.5 * exp_para(v)) / (1 + xi_hat)
-            # <<< eq.15
-
             # >>> eq.16
-            gt = gh1**p * self.gmin**(1 - p)
-            g.append(gt)
+            gain = gh1**p * self.gmin**(1 - p)
+            G.append(gain)
             # <<< eq.16
-        return np.stack(g)
+        return np.stack(G)
 
 
 class iMCRA(object):
@@ -228,11 +229,11 @@ class iMCRA(object):
                  gmin_db=-10,
                  w_mcra=1,
                  h_mcra="hann",
-                 lambda_d_scaler=1,
+                 beta=1.47,
                  V=15,
                  U=8):
         self.alpha = {"s": alpha_s, "d": alpha_d, "t": alpha}
-        self.lambda_d_scaler = lambda_d_scaler
+        self.beta = beta
         self.gamma0, self.gamma1 = gamma0, gamma1
         self.zeta0 = zeta0
         self.b_min = 1 / b_min
@@ -242,23 +243,6 @@ class iMCRA(object):
         self.V = V
         self.U = U
 
-    def _derive_var_v(self, power, lambda_d, gh1, eps=1e-7):
-        # >>> eq.3 in ref{1}: posteriori SNR
-        gamma = power / np.maximum(lambda_d, eps)
-        # <<< eq.3 in ref{1}
-
-        gain = gh1**2 * gamma
-        # >>> eq.32 in ref{1} : a priori SNR
-        xi_hat = self.alpha["t"] * gain + (1 - self.alpha["t"]) * np.maximum(
-            gamma - 1, 0)
-        xi_hat = np.maximum(xi_hat, self.xi_min)
-        # <<< eq.32 in ref{1}
-
-        # >>> eq.10 in ref{2}
-        v = gamma * xi_hat / (1 + xi_hat)
-        # <<< eq.10 in ref{2}
-        return v, xi_hat
-
     def run(self, stft, eps=1e-7):
         """
         Arguments:
@@ -266,12 +250,10 @@ class iMCRA(object):
         Return:
             gain: real array, T x F
         """
+        T, F = stft.shape        
         obs_power = np.abs(stft)**2
-        T, F = obs_power.shape
         lambda_d_hat = obs_power[0]
         gh1 = 1
-        xi_hat = np.ones(F) * self.alpha["t"]
-        v = lambda_d_hat * xi_hat / (1 + xi_hat)
 
         def expint(v):
             return si.quad(lambda t: np.exp(-t) / t, v, np.inf)[0]
@@ -280,12 +262,30 @@ class iMCRA(object):
 
         s_min_sw_hat = []
         s_min_sw = []
-        g = []
+        G = []
         for t in range(T):
 
-            # >>> eq.14 in ref{1}
+            lambda_d = lambda_d_hat * self.beta
+
+            # >>> eq.3: posteriori SNR
+            gamma = obs_power[t] / np.maximum(lambda_d, eps)
+            # <<< eq.3
+
+            gain = gh1**2 * gamma
+            # >>> eq.32 : a priori SNR
+            xi_hat = self.alpha["t"] * gain + (
+                1 - self.alpha["t"]) * np.maximum(gamma - 1, 0)
+            xi_hat = np.maximum(xi_hat, self.xi_min)
+            # <<< eq.32
+
+            # >>> eq.33
+            v = gamma * xi_hat / (1 + xi_hat)
+            gh1 = xi_hat / (1 + xi_hat) * np.exp(0.5 * exp_para(v))
+            # <<< eq.33
+
+            # >>> eq.14
             var_sf = np.convolve(obs_power[t], self.w_m, mode="same")
-            # <<< eq.14 in ref{1}
+            # <<< eq.14
 
             if t == 0:
                 var_s = var_sf
@@ -293,21 +293,21 @@ class iMCRA(object):
                 var_s_min = var_sf
                 var_s_min_sw = var_sf
             else:
-                # >>> eq.15 in ref{1}
+                # >>> eq.15
                 var_s = self.alpha["s"] * var_s + (1 -
                                                    self.alpha["s"]) * var_sf
-                # <<< eq.15 in ref{1}
+                # <<< eq.15
                 var_s_min = np.minimum(var_s_min, var_s)
                 var_s_min_sw = np.minimum(var_s_min_sw, var_s)
 
-            # >>> eq.21 in ref{1}
+            # >>> eq.21
             gamma_min = obs_power[t] * self.b_min / np.maximum(var_s_min, eps)
             zeta = var_sf * self.b_min / np.maximum(var_s_min, eps)
             indicator = np.logical_and(gamma_min < self.gamma0,
                                        zeta < self.zeta0)
-            # <<< eq.21 in ref{1}
+            # <<< eq.21
 
-            # >>> eq.26 in ref{1}
+            # >>> eq.26
             ind_conv = np.convolve(indicator, self.w_m, mode="same")
             ind_nz_idx = (ind_conv > 0)
             obs_conv = np.convolve(obs_power[t] * indicator,
@@ -316,26 +316,26 @@ class iMCRA(object):
             var_sf_hat = var_s_hat.copy()
             var_sf_hat[
                 ind_nz_idx] = obs_conv[ind_nz_idx] / ind_conv[ind_nz_idx]
-            # <<< eq.26 in ref{1}
+            # <<< eq.26
 
             if t == 0:
                 var_s_min_hat = var_s
                 var_s_min_sw_hat = var_sf
             else:
-                # <<< eq.27 in ref{1}
+                # <<< eq.27
                 var_s_hat = self.alpha["s"] * var_s_hat + (
                     1 - self.alpha["s"]) * var_sf_hat
-                # >>> eq.27 in ref{1}
+                # >>> eq.27
                 var_s_min_hat = np.minimum(var_s_min_hat, var_s_hat)
                 var_s_min_sw_hat = np.minimum(var_s_min_sw_hat, var_s_hat)
 
-            # >>> eq.28 in ref{1}
+            # >>> eq.28
             gamma_min_hat = obs_power[t] * self.b_min / np.maximum(
                 var_s_min_hat, eps)
             zeta_hat = var_s * self.b_min / np.maximum(var_s_min_hat, eps)
-            # <<< eq.28 in ref{1}
+            # <<< eq.28
 
-            # >>> eq.29 in ref{1}
+            # >>> eq.29
             qhat_idx_c1 = gamma_min_hat < self.gamma1
             qhat_idx_c2 = gamma_min_hat > 1
             # 1 < gamma_min_hat < self.gamma1
@@ -346,9 +346,9 @@ class iMCRA(object):
             # (0, 1)
             q_hat[qhat_idx] = (self.gamma1 -
                                gamma_min_hat[qhat_idx]) / (self.gamma1 - 1)
-            # <<< eq.29 in ref{1}
+            # <<< eq.29
 
-            # >>> eq.7 in ref{1}
+            # >>> eq.7
             p_hat = np.zeros(F)
             p_hat_den = 1 + q_hat[qhat_idx] * (1 + xi_hat[qhat_idx]) / (
                 1 - q_hat[qhat_idx]) * np.exp(-v[qhat_idx])
@@ -357,17 +357,16 @@ class iMCRA(object):
             phat_idx = np.logical_and(gamma_min_hat >= self.gamma1,
                                       zeta_hat >= self.zeta0)
             p_hat[phat_idx] = 1
-            # <<< eq.7 in ref{1}
+            # <<< eq.7
 
-            # >>> eq.11 in ref{1}
+            # >>> eq.11
             alpha_d_hat = self.alpha["d"] + (1 - self.alpha["d"]) * p_hat
-            # <<< eq.11 in ref{1}
+            # <<< eq.11
 
-            # >>> eq.10 in ref{1}
+            # >>> eq.10
             lambda_d_hat = alpha_d_hat * lambda_d_hat + (
                 1 - alpha_d_hat) * obs_power[t]
-            # <<< eq.10 in ref{1}
-            lambda_d = lambda_d_hat * self.lambda_d_scaler
+            # <<< eq.10
 
             s_min_sw.append(var_s_min_sw)
             s_min_sw_hat.append(var_s_min_sw_hat)
@@ -381,18 +380,9 @@ class iMCRA(object):
                 var_s_min_sw = var_s
                 var_s_min_sw_hat = var_s_hat
 
-            v, xi_hat = self._derive_var_v(obs_power[t],
-                                           lambda_d,
-                                           gh1,
-                                           eps=eps)
+            # >>> gain function
+            gain = gh1**p_hat * self.gain_min**(1 - p_hat)
+            G.append(gain)
+            # <<< gain function
 
-            # >>> eq.15 in ref{1}
-            gh1 = xi_hat / (1 + xi_hat) * np.exp(0.5 * exp_para(v))
-            # <<< eq.15 in ref{1}
-
-            # >>> eq.16 in ref{1}
-            gt = gh1**p_hat * self.gain_min**(1 - p_hat)
-            g.append(gt)
-            # <<< eq.16 in ref{1}
-
-        return np.stack(g)
+        return np.stack(G)
