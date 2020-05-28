@@ -35,7 +35,7 @@ def run(args):
         logger.info(f"Using --doa-idx={args.doa_idx}")
 
     df_pair = [
-        tuple(map(int, p.split(","))) for p in args.diag_pair.split(";")
+        tuple(map(int, p.split(","))) for p in args.df_pair.split(";")
     ]
     if not len(df_pair):
         raise RuntimeError(f"Bad configurations with --pair {args.pair}")

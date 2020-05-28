@@ -80,7 +80,7 @@ def gcc_phat_diag(si,
     # omega = 2 * pi * fk
     omega = np.linspace(0, sr / 2, num_bins) * 2 * np.pi
     # F x D
-    trans = np.exp(1j * np.outer(omega, tau))
+    trans = np.exp(-1j * np.outer(omega, tau))
     # coherence matrix, T x F
     coherence = np.exp(1j * (np.angle(si) - np.angle(sj)))
     # T x D

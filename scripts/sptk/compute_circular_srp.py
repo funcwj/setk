@@ -48,7 +48,7 @@ def run(args):
                                   num_bins=num_ffts // 2 + 1,
                                   sr=args.sr,
                                   num_doa=args.num_doa))
-            srp = sum(srp) / len(srp_pair)
+            srp = np.average(np.stack(srp), axis=0)
             nan = np.sum(np.isnan(srp))
             if nan:
                 raise RuntimeError(f"Matrix {key} has nan ({nan:d}) items)")
