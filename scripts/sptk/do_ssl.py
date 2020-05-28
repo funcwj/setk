@@ -93,7 +93,7 @@ def run(args):
                                  mask=mask,
                                  compression=-1,
                                  eps=EPSILON)
-                doa = angles[idx]
+                doa = idx if args.output == "index" else angles[idx]
                 logger.info(f"Processing utterance {key}: {doa:.4f}")
                 doa_out.write(f"{key}\t{doa:.4f}\n")
             else:
@@ -118,7 +118,7 @@ def run(args):
                                      mask=chunk_mask,
                                      compression=-1,
                                      eps=EPSILON)
-                    doa = angles[idx]
+                    doa = idx if args.output == "index" else angles[idx]
                     online_doa.append(doa)
                 doa_str = " ".join([f"{d:.4f}" for d in online_doa])
                 doa_out.write(f"{key}\t{doa_str}\n")
@@ -127,7 +127,8 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Command to ML/SRP based sound souce localization (SSL)",
+        description="Command to ML/SRP based sound souce localization (SSL)."
+        "Also see scripts/sptk/compute_steer_vector.py",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -161,7 +162,7 @@ if __name__ == "__main__":
     parser.add_argument("--output",
                         type=str,
                         default="degree",
-                        choices=["radian", "degree"],
+                        choices=["radian", "degree", "index"],
                         help="Output type of the DoA")
     parser.add_argument("--mask-eps",
                         type=float,

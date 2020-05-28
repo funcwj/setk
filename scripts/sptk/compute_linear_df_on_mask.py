@@ -48,21 +48,20 @@ def run(args):
                 speech_covar = beamformer.compute_covar_mat(
                     speech_masks, spect)
                 sv = beamformer.compute_steer_vector(speech_covar)
-                df = directional_feats(spect, sv.T)
+                df = directional_feats(spect, sv.T, df_pair=None)
                 writer.write(key, df)
                 num_done += 1
                 if not num_done % 1000:
-                    logger.info("Processed {:d} utterance...".format(num_done))
+                    logger.info(f"Processed {num_done:d} utterance...")
             else:
-                logger.warn("Missing TF-mask for utterance {}".format(key))
-    logger.info("Processed {:d} utterances over {:d}".format(
-        num_done, len(feat_reader)))
+                logger.warn(f"Missing TF-mask for utterance {key}")
+    logger.info(f"Processed {num_done:d} utterances over {len(feat_reader):d}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=
-        "Command to compute directional features, based on estimated TF-masks",
+        description="Command to compute directional features for linear arrays, "
+        "based on estimated TF-masks",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",

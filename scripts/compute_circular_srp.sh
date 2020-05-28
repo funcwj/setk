@@ -56,13 +56,13 @@ name=$(basename $src_dir)
 
 if $compress ; then
   $cmd JOB=1:$nj $exp_dir/log/compute_srp.JOB.log \
-    ./scripts/sptk/compute_srp_circular.py $srp_opts \
+    ./scripts/sptk/compute_circular_srp.py $srp_opts \
     $exp_dir/wav.JOB.scp - \| \
     copy-feats --compress=$compress ark:- \
     ark,scp:$dst_dir/$name.srp.JOB.ark,$dst_dir/$name.srp.JOB.scp
 else
   $cmd JOB=1:$nj $exp_dir/log/compute_srp.JOB.log \
-    ./scripts/sptk/compute_srp_circular.py $srp_opts \
+    ./scripts/sptk/compute_circular_srp.py $srp_opts \
     --scp $dst_dir/$name.srp.JOB.scp \
     $exp_dir/wav.JOB.scp $dst_dir/$name.srp.JOB.ark
 fi 

@@ -61,13 +61,13 @@ df_opts="$df_opts --mask-format $mask_format"
 
 if $compress ; then
   $cmd JOB=1:$nj $exp_dir/log/compute_df_$dir.JOB.log \
-    ./scripts/sptk/compute_directional_feats.py \
+    ./scripts/sptk/compute_linear_df_mask.py \
     $df_opts $exp_dir/wav.JOB.scp \
     $exp_dir/masks.scp - \| copy-feats --compress=$compress ark:- \
     ark,scp:$dst_dir/$dir.$name.JOB.ark,$dst_dir/$dir.$name.JOB.scp
 else
   $cmd JOB=1:$nj $exp_dir/log/compute_df_$dir.JOB.log \
-    ./scripts/sptk/compute_directional_feats.py $df_opts \
+    ./scripts/sptk/compute_linear_df_mask.py $df_opts \
     --scp $dst_dir/$dir.$name.JOB.scp \
     $exp_dir/wav.JOB.scp $exp_dir/masks.scp \
     $dst_dir/$dir.$name.JOB.ark

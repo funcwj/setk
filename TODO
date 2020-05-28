@@ -1,5 +1,5 @@
 TODO:
 
-1. FastICA/SNMF (Sparse Non-negative Matrix Factor) algorithm
-2. Signal processing methods for speech enhancement/separation
+1. AGC, AEC, GSC
+2. Conventional methods for speech enhancement/separation
 3. ...
