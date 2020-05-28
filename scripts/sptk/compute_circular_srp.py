@@ -9,38 +9,9 @@ import numpy as np
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 from libs.utils import get_logger, nextpow2, EPSILON
 from libs.opts import StftParser
+from libs.spatial import gcc_phat_diag
 
 logger = get_logger(__name__)
-
-
-def gcc_phat_diag(si,
-                  sj,
-                  angle_delta,
-                  d,
-                  speed=340,
-                  num_doa=121,
-                  sr=16000,
-                  normalize=True,
-                  num_bins=513,
-                  apply_floor=True):
-    """
-    Compute gcc-phat between diagonal microphones
-    """
-    doa_samp = np.linspace(0, np.pi * 2, num_doa)
-    tau = np.cos(angle_delta - doa_samp) * d / speed
-    # omega = 2 * pi * fk
-    omega = np.linspace(0, sr / 2, num_bins) * 2 * np.pi
-    # F x D
-    trans = np.exp(1j * np.outer(omega, tau))
-    # coherence matrix, T x F
-    coherence = np.exp(1j * (np.angle(si) - np.angle(sj)))
-    # T x D
-    spectrum = np.real(coherence @ trans)
-    if normalize:
-        spectrum = spectrum / np.max(np.maximum(np.abs(spectrum), EPSILON))
-    if apply_floor:
-        spectrum = np.maximum(spectrum, 0)
-    return spectrum
 
 
 def run(args):
@@ -48,9 +19,8 @@ def run(args):
         tuple(map(int, p.split(","))) for p in args.diag_pair.split(";")
     ]
     if not len(srp_pair):
-        raise RuntimeError("Bad configurations with --pair {}".format(
-            args.pair))
-    logger.info("Compute gcc with {}".format(srp_pair))
+        raise RuntimeError(f"Bad configurations with --pair {args.pair}")
+    logger.info(f"Compute gcc with {srp_pair}")
 
     stft_kwargs = {
         "frame_len": args.frame_len,
@@ -81,12 +51,11 @@ def run(args):
             srp = sum(srp) / len(srp_pair)
             nan = np.sum(np.isnan(srp))
             if nan:
-                raise RuntimeError("Matrix {} has nan ({:d}} items)".format(
-                    key, nan))
+                raise RuntimeError(f"Matrix {key} has nan ({nan:d}) items)")
             writer.write(key, srp)
             if not num_done % 1000:
-                logger.info("Processed {:d} utterances...".format(num_done))
-    logger.info("Processd {:d} utterances done".format(len(reader)))
+                logger.info(f"Processed {num_done:d} utterances...")
+    logger.info(f"Processd {len(reader):d} utterances done")
 
 
 if __name__ == "__main__":

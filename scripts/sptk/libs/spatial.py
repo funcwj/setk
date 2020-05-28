@@ -56,6 +56,42 @@ def gcc_phat_linear(si, sj, dij, normalize=True, apply_floor=True, **kwargs):
         spectrum = np.maximum(spectrum, 0)
     return spectrum
 
+
+def gcc_phat_diag(si,
+                  sj,
+                  angle_delta,
+                  d,
+                  speed=340,
+                  num_doa=121,
+                  sr=16000,
+                  normalize=True,
+                  num_bins=513,
+                  apply_floor=True):
+    """
+    Compute gcc-phat between diagonal microphones for circular arrays
+    Arguments:
+        d: diameter of circular array
+        angle_delta: angle position of the array-i
+    Return:
+        shape as T x D
+    """
+    doa_samp = np.linspace(0, np.pi * 2, num_doa)
+    tau = np.cos(angle_delta - doa_samp) * d / speed
+    # omega = 2 * pi * fk
+    omega = np.linspace(0, sr / 2, num_bins) * 2 * np.pi
+    # F x D
+    trans = np.exp(1j * np.outer(omega, tau))
+    # coherence matrix, T x F
+    coherence = np.exp(1j * (np.angle(si) - np.angle(sj)))
+    # T x D
+    spectrum = np.real(coherence @ trans)
+    if normalize:
+        spectrum = spectrum / np.max(np.maximum(np.abs(spectrum), EPSILON))
+    if apply_floor:
+        spectrum = np.maximum(spectrum, 0)
+    return spectrum
+
+
 def srp_phat_linear(S, d, normalize=True, apply_floor=True, **kwargs):
     """
     SRP-PHAT algorithm for linear array
@@ -144,29 +180,28 @@ def ipd(si, sj, cos=False, sin=False):
     return np.concatenate((cos_ipd, sin_ipd), axis=1)
 
 
-def directional_feats(spectrogram, steer_vector):
+def directional_feats(spectrogram, steer_vector, df_pair=None):
     """
-    Compute directional features, suppose we got steer_vector
+    Compute directional features based on steer_vector
     Reference:
         see function msc
     Arguments:
-        spectrogram: N x F x T
-        steer_vector: N x F
+        spectrogram: M x F x T
+        steer_vector: M x F
     Return:
         directional_feats: T x F
     """
-    N, F, T = spectrogram.shape
+    M, _, _ = spectrogram.shape
     arg_s, arg_t = np.angle(spectrogram), np.angle(steer_vector)
-    df = np.zeros([N * (N - 1) // 2, F, T])
-    idx = 0
-    for i in range(N):
-        for j in range(i + 1, N):
-            # F x T
-            delta_s = arg_s[i] - arg_s[j]
-            # 1 x T
-            delta_t = np.expand_dims(arg_t[i] - arg_t[j], 1)
-            # F x T
-            df[idx] = np.cos(delta_s - delta_t)
-            idx += 1
-    df = np.average(df, axis=0)
+    df = []
+    if df_pair is None:
+        df_pair = [(i, j) for i in range(M) for j in range(i + 1, M)]
+    for i, j in df_pair:
+        # F x T
+        delta_s = arg_s[i] - arg_s[j]
+        # 1 x T
+        delta_t = np.expand_dims(arg_t[i] - arg_t[j], 1)
+        # F x T
+        df.append(np.cos(delta_s - delta_t))
+    df = np.average(np.stack(df), axis=0)
     return np.transpose(df)

@@ -142,7 +142,6 @@ def diffuse_covar(num_bins, dist_mat, sr=16000, c=340, diag_eps=0.1):
 def plane_steer_vector(distance, num_bins, c=340, sr=16000):
     """
     Compute steer vector given projected distance on DoA:
-    ---------> 0 degree
     Arguments:
         distance: numpy array, N
         num_bins: number of frequency bins
@@ -150,7 +149,7 @@ def plane_steer_vector(distance, num_bins, c=340, sr=16000):
         steer_vector: F x N
     """
     omega = np.pi * np.arange(num_bins) * sr / (num_bins - 1)
-    steer_vector = np.exp(-1j * np.outer(omega, -distance / c))
+    steer_vector = np.exp(-1j * np.outer(omega, distance / c))
     return steer_vector
 
 
@@ -158,6 +157,9 @@ def linear_steer_vector(topo, doa, num_bins, c=340, sr=16000):
     """
     Compute steer vector for linear array:
         [..., e^{-j omega tau_i}, ...], where omega = 2*pi * f
+    0   1   ...     N - 1
+    *   *   ...     *
+    0   d1  ...     d(N-1)
     Arguments:
         topo: linear topo, N
         doa: direction of arrival, in angle
@@ -166,7 +168,9 @@ def linear_steer_vector(topo, doa, num_bins, c=340, sr=16000):
         steer_vector: F x N
     """
     dist = np.cos(doa * np.pi / 180) * topo
-    return plane_steer_vector(dist, num_bins, c=c, sr=sr)
+    # why use -dist ?
+    # 180 degree <---------> 0 degree
+    return plane_steer_vector(-dist, num_bins, c=c, sr=sr)
 
 
 def circular_steer_vector(redius,
@@ -189,11 +193,12 @@ def circular_steer_vector(redius,
         steer_vector: F x N
     """
     # N
-    dirc = np.arange(num_channels) * 2 / num_channels * np.pi
+    dirc = np.arange(num_channels) * 2 * np.pi / num_channels
     dist = np.cos(dirc - doa) * redius
     if center:
+        # 1 + N
         dist = np.concatenate([np.array([0]), dist])
-    return plane_steer_vector(dist, num_bins, c=c, sr=sr)
+    return plane_steer_vector(-dist, num_bins, c=c, sr=sr)
 
 
 class Beamformer(object):

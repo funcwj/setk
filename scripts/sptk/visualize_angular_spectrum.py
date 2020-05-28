@@ -42,6 +42,7 @@ def save_figure(key, mat, dest, hop=16, samp_tdoa=False, size=3):
     ax.set_ylabel("DoA" if not samp_tdoa else "TDoA Index",
                   fontdict={"family": default_font})
     fig.savefig(f"{dest}.{default_fmt}", dpi=default_dpi, format=default_fmt)
+    plt.close(fig)
 
 
 def run(args):

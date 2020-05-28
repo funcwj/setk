@@ -82,6 +82,7 @@ def save_figure(key,
     else:
         sub_plot(ax, mat, T, F, title=title)
     fig.savefig(f"{dest}.{default_fmt}", dpi=default_dpi, format=default_fmt)
+    plt.close(fig)
 
 
 def run(args):
