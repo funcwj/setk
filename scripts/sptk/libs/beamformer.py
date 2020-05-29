@@ -162,19 +162,18 @@ def linear_steer_vector(topo, doa, num_bins, c=340, sr=16000):
     0   d1  ...     d(N-1)
     Arguments:
         topo: linear topo, N
-        doa: direction of arrival, in angle
+        doa: direction of arrival, in degree
         num_bins: number of frequency bins
     Return:
         steer_vector: F x N
     """
     dist = np.cos(doa * np.pi / 180) * topo
-    # why use -dist ?
     # 180 degree <---------> 0 degree
-    return plane_steer_vector(-dist, num_bins, c=c, sr=sr)
+    return plane_steer_vector(dist, num_bins, c=c, sr=sr)
 
 
 def circular_steer_vector(redius,
-                          num_channels,
+                          num_arounded,
                           doa,
                           num_bins,
                           c=349,
@@ -185,16 +184,16 @@ def circular_steer_vector(redius,
         [..., e^{-j omega tau_i}, ...], where omega = 2*pi * f
     Arguments:
         redius: redius for circular array
-        num_channels: number of microphones
-        doa: direction of arrival, in angle
+        num_arounded: number of microphones on the circle
+        doa: direction of arrival, in degree
         num_bins: number of frequency bins
         center: is there a microphone in the centor?
     Return:
         steer_vector: F x N
     """
     # N
-    dirc = np.arange(num_channels) * 2 * np.pi / num_channels
-    dist = np.cos(dirc - doa) * redius
+    dirc = np.arange(num_arounded) * 2 * np.pi / num_arounded
+    dist = np.cos(dirc - doa * np.pi / 180) * redius
     if center:
         # 1 + N
         dist = np.concatenate([np.array([0]), dist])
@@ -338,30 +337,28 @@ class FixedBeamformer(Beamformer):
         return self.beamform(self.weight, spectrogram)
 
 
-class LinearDSBeamformer(Beamformer):
+class DSBeamformer(Beamformer):
     """
-    Delay and Sum Beamformer (for linear array)
+    Base DS beamformer
     """
-    def __init__(self, linear_topo):
-        super(LinearDSBeamformer, self).__init__()
-        self.linear_topo = np.array(linear_topo)
-        self.num_mics = len(linear_topo)
+    def __init__(self, num_mics):
+        super(DSBeamformer, self).__init__()
+        self.num_mics = num_mics
 
     def weight(self, doa, num_bins, c=340, sr=16000):
         """
         Arguments:
-            doa: direction of arrival, in angle
+            doa: direction of arrival, in degree
             num_bins: number of frequency bins
         Return:
             weight: F x N
         """
-        sv = linear_steer_vector(self.linear_topo, doa, num_bins, c=c, sr=sr)
-        return sv / self.num_mics
+        raise NotImplementedError
 
     def run(self, doa, spectrogram, c=340, sr=16000):
         """
         Arguments: (for N: num_mics, F: num_bins, T: num_frames)
-            doa: direction of arrival, in angle
+            doa: direction of arrival, in degree
             spectrogram: shape as N x F x T
         Return:
             stft_enhan: shape as F x T
@@ -375,17 +372,68 @@ class LinearDSBeamformer(Beamformer):
         return self.beamform(weight, spectrogram)
 
 
+class LinearDSBeamformer(DSBeamformer):
+    """
+    Delay and Sum Beamformer (for linear array)
+    """
+    def __init__(self, linear_topo):
+        super(LinearDSBeamformer, self).__init__(len(linear_topo))
+        self.linear_topo = np.array(linear_topo)
+
+    def weight(self, doa, num_bins, c=340, sr=16000):
+        """
+        Arguments:
+            doa: direction of arrival, in degree
+            num_bins: number of frequency bins
+        Return:
+            weight: F x N
+        """
+        sv = linear_steer_vector(self.linear_topo, doa, num_bins, c=c, sr=sr)
+        return sv / self.num_mics
+
+
+class CircularDSBeamformer(DSBeamformer):
+    """
+    Delay and Sum Beamformer (for circular array)
+    """
+    def __init__(self, radius, num_arounded, center=False):
+        super(CircularDSBeamformer,
+              self).__init__(num_arounded + 1 if center else num_arounded)
+        self.radius = radius
+        self.center = center
+        self.num_arounded = num_arounded
+
+    def weight(self, doa, num_bins, c=340, sr=16000):
+        """
+        Arguments:
+            doa: direction of arrival, in degree
+            num_bins: number of frequency bins
+        Return:
+            weight: F x N
+        """
+        sv = circular_steer_vector(self.radius,
+                                   self.num_arounded,
+                                   doa,
+                                   num_bins,
+                                   c=c,
+                                   sr=sr,
+                                   center=self.center)
+        return sv / self.num_mics
+
+
 class LinearSDBeamformer(LinearDSBeamformer):
     """
     Linear SupperDirective Beamformer in diffused noise field
     """
     def __init__(self, linear_topo):
         super(LinearSDBeamformer, self).__init__(linear_topo)
+        mat = np.tile(self.linear_topo, (self.num_mics, 1))
+        self.distance_mat = np.abs(mat - np.transpose(mat))
 
     def weight(self, doa, num_bins, c=340, sr=16000, diag_eps=0.1):
         """
         Arguments:
-            doa: direction of arrival, in angle
+            doa: direction of arrival, in degree
             num_bins: number of frequency bins
         Return:
             weight: shape as F x N
@@ -394,10 +442,8 @@ class LinearSDBeamformer(LinearDSBeamformer):
                                                               num_bins,
                                                               c=c,
                                                               sr=sr)
-        # print(steer_vector)
-        mat = np.tile(self.linear_topo, (self.num_mics, 1))
         Rvv = diffuse_covar(num_bins,
-                            mat - np.transpose(mat),
+                            self.distance_mat,
                             sr=sr,
                             c=c,
                             diag_eps=diag_eps)
@@ -407,40 +453,55 @@ class LinearSDBeamformer(LinearDSBeamformer):
         return numerator / np.expand_dims(denominator, axis=-1)
 
 
-class GeneralSDBeamformer(Beamformer):
+class CircularSDBeamformer(CircularDSBeamformer):
     """
-    General SuperDirective Beamformer
+    Circular SupperDirective Beamformer in diffused noise field
     """
-    def __init__(self, steer_vector, distance_mat):
-        self.steer_vector = steer_vector
-        self.distance_mat = distance_mat
+    def __init__(self, radius, num_arounded, center=False):
+        super(CircularSDBeamformer, self).__init__(radius,
+                                                   num_arounded,
+                                                   center=center)
+        self.distance_mat = self._compute_distance_mat()
 
-    def weight(self, num_bins, c=340, sr=16000, diag_eps=1e-5):
+    def _compute_distance_mat(self):
+        """
+        Compute distance matrix D = [d_{ij}...]
+        """
+        distance_mat = np.zeros((self.num_mics, self.num_mics))
+        if self.center:
+            distance_mat[0, 1:] = self.radius
+            raw = 1
+        else:
+            raw = 0
+        ang = np.pi / self.num_arounded
+        for r in range(raw, self.num_mics):
+            for c in range(r + 1, self.num_mics):
+                distance_mat[r, c] = np.abs(
+                    np.sin((c - r) * ang) * 2 * self.radius)
+        distance_mat += distance_mat.T
+        return distance_mat
+
+    def weight(self, doa, num_bins, c=340, sr=16000, diag_eps=1e-5):
         """
         Arguments:
-            num_bins: number of the frequency bins
+            doa: direction of arrival, in degree
+            num_bins: number of frequency bins
         Return:
             weight: shape as F x N
         """
+        steer_vector = super(CircularSDBeamformer, self).weight(doa,
+                                                                num_bins,
+                                                                c=c,
+                                                                sr=sr)
         Rvv = diffuse_covar(num_bins,
                             self.distance_mat,
                             sr=sr,
                             c=c,
                             diag_eps=diag_eps)
-        numerator = np.linalg.solve(Rvv, self.steer_vector)
-        denominator = np.einsum("...d,...d->...", self.steer_vector.conj(),
+        numerator = np.linalg.solve(Rvv, steer_vector)
+        denominator = np.einsum("...d,...d->...", steer_vector.conj(),
                                 numerator)
         return numerator / np.expand_dims(denominator, axis=-1)
-
-    def run(self, spectrogram, c=340, sr=16000):
-        """
-        Arguments: (for N: num_mics, F: num_bins, T: num_frames)
-            spectrogram: shape as N x F x T
-        Return:
-            stft_enhan: shape as F x T
-        """
-        weight = self.weight(spectrogram.shape[1], c=c, sr=sr)
-        return self.beamform(weight, spectrogram)
 
 
 class MvdrBeamformer(SupervisedBeamformer):

@@ -14,20 +14,20 @@ from libs.opts import StrToBoolAction, str2tuple
 
 
 def run(args):
-    if args.type == "linear":
+    if args.geometry == "linear":
         topo = np.array(str2tuple(args.linear_topo))
-        candidate_doa = np.linspace(0, 180, args.num_doas) * np.pi / 180
+        candidate_doa = np.linspace(0, 180, args.num_doas)
     else:
         topo = None
         step = 360 / args.num_doas
-        candidate_doa = np.arange(0, 360, step) * np.pi / 180
+        candidate_doa = np.arange(0, 360, step)
 
     sv = []
     for doa in candidate_doa:
         if topo is None:
             sv.append(
                 circular_steer_vector(args.circular_radius,
-                                      args.circular_number,
+                                      args.circular_around,
                                       doa,
                                       args.num_bins,
                                       c=args.speed,
@@ -78,7 +78,7 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="Topology of linear microphone arrays")
-    parser.add_argument("--circular-number",
+    parser.add_argument("--circular-around",
                         type=int,
                         default=6,
                         help="Number of the micriphones in circular arrays")
@@ -91,7 +91,7 @@ if __name__ == "__main__":
                         default=False,
                         help="Is there a microphone put in the "
                         "center of the circular array?")
-    parser.add_argument("--type",
+    parser.add_argument("--geometry",
                         type=str,
                         choices=["linear", "circular"],
                         default="linear",
