@@ -8,7 +8,11 @@ nj=40
 cmd="run.pl"
 fs=16000
 speed=340
-topo="0,0.2,0.4,0.6"
+geometry="linear"
+linear_topo="0,0.2,0.4,0.6"
+circular_radius=0.5
+circular_center=false
+circular_around=6
 doa_list="30 70 110 150"
 utt2doa=""
 stft_conf=./conf/stft.conf
@@ -21,7 +25,11 @@ function usage {
   echo "  --cmd         <run.pl|queue.pl>   # how to run jobs, (default=$cmd)"
   echo "  --stft-conf   <stft-conf>         # stft configurations files, (default=$stft_conf)"
   echo "  --fs          <fs>                # sample frequency for source signal, (default=$fs)"
-  echo "  --topo        <topo>              # topology for linear microphone arrays, (default=$topo)"
+  echo "  --geometry    <linear|circular>   # geometry of the array, (default=$geometry)"
+  echo "  --linear-topo <topo>              # topology for linear microphone arrays, (default=$linear_topo)"
+  echo "  --circular-center <center>        # is there a microphone in the center, (default=$circular_center)"
+  echo "  --circular-radius <radius>        # radius of the array, (default=$circular_radius)"
+  echo "  --circular-around <around>        # number microphones around the center, (default=$circular_around)"
   echo "  --doa-list    <doa-list>          # list of DoA to be processed, (default=$doa_list)"
   echo "  --utt2doa     <utt2doa>           # utt2doa file, (default=$utt2doa)"
   echo "  --speed       <speed>             # sound speed, (default=$speed)"
@@ -44,8 +52,21 @@ for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_dir/wav.$n.scp"; done
 
 ./utils/split_scp.pl $wav_scp $split_wav_scp
 stft_opts=$(cat $stft_conf | xargs)
-beamformer_opts="--fs $fs --speed $speed --linear-topo $topo"
+beamformer_opts="--sr $fs --speed $speed --geometry $geometry"
 
+case $geometry in 
+  "linear" )
+    beamformer_opts="$beamformer_opts --linear-topo $linear_topo"
+    ;;
+  "circular" )    
+    beamformer_opts="$beamformer_opts --circular-around $circular_around"
+    beamformer_opts="$beamformer_opts --circular-radius $circular_radius"
+    beamformer_opts="$beamformer_opts --circular_center $circular_center"
+    ;;
+  * )
+    echo "$0: Unknown type of geometry: $geometry" && exit 1
+    ;;
+esac
 if [ ! -z $utt2doa ]; then
   echo "$0: Run DS beamformer on $utt2doa ..."
   mkdir -p $dst_dir/doa${doa}_$dirname

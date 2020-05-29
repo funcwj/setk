@@ -9,9 +9,23 @@ import numpy as np
 from libs.utils import inverse_stft, get_logger
 from libs.opts import StftParser, str2tuple
 from libs.data_handler import SpectrogramReader, WaveWriter, ScpReader
-from libs.beamformer import LinearDSBeamformer
+from libs.beamformer import LinearDSBeamformer, CircularDSBeamformer
+from libs.opts import StrToBoolAction
 
 logger = get_logger(__name__)
+
+
+def check_doa(geometry, doa):
+    """
+    Check value of the DoA
+    """
+    if doa < 0:
+        return False
+    if geometry == "linear" and doa > 180:
+        return False
+    if geometry == "circular" and doa >= 360:
+        return False
+    return True
 
 
 def run(args):
@@ -23,18 +37,29 @@ def run(args):
         "transpose": False
     }
 
+    if args.geometry == "linear":
+        topo = str2tuple(args.linear_topo)
+        beamformer = LinearDSBeamformer(topo)
+        logger.info(f"Initialize LinearDSBeamformer for array: {topo}")
+    else:
+        beamformer = CircularDSBeamformer(args.circular_radius,
+                                          args.circular_around,
+                                          center=args.circular_center)
+        logger.info(
+            "Initialize CircularDSBeamformer for " +
+            f"radius = {args.circular_radius}, center = {args.circular_center}"
+        )
+
     utt2doa = None
     doa = None
     if args.utt2doa:
         utt2doa = ScpReader(args.utt2doa, value_processor=lambda x: float(x))
-        logger.info(f"Use utt2doa {args.utt2doa} for each utterance")
+        logger.info(f"Use --utt2doa={args.utt2doa} for each utterance")
     else:
         doa = args.doa
-        if doa < 0:
-            doa = 180 + doa
-        if doa < 0 or doa > 180:
-            raise RuntimeError(f"Invalid doa {doa:.2f} for --doa")
-        logger.info(f"Use DoA {doa:.2f} for all utterances")
+        if not check_doa(args.geometry, doa):
+            logger.info(f"Invalid doa {doa:.2f} for {args.geometry} array")
+        logger.info(f"Use --doa={doa:.2f} for all utterances")
 
     spectrogram_reader = SpectrogramReader(
         args.wav_scp,
@@ -42,32 +67,26 @@ def run(args):
         **stft_kwargs)
 
     done = 0
-    topo = str2tuple(args.linear_topo)
-    beamformer = LinearDSBeamformer(topo)
-    logger.info(f"Initialize channel LinearDSBeamformer for array: {topo}")
-
-    with WaveWriter(args.dst_dir, fs=args.fs) as writer:
+    with WaveWriter(args.dst_dir, fs=args.sr) as writer:
         for key, stft_src in spectrogram_reader:
             if utt2doa:
                 if key not in utt2doa:
                     continue
                 doa = utt2doa[key]
-                if doa < 0:
-                    doa = 180 + doa
-                if doa < 0 or doa > 180:
+                if not check_doa(args.geometry, doa):
                     logger.info(f"Invalid doa {doa:.2f} for utterance {key}")
                     continue
-            stft_enh = beamformer.run(doa, stft_src, c=args.speed, sr=args.fs)
+            stft_enh = beamformer.run(doa, stft_src, c=args.speed, sr=args.sr)
             done += 1
-            norm = spectrogram_reader.maxabs(key)
-            samps = inverse_stft(stft_enh, **stft_kwargs, norm=norm)
+            # norm = spectrogram_reader.maxabs(key)
+            samps = inverse_stft(stft_enh, **stft_kwargs)
             writer.write(key, samps)
     logger.info(f"Processed {done} utterances over {len(spectrogram_reader)}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Command to apply delay and sum beamformer (linear array).",
+        description="Command to apply delay and sum beamformer (linear & circular array).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -76,18 +95,36 @@ if __name__ == "__main__":
     parser.add_argument("dst_dir",
                         type=str,
                         help="Directory to dump enhanced results")
-    parser.add_argument("--fs",
+    parser.add_argument("--sr",
                         type=int,
                         default=16000,
-                        help="Sample frequency of input wave")
+                        help="Sample rate of the input wave")
     parser.add_argument("--speed",
                         type=float,
                         default=340,
                         help="Speed of sound")
+    parser.add_argument("--geometry",
+                        type=str,
+                        choices=["linear", "circular"],
+                        default="linear",
+                        help="Geometry of the microphone array")
     parser.add_argument("--linear-topo",
                         type=str,
-                        required=True,
+                        default="",
                         help="Topology of linear microphone arrays")
+    parser.add_argument("--circular-around",
+                        type=int,
+                        default=6,
+                        help="Number of the micriphones in circular arrays")
+    parser.add_argument("--circular-radius",
+                        type=float,
+                        default=0.05,
+                        help="Radius of circular array")
+    parser.add_argument("--circular-center",
+                        action=StrToBoolAction,
+                        default=False,
+                        help="Is there a microphone put in the "
+                        "center of the circular array?")
     parser.add_argument("--utt2doa",
                         type=str,
                         default="",
