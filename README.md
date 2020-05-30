@@ -59,4 +59,3 @@ export OPENBLAS_ROOT=/path/to/openblas/root
 cmake ..
 make -j
 ```
-

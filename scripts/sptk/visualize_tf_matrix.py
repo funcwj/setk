@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 from libs.data_handler import ScriptReader, ArchiveReader, DirReader
-from libs.utils import get_logger, filekey
+from libs.utils import get_logger, filekey, EPSILON
 from libs.opts import StrToBoolAction
 
 default_font = "Times New Roman"
@@ -99,7 +99,7 @@ def run(args):
         if mat.ndim == 3 and args.index >= 0:
             mat = mat[args.index]
         if args.apply_log:
-            mat = np.log10(mat)
+            mat = np.log10(mat + EPSILON)
         if args.trans:
             mat = np.swapaxes(mat, -1, -2)
         if args.norm:

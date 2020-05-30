@@ -18,7 +18,6 @@ from libs.opts import StftParser, StrToBoolAction
 
 logger = get_logger(__name__)
 
-
 def run(args):
     stft_kwargs = {
         "frame_len": args.frame_len,

@@ -116,10 +116,9 @@ def srp_phat_linear(S, d, normalize=True, apply_floor=True, **kwargs):
         return gcc
     srp = np.zeros_like(gcc)
     pair = [(i, j) for i in range(N) for j in range(i + 1, N)]
-    print(pair)
     for i, j in pair:
-        srp += gcc_phat_linear(S[i], S[j], d[j] - d[i], normalize,
-                                apply_floor, **kwargs)
+        srp += gcc_phat_linear(S[i], S[j], d[j] - d[i], normalize, apply_floor,
+                               **kwargs)
     return srp * 2 / (N * (N - 1))
 
 

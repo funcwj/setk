@@ -90,9 +90,11 @@ def compute_mask(tgt, mix, mask):
         denominator = mix_abs
     if mask == "psm":
         return tgt_abs * np.cos(np.angle(mix) - np.angle(tgt)) / denominator
+    # phase sensitive amplitude
     elif mask == "psa":
         # keep nominator only
-        return tgt_abs * np.cos(np.angle(mix) - np.angle(tgt))
+        non_neg = np.maximum(0, np.cos(np.angle(mix) - np.angle(tgt)))
+        return tgt_abs * non_neg
     elif mask == "crm":
         # stack real/imag part
         cpx_mask = tgt / denominator
@@ -185,7 +187,7 @@ if __name__ == "__main__":
                         choices=["irm", "ibm", "iam", "psm", "psa", "crm"],
                         help="Type of masks(irm/ibm/iam(FFT-mask,"
                         "smm)/psm/psa/crm) to compute. \'psa\' is not "
-                        "a real mask(nominator of psm), but could compute "
+                        "a real mask (nominator of psm), but could compute "
                         "using this command. Noted that if "
                         "iam/psm assigned, second .scp is expected "
                         "to be noisy component.")
