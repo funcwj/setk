@@ -419,8 +419,9 @@ if __name__ == "__main__":
                         help="Constraint for room length/width/height, "
                         "separated by semicolon")
     parser.add_argument("--vertical-oriented",
-                        action="store_true",
+                        action=StrToBoolAction,
                         dest="vertical",
+                        default=False,
                         help="Orientation to place microphone "
                         "array (vertical or horizontal)")
     parser.add_argument("--array-height",

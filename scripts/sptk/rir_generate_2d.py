@@ -432,10 +432,8 @@ if __name__ == "__main__":
                         help="Range of speaker's height")
     parser.add_argument("--array-topo",
                         type=str,
-                        default="0,0;0.06,0;0.03,0.05196;"
-                        "-0.03,0.05196;-0.06,0;"
-                        "-0.03,-0.05196;0.03,-0.05196",
-                        help="Topology of the microphone arrays.")
+                        default="0,0.05;0.05,0;0,-0.05;-0.05,0",
+                        help="Topology of the 2D microphone arrays.")
     parser.add_argument("--absorption-coefficient-range",
                         action=StrToFloatTupleAction,
                         dest="abs_range",

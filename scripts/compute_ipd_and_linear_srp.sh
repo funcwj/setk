@@ -82,14 +82,14 @@ name=$(basename $src_dir)
 
 if $compress ; then
   $cmd JOB=1:$nj $exp_dir/log/compute_$feats.JOB.log \
-    ./scripts/sptk/compute_linear_spatial_feats.py \
+    ./scripts/sptk/compute_ipd_and_linear_srp.py \
     --type $feats $spatial_opts \
     $exp_dir/wav.JOB.scp - \| \
     copy-feats --compress=$compress ark:- \
     ark,scp:$dst_dir/$name.$feats.JOB.ark,$dst_dir/$name.$feats.JOB.scp
 else
   $cmd JOB=1:$nj $exp_dir/log/compute_$feats.JOB.log \
-    ./scripts/sptk/compute_linear_spatial_feats.py \
+    ./scripts/sptk/compute_ipd_and_linear_srp.py \
     --type $feats $spatial_opts \
     --scp $dst_dir/$name.$feats.JOB.scp \
     $exp_dir/wav.JOB.scp $dst_dir/$name.$feats.JOB.ark
