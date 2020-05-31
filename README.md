@@ -1,6 +1,6 @@
 ## SETK: Speech Enhancement Tools integrated with Kaldi
 
-Here are some speech enhancement/separation tools integrated with kaldi. I use them for front-end's data processing.
+Here are some speech enhancement/separation tools integrated with [Kaldi](https://github.com/kaldi-asr/kaldi). I use them for front-end's data processing.
 
 ### Finished based on Kaldi
 
@@ -34,8 +34,6 @@ Here are some speech enhancement/separation tools integrated with kaldi. I use t
 * Mask-based source localization
 * ...
 
-***This part is independent with Kaldi and some scripts may report errors as they are still in updating***
-
 ### Compile
 
 Compile [Kaldi](https://github.com/kaldi-asr/kaldi) with `--shared` flags and patch `matrix/matrix-common.h`
@@ -59,3 +57,19 @@ export OPENBLAS_ROOT=/path/to/openblas/root
 cmake ..
 make -j
 ```
+
+### Document
+
+* [Adaptive Beamformer](doc/adaptive_beamformer)
+* [Fixed Beamformer](doc/fixed_beamformer)
+* [Sound Source Localization](doc/ssl)
+* [Spectral Feature](doc/spectral_feature)
+* [Spatial Feature](doc/spatial_feature)
+* [VAD](doc/vad)
+* [Noise Suppression](doc/ns)
+* [Steer Vector](doc/steer_vector)
+* [Room Impluse Response](doc/rir)
+* [Spatial Clustering](doc/spatial_clustering)
+* [WPE](doc/wpe)
+* [Time-frequency Mask](doc/tf_mask)
+

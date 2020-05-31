@@ -37,8 +37,7 @@ def save_figure(key,
                 cmap="jet",
                 hop=256,
                 sr=16000,
-                title="",
-                size=3):
+                title=""):
     """
     Save figure to disk
     """
@@ -96,6 +95,10 @@ def run(args):
     # ndarrays or archives
     mat_reader = reader_templ[args.input](args.rspec)
     for key, mat in mat_reader:
+        if args.split > 1:
+            T, F = mat.shape
+            mat = mat.reshape((T, args.split, F // args.split))
+            mat = np.transpose(mat, (1, 0, 2))
         if mat.ndim == 3 and args.index >= 0:
             mat = mat[args.index]
         if args.apply_log:
@@ -110,7 +113,6 @@ def run(args):
                     cmap=args.cmap,
                     hop=args.frame_hop,
                     sr=args.sr,
-                    size=args.size,
                     title=args.title)
 
 
@@ -160,10 +162,6 @@ if __name__ == "__main__":
                         choices=["binary", "jet", "hot"],
                         default="jet",
                         help="Colormap used when save figures")
-    parser.add_argument("--size",
-                        type=int,
-                        default=5,
-                        help="Minimum height of images (in inches)")
     parser.add_argument("--index",
                         type=int,
                         default=-1,
@@ -172,5 +170,9 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="Title of the pictures")
+    parser.add_argument("--split",
+                        type=int,
+                        default=-1,
+                        help="Split 2D matrice into several sub-matrices")
     args = parser.parse_args()
     run(args)

@@ -27,8 +27,7 @@ def save_figure(key,
                 cmap="jet",
                 hop=256,
                 sr=16000,
-                title="",
-                size=3):
+                title=""):
     """
     Save figure to disk
     """
@@ -100,7 +99,6 @@ def run(args):
                     cmap=args.cmap,
                     hop=args.frame_hop,
                     sr=args.sr,
-                    size=args.size,
                     title=args.title)
 
 
@@ -122,10 +120,6 @@ if __name__ == "__main__":
                         choices=["binary", "jet", "hot"],
                         default="jet",
                         help="Colormap used when save figures")
-    parser.add_argument("--size",
-                        type=int,
-                        default=4,
-                        help="Minimum height of images (in inches)")
     parser.add_argument("--index",
                         type=int,
                         default=-1,

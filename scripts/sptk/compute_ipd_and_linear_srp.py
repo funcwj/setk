@@ -33,15 +33,14 @@ def compute_spatial_feats(args, S):
         if S.ndim < 3:
             raise ValueError("Only one-channel STFT available")
         ipd_list = []
-        for p in args.ipd_index.split(";"):
+        for p in args.ipd_pair.split(";"):
             indexes = list(map(int, p.split(",")))
             if len(indexes) != 2:
-                raise ValueError(
-                    "Invalid --ipd.index configuration detected: {}".format(
-                        args.ipd_index))
+                raise ValueError("Invalid --ipd.pair configuration " +
+                                 f"detected: {args.ipd_pair}")
             L, R = indexes
             if R > S.shape[0]:
-                raise RuntimeError("Could not access channel {:d}".format(R))
+                raise RuntimeError(f"Could not access channel {R}")
             ipd_mat = ipd(S[L], S[R], cos=args.ipd_cos, sin=args.ipd_sin)
             ipd_list.append(ipd_mat)
         # concat along frequency axis
@@ -129,9 +128,9 @@ if __name__ == "__main__":
                         action=StrToBoolAction,
                         default=False,
                         help="Append sinIPD to cosIPD spatial features")
-    parser.add_argument("--ipd.index",
+    parser.add_argument("--ipd.pair",
                         type=str,
-                        dest="ipd_index",
+                        dest="ipd_pair",
                         default="0,1",
                         help="Given several channel index "
                         "pairs to compute IPD spatial features, "
