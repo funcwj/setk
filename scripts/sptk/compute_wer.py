@@ -40,7 +40,7 @@ class TransReader(object):
 
 class Report(object):
     def __init__(self, spk2class=None):
-        self.s2c = BaseReader(spk2class) if spk2class else None
+        self.s2c = ScpReader(spk2class) if spk2class else None
         self.err = defaultdict(float)
         self.tot = defaultdict(float)
         self.cnt = 0

@@ -39,7 +39,7 @@ def norm_observation(mat, axis=-1, eps=EPSILON):
     """
     L2 normalization for observation vectors
     """
-    denorm = np.linalg.norm(mat, ord=2, axis=axis, keepdims=True)
+    denorm = np.linalg.norm(mat, axis=axis, keepdims=True)
     denorm = np.maximum(denorm, eps)
     return mat / denorm
 
@@ -73,7 +73,7 @@ def permu_aligner(masks, transpose=False):
             go_on = False
             for f in range(beg, end):
                 # K x K
-                score = feature[..., f] @ centroid.T
+                score = centroid @ norm_observation(feature[..., f], axis=-1).T
                 # derive permutation based on score matrix
                 index, permu = linear_sum_assignment(score, maximize=True)
                 # not ordered

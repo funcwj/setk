@@ -379,8 +379,8 @@ $cmd JOB=1:$nj ./exp/rir_simu/rir_generate_2d.JOB.log \
 """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Command to generate single/multi-channel RIRs"
-        "(using rir-simulate or pyrirgen from https://github.com/Marvin182/rir-generator)"
+        description="Command to generate single/multi-channel RIRs "
+        "(using rir-simulate or pyrirgen from https://github.com/Marvin182/rir-generator). "
         "In this command, we will simulate several rirs for each room, which is "
         "configured using --num-rirs",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -432,10 +432,8 @@ if __name__ == "__main__":
                         help="Range of speaker's height")
     parser.add_argument("--array-topo",
                         type=str,
-                        default="0,0;0.06,0;0.03,0.05196;"
-                        "-0.03,0.05196;-0.06,0;"
-                        "-0.03,-0.05196;0.03,-0.05196",
-                        help="Topology of the microphone arrays.")
+                        default="0,0.05;0.05,0;0,-0.05;-0.05,0",
+                        help="Topology of the 2D microphone arrays.")
     parser.add_argument("--absorption-coefficient-range",
                         action=StrToFloatTupleAction,
                         dest="abs_range",

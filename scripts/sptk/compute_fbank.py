@@ -2,7 +2,7 @@
 
 # wujian@2018
 """
-Compute melspectrogram/fbank features(using librosa kernels) and write in kaldi format
+Compute melspectrogram/fbank features (using librosa kernels) and write in kaldi format
 """
 
 import argparse

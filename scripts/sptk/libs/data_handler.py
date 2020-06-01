@@ -563,7 +563,7 @@ class MatWriter(Writer):
 
     def write(self, key, obj):
         self.check_args(obj)
-        obj_path = self.path_or_dir / f"{key}.npy"
+        obj_path = self.path_or_dir / f"{key}.mat"
         sio.savemat(obj_path, {"data": obj})
         if self.scp_file:
             self.scp_file.write(f"{key}\t{obj_path}\n")

@@ -39,13 +39,13 @@ def run(args):
     if args.geometry == "linear":
         topo = str2tuple(args.linear_topo)
         beamformer = LinearSDBeamformer(topo)
-        logger.info(f"Initialize LinearDSBeamformer for array: {topo}")
+        logger.info(f"Initialize LinearSDBeamformer for array: {topo}")
     else:
         beamformer = CircularSDBeamformer(args.circular_radius,
                                           args.circular_around,
                                           center=args.circular_center)
         logger.info(
-            "Initialize CircularDSBeamformer for " +
+            "Initialize CircularSDBeamformer for " +
             f"radius = {args.circular_radius}, center = {args.circular_center}"
         )
 

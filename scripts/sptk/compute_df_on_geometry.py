@@ -7,7 +7,7 @@ Compute directional/angle feature using steer vector (based on array geometry)
 
 import argparse
 
-import numpy as np 
+import numpy as np
 
 from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, ArchiveWriter, ScpReader
@@ -34,9 +34,7 @@ def run(args):
         utt2idx = None
         logger.info(f"Using --doa-idx={args.doa_idx}")
 
-    df_pair = [
-        tuple(map(int, p.split(","))) for p in args.df_pair.split(";")
-    ]
+    df_pair = [tuple(map(int, p.split(","))) for p in args.df_pair.split(";")]
     if not len(df_pair):
         raise RuntimeError(f"Bad configurations with --pair {args.pair}")
     logger.info(f"Compute directional feature with {df_pair}")

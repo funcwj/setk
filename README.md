@@ -1,27 +1,13 @@
 ## SETK: Speech Enhancement Tools integrated with Kaldi
 
-Here are some speech enhancement/separation tools integrated with kaldi. I use them for front-end's data processing.
+Here are some speech enhancement/separation tools integrated with [Kaldi](https://github.com/kaldi-asr/kaldi). I use them for front-end's data processing.
 
-### Finished based on Kaldi
+### Python Scripts
 
-* Compute kinds of masks (ibm, irm etc)
-* Compute (phase angle/power&magnitude spectrogram/complex STFT results) of input wave
-* Seperate target component using input masks
-* Wave reconstruction from enhanced spectral features and reference phase
-* Complex matrix/vector class
-* MVDR/GEVD beamformer (depend on T-F mask, may not very stable, need further debugging)
-* Fixed beamformer
-* Compute angular spectrogram based on SRP-PHAT
-* RIR generator (reference from [RIR-Generator](https://github.com/ehabets/RIR-Generator))
-
-***Now I mainly work on [sptk](scripts) package, development based on kaldi is stopped.***
-
-### Python ([scripts/sptk](scripts)) Extention
-
-* Supervised (mask-based) adaptive beamformer (GEVD/MVDR/PWWF)
+* Supervised (mask-based) adaptive beamformer (GEVD/MVDR/MCWF...)
 * Data convertion among MATLAB, Numpy and Kaldi
 * Data visualization (TF-mask, spatial/spectral features, beam pattern...)
-* Unified data and IO handlers for Kaldi's scripts, archives, wave, spectrogram, numpy's ndarray...
+* Unified data and IO handlers for Kaldi's scripts, archives, wave and numpy's ndarray...
 * Unsupervised mask estimation (CGMM/CACGMM)
 * Spatial/Spectral feature computation
 * DS (delay and sum) beamformer, SD (supper-directive) beamformer
@@ -32,13 +18,38 @@ Here are some speech enhancement/separation tools integrated with kaldi. I use t
 * Si-SDR/SDR/WER evaluation
 * Pywebrtc vad wrapper
 * Mask-based source localization
+* Noise suppression
 * ...
 
-***This part is independent with Kaldi and some scripts may report errors as they are still in updating***
+Please check out the following instruction for usage of the scripts.
 
-### Compile
+* [Adaptive Beamformer](doc/adaptive_beamformer)
+* [Fixed Beamformer](doc/fixed_beamformer)
+* [Sound Source Localization](doc/ssl)
+* [Spectral Feature](doc/spectral_feature)
+* [Spatial Feature](doc/spatial_feature)
+* [VAD](doc/vad)
+* [Noise Suppression](doc/ns)
+* [Steer Vector](doc/steer_vector)
+* [Room Impluse Response](doc/rir)
+* [Spatial Clustering](doc/spatial_clustering)
+* [WPE](doc/wpe)
+* [Time-frequency Mask](doc/tf_mask)
+* [Format Transform](doc/format_transform)
 
-Compile [Kaldi](https://github.com/kaldi-asr/kaldi) with `--shared` flags and patch `matrix/matrix-common.h`
+### Kaldi Commands
+
+* Compute time-frequency masks (ibm, irm etc)
+* Compute phase & magnitude spectrogram & complex STFT
+* Seperate target component using input masks
+* Wave reconstruction from enhanced spectral features
+* Complex matrix/vector class
+* MVDR/GEVD beamformer (depend on T-F mask, not very stable)
+* Fixed beamformer
+* Compute angular spectrogram based on SRP-PHAT
+* RIR generator (reference from [RIR-Generator](https://github.com/ehabets/RIR-Generator))
+
+To build the sources, you need to compile [Kaldi](https://github.com/kaldi-asr/kaldi) with `--shared` flags and patch `matrix/matrix-common.h` first
 ```c++
 typedef enum {
     kTrans          = 112,  // CblasTrans
@@ -49,7 +60,7 @@ typedef enum {
 ```
 
 Then run
-```shell
+```bash
 mkdir build
 cd build
 export KALDI_ROOT=/path/to/kaldi/root
@@ -59,4 +70,6 @@ export OPENBLAS_ROOT=/path/to/openblas/root
 cmake ..
 make -j
 ```
+
+***Now I mainly work on [sptk](scripts) package, development based on kaldi is stopped.***
 
