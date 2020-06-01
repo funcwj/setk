@@ -26,7 +26,7 @@ def run(args):
                 mat = np.transpose(mat)
             writer.write(key, mat)
             num_done += 1
-    logger.info(f"Copy {num_done} into directory {args.dst_dir}")
+    logger.info(f"Copy {num_done} matrices into directory {args.dst_dir}")
 
 
 if __name__ == "__main__":

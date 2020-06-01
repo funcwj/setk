@@ -10,7 +10,7 @@ compress=true
 
 stft_conf=conf/stft.conf
 fs=16000
-num_doa=121
+num_doas=121
 d=0.07
 n=6
 diag_pair="0,3\;1,4\;2,5"
@@ -24,7 +24,7 @@ function usage {
   echo "  --compress     <true|false>       # compress feature or not, (default=$compress)"
   echo "  --stft-conf    <stft-conf>        # stft configurations files, (default=$stft_conf)"
   echo "  --fs           <fs>               # sample frequency for source wave, (default=$fs)"
-  echo "  --num-doa      <num-doa>          # doa resolution, (default=$num_doa)"
+  echo "  --num-doas     <num-doas>         # doa resolution, (default=$num_doas)"
   echo "  --d            <D>                # diameter of circular array, (default=$d)"
   echo "  --n            <N>                # number of arrays, (default=$n)"
   echo "  --diag-pair    <diag-pair>        # diagonal pairs to compute gcc-phat, (default=$diag_pair)"
@@ -41,7 +41,7 @@ dst_dir=$3
 for x in $src_dir/wav.scp $stft_conf; do [ ! -f $x ] && echo "$0: missing file: $x" && exit 1; done
 
 srp_opts=$(cat $stft_conf | xargs)
-srp_opts="$srp_opts --n $n --d $d --sr $fs --num-doa $num_doa --diag-pair $diag_pair"
+srp_opts="$srp_opts --n $n --d $d --sr $fs --num-doas $num_doas --diag-pair $diag_pair"
 
 echo "$0: Compute srp circular features..."
 

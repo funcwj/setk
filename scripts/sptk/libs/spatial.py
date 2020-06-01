@@ -62,7 +62,7 @@ def gcc_phat_diag(si,
                   angle_delta,
                   d,
                   speed=340,
-                  num_doa=121,
+                  num_doas=121,
                   sr=16000,
                   normalize=True,
                   num_bins=513,
@@ -75,7 +75,7 @@ def gcc_phat_diag(si,
     Return:
         shape as T x D
     """
-    doa_samp = np.linspace(0, np.pi * 2, num_doa)
+    doa_samp = np.linspace(0, np.pi * 2, num_doas)
     tau = np.cos(angle_delta - doa_samp) * d / speed
     # omega = 2 * pi * fk
     omega = np.linspace(0, sr / 2, num_bins) * 2 * np.pi

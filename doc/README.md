@@ -14,3 +14,4 @@ Document on usage of the scripts under `scripts/sptk`.
 * [Spatial Clustering](spatial_clustering)
 * [WPE](wpe)
 * [Time-frequency Mask](tf_mask)
+* [Format Transform](format_transform)

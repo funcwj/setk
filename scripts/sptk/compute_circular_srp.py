@@ -47,7 +47,7 @@ def run(args):
                                   args.d,
                                   num_bins=num_ffts // 2 + 1,
                                   sr=args.sr,
-                                  num_doa=args.num_doa))
+                                  num_doas=args.num_doas))
             srp = np.average(np.stack(srp), axis=0)
             nan = np.sum(np.isnan(srp))
             if nan:
@@ -85,7 +85,7 @@ if __name__ == "__main__":
                         type=int,
                         default=16000,
                         help="Sample rate of input wave")
-    parser.add_argument("--num-doa",
+    parser.add_argument("--num-doas",
                         type=int,
                         default=121,
                         help="Number of DoA to sample between 0 and 2pi")

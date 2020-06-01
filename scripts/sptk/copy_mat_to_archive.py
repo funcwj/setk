@@ -48,8 +48,7 @@ def run(args):
                         "{2[0]}x{2[1]}".format(num_mat, args.dst_ark,
                                                mat.shape))
     if not stack:
-        logger.info("Copy {0} matrix into archive {1}".format(
-            num_mat, args.dst_ark))
+        logger.info(f"Copy {num_mat} matrices into archive {args.dst_ark}")
 
 
 if __name__ == "__main__":
