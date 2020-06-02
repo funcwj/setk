@@ -101,7 +101,7 @@ if __name__ == "__main__":
                         help="Sample rate of the input wave")
     parser.add_argument("--speed",
                         type=float,
-                        default=340,
+                        default=343,
                         help="Speed of sound")
     parser.add_argument("--geometry",
                         type=str,

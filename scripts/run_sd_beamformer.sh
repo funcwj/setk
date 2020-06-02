@@ -7,7 +7,7 @@ set -eu
 nj=40
 cmd="run.pl"
 fs=16000
-speed=340
+speed=343
 geometry="linear"
 linear_topo="0,0.2,0.4,0.6"
 circular_radius=0.5

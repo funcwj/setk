@@ -452,7 +452,7 @@ if __name__ == "__main__":
     parser.add_argument("--sound-speed",
                         type=float,
                         dest="speed",
-                        default=340,
+                        default=343,
                         help="Speed of sound")
     parser.add_argument("--retry",
                         type=int,
