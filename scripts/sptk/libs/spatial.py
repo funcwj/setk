@@ -9,7 +9,7 @@ from .utils import EPSILON
 
 
 def linear_tdoa_grid(dist,
-                     speed=340,
+                     speed=343,
                      num_bins=513,
                      samp_doa=True,
                      sample_frequency=16000,
@@ -61,7 +61,7 @@ def gcc_phat_diag(si,
                   sj,
                   angle_delta,
                   d,
-                  speed=340,
+                  speed=343,
                   num_doas=121,
                   sr=16000,
                   normalize=True,

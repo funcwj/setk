@@ -6,7 +6,7 @@ import argparse
 
 import numpy as np
 
-from libs.ssl import ml_ssl, srp_ssl
+from libs.ssl import ml_ssl, srp_ssl, music_ssl
 
 from libs.data_handler import SpectrogramReader, NumpyReader
 from libs.utils import get_logger, EPSILON
@@ -87,12 +87,14 @@ def run(args):
                                   steer_vector,
                                   srp_pair=srp_pair,
                                   mask=mask)
-                else:
+                elif args.backend == "ml":
                     idx = ml_ssl(stft,
                                  steer_vector,
                                  mask=mask,
                                  compression=-1,
                                  eps=EPSILON)
+                else:
+                    idx = music_ssl(stft, steer_vector, mask=mask)
                 doa = idx if args.output == "index" else angles[idx]
                 logger.info(f"Processing utterance {key}: {doa:.4f}")
                 doa_out.write(f"{key}\t{doa:.4f}\n")
@@ -112,12 +114,16 @@ def run(args):
                                       steer_vector,
                                       srp_pair=srp_pair,
                                       mask=chunk_mask)
-                    else:
+                    elif args.backend == "ml":
                         idx = ml_ssl(stft_chunk,
                                      steer_vector,
                                      mask=chunk_mask,
                                      compression=-1,
                                      eps=EPSILON)
+                    else:
+                        idx = music_ssl(stft_chunk,
+                                        steer_vector,
+                                        mask=chunk_mask)
                     doa = idx if args.output == "index" else angles[idx]
                     online_doa.append(doa)
                 doa_str = " ".join([f"{d:.4f}" for d in online_doa])
@@ -145,7 +151,7 @@ if __name__ == "__main__":
     parser.add_argument("--backend",
                         type=str,
                         default="ml",
-                        choices=["ml", "srp"],
+                        choices=["ml", "srp", "music"],
                         help="Which algorithm to choose for SSL")
     parser.add_argument("--srp-pair",
                         type=str,

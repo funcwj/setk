@@ -18,7 +18,7 @@ def ml_ssl(stft, sv, compression=0, eps=1e-8, norm=False, mask=None):
         norm: normalze STFT or not
         mask: TF-mask for source, T x F x (N)
     Return:
-        loglike: likelihood on each directions
+        index: DoA index
     """
     _, T, F = stft.shape
     if mask is None:
@@ -42,16 +42,17 @@ def ml_ssl(stft, sv, compression=0, eps=1e-8, norm=False, mask=None):
         loglike = np.einsum("ntf,atf->na", mask, tf_loglike)
     return np.argmax(loglike, axis=-1)
 
+
 def srp_ssl(stft, sv, srp_pair=None, mask=None):
     """
-    Do srp-phat based SSL
+    Do SRP-PHAT based SSL
     Arguments:
         stft: STFT transform result, M x T x F
         sv: steer vector in each directions, A x M x F
         srp_pair: index pair to compute srp response
         mask: TF-mask for source, T x F
     Return:
-        loglike: likelihood on each directions
+        index: DoA index
     """
     if srp_pair is None:
         raise ValueError("srp_pair cannot be None, (list, list)")
@@ -74,3 +75,36 @@ def srp_ssl(stft, sv, srp_pair=None, mask=None):
     # mask and sum: A
     srp = np.sum(af * mask[None, ...], (1, 2))
     return np.argmax(srp)
+
+
+def music_ssl(stft, sv, mask=None):
+    """
+    Do MUSIC based SSL
+    Arguments:
+        stft: STFT transform result, M x T x F
+        sv: steer vector in each directions, A x M x F
+        mask: TF-mask for source, T x F
+    Return:
+        index: DoA index
+    """
+    _, T, F = stft.shape
+    if mask is None:
+        mask = np.ones([T, F])
+    # F x M x T
+    obs = np.transpose(stft * mask, (2, 0, 1))
+    # F x M x M
+    obs_covar = np.einsum("...at,...bt->...ab", obs, obs.conj()) / T
+    # w: ascending order
+    _, v = np.linalg.eigh(obs_covar)
+    # F x M x M - 1
+    noise_sub = v[..., :-1]
+    # F x M x M
+    noise_covar = np.einsum("...at,...bt->...ab", noise_sub, noise_sub.conj())
+    # F x A x M
+    sv = np.transpose(sv, (2, 0, 1))
+    # F x A
+    denorm = np.einsum("...a,...ab,...b->...", sv.conj(), noise_covar[:, None],
+                       sv)
+    # A
+    score = np.sum(np.abs(denorm), axis=0)
+    return np.argmin(score)

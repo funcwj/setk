@@ -47,4 +47,12 @@ echo "egs asset/egs.wav" > wav.scp
     --doa-range 0,360 \
     --output degree \
     wav.scp 16mic_sv.npy doa.scp
+# run SSL using music backend (59 degree)
+../../scripts/sptk/do_ssl.py \
+    --frame-len 512 \
+    --frame-hop 256 \
+    --backend music \
+    --doa-range 0,360 \
+    --output degree \
+    wav.scp 16mic_sv.npy doa.scp
 ```

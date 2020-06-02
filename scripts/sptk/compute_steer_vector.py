@@ -72,7 +72,7 @@ if __name__ == "__main__":
                         help="Sample rate of input wave")
     parser.add_argument("--speed",
                         type=float,
-                        default=340,
+                        default=343,
                         help="Speed of sound")
     parser.add_argument("--linear-topo",
                         type=str,
