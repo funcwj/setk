@@ -36,6 +36,7 @@ Please check out the following instruction for usage of the scripts.
 * [WPE](doc/wpe)
 * [Time-frequency Mask](doc/tf_mask)
 * [Format Transform](doc/format_transform)
+* [Data Simulation](doc/data_simu)
 
 ### Kaldi Commands
 

@@ -298,21 +298,17 @@ class WaveReader(ScpReader):
             wav_ark = self.wav_ark_mgr[fname]
             # seek and read
             wav_ark.seek(offset)
-            sr, samps = read_wav(wav_ark,
-                                 beg=beg,
-                                 end=end,
-                                 normalize=self.normalize,
-                                 return_rate=True)
+            samps = read_wav(wav_ark,
+                             beg=beg,
+                             end=end,
+                             normalize=self.normalize,
+                             fs=self.samp_rate)
         else:
-            sr, samps = read_wav(addr,
-                                 beg=beg,
-                                 end=end,
-                                 normalize=self.normalize,
-                                 return_rate=True)
-        # check it sample rate
-        if sr != self.samp_rate:
-            raise RuntimeError(
-                f"SampleRate mismatch: {sr:d} vs {self.samp_rate:d}")
+            samps = read_wav(addr,
+                             beg=beg,
+                             end=end,
+                             normalize=self.normalize,
+                             fs=self.samp_rate)
         return samps
 
     def read(self, key, beg=None, end=None):

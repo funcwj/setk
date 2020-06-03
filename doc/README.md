@@ -1,6 +1,6 @@
 ## Document
 
-Document on usage of the scripts under `scripts/sptk`.
+Document on usage of the scripts under [scripts/sptk](../scripts/sptk).
 
 * [Adaptive Beamformer](adaptive_beamformer)
 * [Fixed Beamformer](fixed_beamformer)
@@ -15,3 +15,4 @@ Document on usage of the scripts under `scripts/sptk`.
 * [WPE](wpe)
 * [Time-frequency Mask](tf_mask)
 * [Format Transform](format_transform)
+* [Data Simulation](data_simu)
