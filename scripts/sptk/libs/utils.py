@@ -66,14 +66,14 @@ def write_wav(fname, samps, fs=16000, normalize=True):
     sf.write(fname, samps, fs)
 
 
-def read_wav(fname, beg=0, end=None, normalize=True, return_rate=False):
+def read_wav(fname, beg=0, end=None, normalize=True, fs=16000):
     """
     Read wave files using soundfile (support multi-channel & chunk)
     args:
         fname: file name or object
         beg, end: begin and end index for chunk-level reading
         norm: normalized samples between -1 and 1
-        return_sr: return audio sample rate
+        fs: sample rate of the audio
     return:
         samps: in shape C x N
         sr: sample rate
@@ -85,14 +85,14 @@ def read_wav(fname, beg=0, end=None, normalize=True, return_rate=False):
                         start=beg,
                         stop=end,
                         dtype="float32" if normalize else "int16")
+    if sr != fs:
+        raise RuntimeError(f"Expect sr={fs} of {fname}, get {sr} instead")
     if not normalize:
         samps = samps.astype("float32")
     # put channel axis first
     # N x C => C x N
     if samps.ndim != 1:
         samps = np.transpose(samps)
-    if return_rate:
-        return sr, samps
     return samps
 
 
