@@ -19,6 +19,7 @@ Here are some speech enhancement/separation tools integrated with [Kaldi](https:
 * Pywebrtc vad wrapper
 * Mask-based source localization
 * Noise suppression
+* Data simulation
 * ...
 
 Please check out the following instruction for usage of the scripts.

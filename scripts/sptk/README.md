@@ -14,4 +14,6 @@ Python scripts (work with python 3.6+) for speech enhancement/separation integra
 * Si-SDR/SDR/WER evaluation
 * Pywebrtc vad wrapper
 * Mask-based source localization
+* Noise suppression
+* Data simulation
 * ...

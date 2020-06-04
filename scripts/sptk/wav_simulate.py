@@ -200,7 +200,6 @@ def run(args):
                       src_rir=src_rir,
                       channel=args.dump_channel,
                       sr=args.sr)
-
     spk_utt = sum(spk)
     mix = spk_utt.copy()
 
