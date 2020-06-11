@@ -12,26 +12,28 @@ Reference:
 
 import numpy as np
 
+from .utils import EPSILON
 
-def _compute_tap_mat(spectra, taps, delay):
+
+def compute_tap_mat(obs, taps, delay):
     """
     Arguments:
-        spectra: F x N x T
+        obs: F x N x T
     Return:
         shape as F x NK x T, k means taps
     """
-    F, N, T = spectra.shape
-    y_ = np.zeros([F, N * taps, T], dtype=spectra.dtype)
+    F, N, T = obs.shape
+    y_ = np.zeros([F, N * taps, T], dtype=obs.dtype)
     for k in range(taps):
         d = k + delay
         if d < T:
-            y_[:, k * N:k * N + N, d:] = spectra[:, :, :T - d]
+            y_[:, k * N:k * N + N, d:] = obs[:, :, :T - d]
         else:
             break
     return y_
 
 
-def _compute_lambda(dereverb, ctx=0):
+def compute_lambda(dereverb, ctx=0):
     """
     Compute spatial correlation matrix, using scaled identity matrix method
     Arguments:
@@ -40,10 +42,10 @@ def _compute_lambda(dereverb, ctx=0):
     Returns:
         lambda: F x T
     """
-
     def cpw(mat):
         return mat.real**2 + mat.imag**2
 
+    # F x T
     L = np.mean(cpw(dereverb), axis=1)
     _, T = L.shape
     counts_ = np.zeros(T)
@@ -53,7 +55,7 @@ def _compute_lambda(dereverb, ctx=0):
         e = min(T, T + c)
         lambda_[:, s:e] += L[:, max(-c, 0):min(T, T - c)]
         counts_[s:e] += 1
-    return lambda_ / counts_
+    return np.maximum(lambda_ / counts_, EPSILON)
 
 
 def wpe(reverb, taps=10, delay=3, context=1, num_iters=3):
@@ -67,26 +69,22 @@ def wpe(reverb, taps=10, delay=3, context=1, num_iters=3):
     Return:
         dereverb: F x N x T
     """
-
-    def her(mat):
-        return mat.transpose(0, 2, 1).conj()
-
     # F x NK x T
-    yt = _compute_tap_mat(reverb, taps, delay)
+    yt = compute_tap_mat(reverb, taps, delay)
     # F x N x T
     dereverb = reverb
     # for num_iters
     for _ in range(num_iters):
-        # F x N x T => F x T
-        lambda_ = _compute_lambda(dereverb, ctx=context)
+        # time-varying variance: F x N x T => F x T
+        lambda_ = compute_lambda(dereverb, ctx=context)
         # F x NK x T
         yn = yt / lambda_[:, None, :]
         # F x NK x NK
-        R = np.matmul(yn, her(yt))
+        R = np.einsum("...mt,...nt->...mn", yn, yt.conj())
         # F x NK x N
-        r = np.matmul(yn, her(reverb))
+        r = np.einsum("...mt,...nt->...mn", yn, reverb.conj())
         # F x NK x N
         G = np.linalg.solve(R, r)
         # filter
-        dereverb = reverb - np.matmul(her(G), yt)
+        dereverb = reverb - np.einsum("...na,...nb->...ab", G.conj(), yt)
     return dereverb

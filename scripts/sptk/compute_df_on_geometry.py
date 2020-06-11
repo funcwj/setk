@@ -47,14 +47,25 @@ def run(args):
         for key, stft in stft_reader:
             # sv: M x F
             if utt2idx is None:
-                sv = steer_vector[args.doa_idx]
+                idx = [int(v) for v in args.doa_idx.split(",")]
+                dfs = [
+                    directional_feats(stft, steer_vector[i], df_pair=df_pair)
+                    for i in idx
+                ]
+                if len(dfs) == 1:
+                    df = dfs[0]
+                else:
+                    # N x T x F
+                    dfs = np.stack(dfs)
+                    df = dfs.transpose(1, 0, 2).reshape(dfs.shape[1], -1)
             elif key in utt2idx:
-                sv = steer_vector[utt2idx[key]]
+                # stft: M x F x T
+                df = directional_feats(stft,
+                                       steer_vector[utt2idx[key]],
+                                       df_pair=df_pair)
             else:
                 logger.warn(f"Missing utt2idx for utterance {key}")
                 continue
-            # stft: M x F x T
-            df = directional_feats(stft, sv, df_pair=df_pair)
             writer.write(key, df)
             num_done += 1
             if not num_done % 1000:
@@ -85,7 +96,7 @@ if __name__ == "__main__":
                         help="utt2idx for index (between "
                         "[0, A - 1]) of the DoA.")
     parser.add_argument("--doa-idx",
-                        type=int,
+                        type=str,
                         default=0,
                         help="DoA index for all utterances if --utt2idx=\"\"")
     parser.add_argument("--scp",

@@ -7,7 +7,7 @@ set -eu
 nj=20
 cmd="run.pl"
 iters=3
-stft_conf=conf/gwpe.conf
+stft_conf=conf/wpe.conf
 delay=3
 taps=10
 context=1
@@ -41,7 +41,7 @@ dst_dir=$2
 for x in $wav_scp $stft_conf; do [ ! -f $x ] && echo "$0: missing file: $x" && exit 1; done
 
 dirname=$(basename $dst_dir)
-exp_dir=./exp/gwpe/$dirname && mkdir -p $exp_dir
+exp_dir=./exp/wpe/$dirname && mkdir -p $exp_dir
 stft_opts=$(cat $stft_conf | xargs)
 
 split_wav_scp="" && for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_dir/wav.$n.scp"; done
@@ -49,8 +49,8 @@ split_wav_scp="" && for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_d
 ./utils/split_scp.pl $wav_scp $split_wav_scp
 
 mkdir -p $dst_dir
-$cmd JOB=1:$nj $exp_dir/log/run_gwpe.JOB.log \
-  ./scripts/sptk/apply_gwpe.py \
+$cmd JOB=1:$nj $exp_dir/log/run_wpe.JOB.log \
+  ./scripts/sptk/apply_wpe.py \
   $stft_opts --num-iters $iters \
   --sample-rate $sr \
   --nara-wpe $nara_wpe \
@@ -59,4 +59,4 @@ $cmd JOB=1:$nj $exp_dir/log/run_gwpe.JOB.log \
   $exp_dir/wav.JOB.scp \
   $dst_dir
 
-echo "$0: Run gwpe algorithm done"
+echo "$0: Run wpe algorithm done"

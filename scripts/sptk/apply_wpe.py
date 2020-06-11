@@ -9,7 +9,7 @@ import argparse
 from libs.opts import StrToBoolAction
 from libs.utils import get_logger, inverse_stft
 from libs.opts import StftParser
-from libs.gwpe import wpe
+from libs.wpe import wpe
 from libs.data_handler import SpectrogramReader, WaveWriter
 
 import numpy as np
@@ -40,6 +40,8 @@ def run(args):
     with WaveWriter(args.dst_dir, fs=args.sr) as writer:
         for key, reverbed in spectrogram_reader:
             logger.info(f"Processing utt {key}...")
+            if reverbed.ndim == 2:
+                reverbed = reverbed[None, ...]
             # N x T x F => F x N x T
             reverbed = np.transpose(reverbed, (2, 0, 1))
             try:

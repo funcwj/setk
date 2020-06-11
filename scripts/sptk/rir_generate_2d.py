@@ -17,7 +17,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from libs.scheduler import run_command
+from libs.data_handler import run_command
 from libs.utils import get_logger, write_wav
 from libs.opts import StrToFloatTupleAction, StrToBoolAction, str2tuple
 from libs.sampler import UniformSampler

@@ -3,7 +3,7 @@
 # wujian@2018
 #
 """
-Do mvdr/gevd adaptive beamformer
+Do mvdr/gevd/... adaptive beamformer
 """
 
 import argparse
@@ -36,17 +36,17 @@ def do_online_beamform(beamformer, speech_mask, interf_mask, stft_mat, args):
     for c in range(num_chunks + 1):
         base = chunk_size * c
         if c == num_chunks:
-            noise_mask = None if interf_mask is None else interf_mask[base:]
+            mask_n = None if interf_mask is None else interf_mask[base:]
             chunk = beamformer.run(speech_mask[base:],
                                    stft_mat[:, :, base:],
-                                   noise_mask=noise_mask,
+                                   mask_n=mask_n,
                                    normalize=args.ban)
         else:
-            noise_mask = None if interf_mask is None else interf_mask[
-                base:base + chunk_size]
+            mask_n = None if interf_mask is None else interf_mask[base:base +
+                                                                  chunk_size]
             chunk = beamformer.run(speech_mask[base:base + chunk_size],
                                    stft_mat[:, :, base:base + chunk_size],
-                                   noise_mask=noise_mask,
+                                   mask_n=mask_n,
                                    normalize=args.ban)
         enh_chunks.append(chunk)
     return np.hstack(enh_chunks)
@@ -164,7 +164,7 @@ def run(args):
                     if not online:
                         stft_enh = beamformer.run(speech_mask,
                                                   stft_mat,
-                                                  noise_mask=interf_mask,
+                                                  mask_n=interf_mask,
                                                   ban=args.ban)
                     else:
                         stft_enh = do_online_beamform(beamformer, speech_mask,

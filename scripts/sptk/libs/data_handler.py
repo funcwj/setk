@@ -21,13 +21,33 @@ import scipy.io as sio
 from io import TextIOWrapper, BytesIO
 from . import kaldi_io as io
 from .utils import forward_stft, read_wav, write_wav, filekey
-from .scheduler import run_command
 
 __all__ = [
     "ArchiveReader", "ArchiveWriter", "WaveWriter", "NumpyWriter",
     "SpectrogramReader", "ScriptReader", "WaveReader", "NumpyReader",
     "PickleReader", "MatReader", "BinaryReader"
 ]
+
+
+def run_command(command, wait=True):
+    """ 
+    Runs shell commands. These are usually a sequence of 
+    commands connected by pipes, so we use shell=True
+    """
+    p = subprocess.Popen(command,
+                         shell=True,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+
+    if wait:
+        [stdout, stderr] = p.communicate()
+        if p.returncode is not 0:
+            raise Exception(
+                "There was an error while running the command \"{0}\":\n{1}\n".
+                format(command, bytes.decode(stderr)))
+        return stdout, stderr
+    else:
+        return p
 
 
 def pipe_fopen(command, mode, background=True):

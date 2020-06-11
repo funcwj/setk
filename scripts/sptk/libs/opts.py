@@ -37,8 +37,7 @@ class StrToBoolAction(argparse.Action):
         try:
             setattr(namespace, self.dest, str2bool(values))
         except ValueError:
-            raise Exception("Unknown value {0} for --{1}".format(
-                values, self.dest))
+            raise Exception(f"Unknown value {values} for --{self.dest}")
 
 
 class StrToFloatTupleAction(argparse.Action):
@@ -49,8 +48,7 @@ class StrToFloatTupleAction(argparse.Action):
         try:
             setattr(namespace, self.dest, str2tuple(values))
         except ValueError:
-            raise Exception("Unknown value {0} for --{1}".format(
-                values, self.dest))
+            raise Exception(f"Unknown value {values} for --{self.dest}")
 
 
 class StftParser(object):
