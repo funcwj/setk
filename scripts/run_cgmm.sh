@@ -6,7 +6,7 @@ set -eu
 
 nj=40
 cmd="run.pl"
-epoches=20
+iters=20
 # stft.conf example:
 # --frame-length 1024
 # --frame-shift 256
@@ -23,7 +23,7 @@ function usage {
   echo "  --nj          <nj>                  # number of jobs to run parallel, (default=$nj)"
   echo "  --cmd         <run.pl|queue.pl>     # how to run jobs, (default=$cmd)"
   echo "  --stft-conf   <stft-conf>           # stft configurations files, (default=$stft_conf)"
-  echo "  --epoches     <epoches>             # number of epoches to run CGMM, (default=$epoches)"
+  echo "  --iters       <iters>               # number of iterations to run CGMM, (default=$iters)"
   echo "  --init-mask   <init-mask>           # dir or script for mask initialization, (default=$init_mask)"
   echo "  --mask-format <kaldi|numpy>         # mask storage type, (default=$mask_format)"
 }
@@ -46,7 +46,7 @@ split_wav_scp="" && for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_d
 
 ./utils/split_scp.pl $wav_scp $split_wav_scp
 
-cgmm_opts="--num-epoches $epoches"
+cgmm_opts="--num-iters $iters"
 [ ! -z $init_mask ] && cgmm_opts="$cgmm_opts --init-speech-mask $init_mask --mask-format $mask_format"
 
 mkdir -p $dst_dir

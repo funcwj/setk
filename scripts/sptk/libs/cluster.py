@@ -400,14 +400,14 @@ class CgmmTrainer(object):
             logger.info(f"Resume cgmm model from {cgmm}")
             self.gamma = self.cgmm.predict(self.obs)
 
-    def train(self, num_epoches=20):
+    def train(self, num_iters):
         """
         Train in EM progress
         """
-        for e in range(num_epoches):
+        for i in range(num_iters):
             self.cgmm.update(self.obs, self.gamma)
             self.gamma, Q = self.cgmm.predict(self.obs, return_Q=True)
-            logger.info(f"Epoch {e + 1:2d}: Q = {Q:.4f}")
+            logger.info(f"Iter {i + 1:2d}/{num_iters}: Q = {Q:.4f}")
         return self.gamma[0]
 
 
@@ -467,13 +467,13 @@ class CacgmmTrainer(object):
             logger.info(f"Resume cacgmm model from {cacgmm}")
             self.gamma, self.K = self.cacgmm.predict(self.obs)
 
-    def train(self, num_epoches=20):
+    def train(self, num_iters):
         """
         Train in EM progress
         """
-        for e in range(num_epoches):
+        for i in range(num_iters):
             self.cacgmm.update(self.obs, self.gamma, self.K)
             self.gamma, self.K, Q = self.cacgmm.predict(self.obs,
                                                         return_Q=True)
-            logger.info(f"Epoch {e + 1:2d}: Q = {Q:.4f}")
+            logger.info(f"Iter {i + 1:2d}/{num_iters}: Q = {Q:.4f}")
         return self.gamma

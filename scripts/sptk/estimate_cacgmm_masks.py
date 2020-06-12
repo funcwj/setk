@@ -18,6 +18,7 @@ from libs.opts import StftParser, StrToBoolAction
 
 logger = get_logger(__name__)
 
+
 def run(args):
     stft_kwargs = {
         "frame_len": args.frame_len,
@@ -50,7 +51,7 @@ def run(args):
                                         cgmm_init=args.cgmm_init)
                 try:
                     # EM progress
-                    masks = trainer.train(args.num_epoches)
+                    masks = trainer.train(args.num_iters)
                     # align if needed
                     if not args.cgmm_init or args.num_classes != 2:
                         # K x F x T => K x T x F
@@ -80,10 +81,10 @@ if __name__ == "__main__":
     parser.add_argument("dst_dir",
                         type=str,
                         help="Where to dump estimated speech masks")
-    parser.add_argument("--num-epoches",
+    parser.add_argument("--num-iters",
                         type=int,
                         default=50,
-                        help="Number of epoches to train Cacgmm")
+                        help="Number of iterations to train Cacgmm")
     parser.add_argument("--num-classes",
                         type=int,
                         default=2,

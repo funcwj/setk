@@ -14,10 +14,11 @@ from scipy.io import loadmat
 from libs.utils import inverse_stft, get_logger, nextpow2, cmat_abs
 from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, WaveWriter
-from libs.beamformer import MvdrBeamformer, GevdBeamformer, PmwfBeamformer
+from libs.beamformer import MvdrBeamformer, GevdBeamformer, PmwfBeamformer, MpdrBeamformer
 from libs.beamformer import OnlineGevdBeamformer, OnlineMvdrBeamformer
 
 logger = get_logger(__name__)
+beamformers = ["mvdr", "mpdr", "mpdr-whiten", "gevd", "pmwf-0", "pmwf-1"]
 
 
 def do_online_beamform(beamformer, speech_mask, interf_mask, stft_mat, args):
@@ -99,6 +100,10 @@ def run(args):
     supported_beamformer = {
         "mvdr":
         MvdrBeamformer(num_bins),
+        "mpdr":
+        MpdrBeamformer(num_bins),
+        "mpdr-whiten":
+        MpdrBeamformer(num_bins, whiten=True),
         "gevd":
         GevdBeamformer(num_bins),
         "pmwf-0":
@@ -212,7 +217,7 @@ if __name__ == "__main__":
     parser.add_argument("--beamformer",
                         type=str,
                         default="mvdr",
-                        choices=["mvdr", "gevd", "pmwf-0", "pmwf-1"],
+                        choices=beamformers,
                         help="Type of adaptive beamformer to apply")
     parser.add_argument("--pmwf-ref",
                         type=int,

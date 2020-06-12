@@ -44,7 +44,7 @@ def run(args):
                 # stft: N x F x T
                 trainer = CgmmTrainer(stft, gamma=init_mask)
                 try:
-                    speech_masks = trainer.train(args.num_epoches)
+                    speech_masks = trainer.train(args.num_iters)
                     num_done += 1
                     speech_masks = np.transpose(speech_masks)
                     writer.write(key, speech_masks.astype(np.float32))
@@ -69,10 +69,10 @@ if __name__ == "__main__":
     parser.add_argument("dst_dir",
                         type=str,
                         help="Location to dump estimated speech masks")
-    parser.add_argument("--num-epoches",
+    parser.add_argument("--num-iters",
                         type=int,
                         default=20,
-                        help="Number of epoches to train CGMM parameters")
+                        help="Number of iterations to train CGMM parameters")
     parser.add_argument("--seed",
                         type=int,
                         default=777,
