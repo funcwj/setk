@@ -14,6 +14,8 @@ iters=20
 # --center true
 stft_conf=conf/stft.conf
 init_mask=
+num_classes=2
+solve_permu=false
 mask_format="numpy"
 
 echo "$0 $@"
@@ -24,6 +26,8 @@ function usage {
   echo "  --cmd         <run.pl|queue.pl>     # how to run jobs, (default=$cmd)"
   echo "  --stft-conf   <stft-conf>           # stft configurations files, (default=$stft_conf)"
   echo "  --iters       <iters>               # number of iterations to run CGMM, (default=$iters)"
+  echo "  --num-classes <num-classes>         # number of the cluster used in cgmm model, (default=$num_classes)"
+  echo "  --solve-permu <solve-permu>         # solve frequency permutation or not, (default=$solve_permu)"
   echo "  --init-mask   <init-mask>           # dir or script for mask initialization, (default=$init_mask)"
   echo "  --mask-format <kaldi|numpy>         # mask storage type, (default=$mask_format)"
 }
@@ -46,8 +50,8 @@ split_wav_scp="" && for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_d
 
 ./utils/split_scp.pl $wav_scp $split_wav_scp
 
-cgmm_opts="--num-iters $iters"
-[ ! -z $init_mask ] && cgmm_opts="$cgmm_opts --init-speech-mask $init_mask --mask-format $mask_format"
+cgmm_opts="--num-iters $iters --num-classes $num_classes --solve-permu $solve_permu"
+[ ! -z $init_mask ] && cgmm_opts="$cgmm_opts --init-mask $init_mask --mask-format $mask_format"
 
 mkdir -p $dst_dir
 $cmd JOB=1:$nj $exp_dir/log/run_cgmm.JOB.log \
