@@ -189,6 +189,9 @@ class CgDistribution(Distribution):
     def update_parameters(self, obs, gamma, force_hermitian=True):
         """
         Update phi & covar
+        Args:
+            obs: F x M x T
+            gamma: K x F x T
         """
         _, M, _ = obs.shape
         # update R
@@ -204,7 +207,7 @@ class CgDistribution(Distribution):
         phi = np.maximum(np.abs(phi), EPSILON)
         self.parameters["phi"] = phi / M
 
-    def log_pdf(self, obs, return_kernel=False):
+    def log_pdf(self, obs):
         """
         Formula:
             N(y, R) = e^(-y^H * R^{-1} * y) / det(pi*R)
@@ -216,7 +219,7 @@ class CgDistribution(Distribution):
         log N = const - log[det(R)] - M * log(phi)
 
         Arguments
-            obs: normalized mixture observation, F x M x T
+            obs: mixture observation, F x M x T
         Return:
             logpdf: K x F x T
         """
@@ -232,12 +235,12 @@ class Cgmm(object):
     """
     Complex Gaussian Mixture Model (CGMM)
     """
-    def __init__(self, mdl, alpha=None):
+    def __init__(self, mdl, alpha):
         self.cg = CgDistribution() if mdl is None else mdl
         # K x F
         self.alpha = alpha
 
-    def update(self, obs, gamma):
+    def update(self, obs, gamma, update_alpha=False):
         """
         Update parameters in Cgmm
         Arguments:
@@ -246,8 +249,9 @@ class Cgmm(object):
         """
         # update phi & R
         self.cg.update_parameters(obs, gamma)
-        # do not update alpha
-        self.alpha = np.mean(gamma, -1)
+        # update alpha
+        if update_alpha:
+            self.alpha = np.mean(gamma, -1)
 
     def predict(self, obs, return_Q=False):
         """
@@ -280,18 +284,138 @@ class Cgmm(object):
 
 class NcgDistribution(Distribution):
     """
-    Complex Gaussian Distribution (K classes, F bins)
+    Noisy Complex Gaussian Distribution (K classes, F bins)
     """
     def __init__(self, v=None, covar=None):
         super(NcgDistribution, self).__init__(covar)
         self.parameters["v"] = v
 
-    def update_parameters(self, phi, covar, force_hermitian=True):
+    def update_parameters(self, obs, gamma, covar_inv, force_hermitian=True):
         """
         Update covar & v
+        Args:
+            obs: F x M x T
+            gamma: K x F x T
+            covar_inv: K x F x T x M x M
         """
-        self.update_covar(covar, force_hermitian=force_hermitian)
+        # F x T x M
+        obs = np.einsum("fmt->ftm", obs)
+        F, T, M = obs.shape
+        # K+1 x F x T
+        v = self.parameters["v"]
+        # K+1 x F x M x M
+        R = self.covar(inv=False)
+        # K x F x T x M x M
+        R_covar_inv = np.einsum("...ab,...tbc->...tac", R[1:], covar_inv)
+        # K x F x T x M
+        mu = np.einsum("...ab,...a->...b", R_covar_inv, obs)
+        mu = mu * v[1:, ..., None]
+        # K x F x T x M x M
+        sigma = np.einsum("...tab,...bc->...tac", R_covar_inv, R[:1])
+        sigma = sigma * v[1:, ..., None, None] * v[:1, ..., None, None]
+        # K x F x T x M x M
+        phi_v = sigma + np.einsum("...x,...y->...xy", mu, mu.conj())
+        # K x F x T x M x M
+        phi_0 = np.sum(sigma + np.einsum("...x,...y->...xy", mu - obs,
+                                         (mu - obs).conj()) * v[:1],
+                       axis=0,
+                       keepdims=True)
+        # K+1 x F x T x M x M
+        phi = np.stack([phi_0, phi_v], axis=0)
+        # K+1 x F x T
+        gamma = np.stack([np.ones(1, F, T), gamma])
+        # update R
+        denominator = np.sum(gamma, -1, keepdims=True)
+        # K+1 x F x M x M
+        R = np.sum(gamma[..., None, None] * phi / v[..., None, None], axis=2)
+        R = R / np.maximum(denominator[..., None], EPSILON)
+        self.update_covar(R, force_hermitian=force_hermitian)
+        # update phi
         R_inv = self.covar(inv=True)
+        # K+1 x F x T x M x M
+        R_inv_phi = np.einsum("...ab,...tbc->...tac", R_inv, phi)
+        # K+1 x F x T
+        v = np.trace(R_inv_phi, axis1=-2, axis2=-1)
+        v = np.maximum(np.abs(v), EPSILON)
+        self.parameters["v"] = v / M
+
+    def log_pdf(self, obs, return_covar_inv=False):
+        """
+        Formula:
+            N(y, R) = e^(-y^H * R^{-1} * y) / det(pi*R)
+            log N = -y^H * R^{-1} * y - log[det(R)]
+        Arguments
+            obs: mixture observation, F x M x T
+        Return:
+            logpdf: K x F x T
+        """
+        self.check_status()
+        # K x F x M x M
+        covar_inv = self.covar(inv=True)
+        # K x F x T
+        yh_covar_inv_y = np.einsum("...xt,...xy,...yt->...t", obs.conj(),
+                                   covar_inv, obs)
+        yh_covar_inv_y = np.maximum(np.abs(yh_covar_inv_y), EPSILON)
+        # K x F x 1
+        log_det = self.parameters["covar"].det(log=True)
+        log_pdf = -yh_covar_inv_y - log_det
+        if return_covar_inv:
+            return log_pdf, covar_inv
+        else:
+            return log_pdf
+
+
+class Ncgmm(object):
+    """
+    Noisy Complex Gaussian Mixture Model (N-CGMM)
+    """
+    def __init__(self, mdl, alpha, covar_inv=None):
+        self.ncg = NcgDistribution() if mdl is None else mdl
+        # K x F
+        self.alpha = alpha
+        # K x F x T x M x M
+        self.covar_inv = covar_inv
+
+    def update(self, obs, gamma, update_alpha=False):
+        """
+        Update parameters in n-cgmm
+        Arguments:
+            obs: mixture observation, F x M x T
+            gamma: K x F x T
+        """
+        # update v & R
+        self.ncg.update_parameters(obs, gamma, self.covar_inv)
+        # update alpha
+        if update_alpha:
+            self.alpha = np.mean(gamma, -1)
+
+    def predict(self, obs, return_Q=False):
+        """
+        Compute gamma (posterior) using n-cgmm
+        Arguments:
+            obs: mixture observation, F x M x T
+        Return:
+            gamma: posterior, K x F x T
+        """
+        # K x F x T
+        log_pdf, self.covar_inv = self.ncg.log_pdf(obs, return_covar_inv=True)
+        Q = None
+        if return_Q:
+            # K x F x T => F x T
+            pdf_tf = np.sum(np.exp(log_pdf) * self.alpha[..., None], 0)
+            # each TF-bin
+            Q = np.mean(np.log(pdf_tf))
+        log_pdf = log_pdf - np.amax(log_pdf, 0, keepdims=True)
+        # K x F x T
+        pdf = np.exp(log_pdf)
+        # K x F x T
+        nominator = pdf * self.alpha[..., None]
+        denominator = np.sum(nominator, 0, keepdims=True)
+        gamma = nominator / np.maximum(denominator, EPSILON)
+        if return_Q:
+            return gamma, Q
+        else:
+            return gamma
 
 
 class CacgDistribution(Distribution):
@@ -347,12 +471,14 @@ class Cacgmm(object):
     """
     Complex Angular Central Gaussian Mixture Model (CACGMM)
     """
-    def __init__(self, mdl, alpha=None):
+    def __init__(self, mdl, alpha, kernel=None):
         self.cacg = CacgDistribution() if mdl is None else mdl
         # K x F
         self.alpha = alpha
+        # K x F x T, z^H * B^{-1} * z
+        self.kernel = kernel
 
-    def update(self, obs, gamma, kernel):
+    def update(self, obs, gamma, update_alpha=True):
         """
         Update parameters in Cacgmm
         Arguments:
@@ -360,8 +486,12 @@ class Cacgmm(object):
             gamma: K x F x T
             kernel: K x F x T, z^H * B^{-1} * z
         """
-        self.cacg.update_parameters(obs, gamma, kernel, force_hermitian=True)
-        self.alpha = np.mean(gamma, -1)
+        self.cacg.update_parameters(obs,
+                                    gamma,
+                                    self.kernel,
+                                    force_hermitian=True)
+        if update_alpha:
+            self.alpha = np.mean(gamma, -1)
 
     def predict(self, obs, return_Q=False):
         """
@@ -372,7 +502,7 @@ class Cacgmm(object):
             gamma: posterior, K x F x T
         """
         # K x F x T
-        log_pdf, kernel = self.cacg.log_pdf(obs, return_kernel=True)
+        log_pdf, self.kernel = self.cacg.log_pdf(obs, return_kernel=True)
         Q = None
         if return_Q:
             # K x F x T => F x T
@@ -387,21 +517,27 @@ class Cacgmm(object):
         denominator = np.sum(nominator, 0, keepdims=True)
         gamma = nominator / np.maximum(denominator, EPSILON)
         if return_Q:
-            return gamma, kernel, Q
+            return gamma, Q
         else:
-            return gamma, kernel
+            return gamma
 
 
 class CgmmTrainer(object):
     """
     Cgmm Trainer
     """
-    def __init__(self, obs, num_classes, gamma=None, cgmm=None):
+    def __init__(self,
+                 obs,
+                 num_classes,
+                 gamma=None,
+                 cgmm=None,
+                 update_alpha=False):
         """
         Arguments:
             obs: mixture observation, M x F x T
             gamma: initial gamma, K x F x T
         """
+        self.update_alpha = update_alpha
         # F x M x T
         self.obs = np.einsum("mft->fmt", obs)
         F, M, T = self.obs.shape
@@ -436,7 +572,8 @@ class CgmmTrainer(object):
                             self.obs)
             phi = np.maximum(np.abs(phi), EPSILON)
             cg = CgDistribution(phi=phi / M, covar=R)
-            self.cgmm = Cgmm(cg, alpha=np.ones([num_classes, F]))
+            alpha = np.ones([num_classes, F]) / num_classes
+            self.cgmm = Cgmm(cg, alpha)
             self.gamma = self.cgmm.predict(self.obs)
         else:
             with open(cgmm, "r") as pkl:
@@ -449,7 +586,9 @@ class CgmmTrainer(object):
         Train in EM progress
         """
         for i in range(num_iters):
-            self.cgmm.update(self.obs, self.gamma)
+            self.cgmm.update(self.obs,
+                             self.gamma,
+                             update_alpha=self.update_alpha)
             self.gamma, Q = self.cgmm.predict(self.obs, return_Q=True)
             logger.info(f"Iter {i + 1:2d}/{num_iters}: Q = {Q:.4f}")
         return self.gamma
@@ -464,7 +603,8 @@ class CacgmmTrainer(object):
                  num_classes,
                  gamma=None,
                  cacgmm=None,
-                 cgmm_init=False):
+                 cgmm_init=False,
+                 update_alpha=True):
         """
         Arguments:
             obs: mixture observation, M x F x T
@@ -472,11 +612,13 @@ class CacgmmTrainer(object):
             gamma: initial gamma, K x F x T
             cgmm_init: init like cgmm papers
         """
+        self.update_alpha = update_alpha
         # obs (M x F x T) => z (F x M x T)
         self.obs = np.einsum("mft->fmt", norm_observation(obs, axis=0))
 
         F, M, T = self.obs.shape
         logger.info(f"CACGMM instance: F = {F:d}, T = {T:}, M = {M}")
+        alpha = np.ones([num_classes, F]) / num_classes
 
         if cacgmm is None:
             if cgmm_init and num_classes == 2:
@@ -487,9 +629,9 @@ class CacgmmTrainer(object):
                     / T,
                     np.stack([np.eye(M, M, dtype=obs.dtype) for _ in range(F)])
                 ])
-                ones = np.ones([2, F]) / 2
-                self.cacgmm = Cacgmm(CacgDistribution(covar), alpha=ones)
-                self.gamma, self.K = self.cacgmm.predict(self.obs)
+                cacg = CacgDistribution(covar)
+                self.cacgmm = Cacgmm(cacg, alpha)
+                self.gamma = self.cacgmm.predict(self.obs)
                 logger.info("Using cgmm init for num_classes = 2")
             else:
                 if gamma is None:
@@ -499,21 +641,23 @@ class CacgmmTrainer(object):
                         f"Random initialized, num_classes = {num_classes}")
                 else:
                     self.gamma = gamma
-                self.K = np.ones([num_classes, F, T])
-                self.cacgmm = Cacgmm(None)
+                self.cacgmm = Cacgmm(None,
+                                     alpha,
+                                     kernel=np.ones([num_classes, F, T]))
         else:
             with open(cacgmm, "r") as pkl:
                 self.cacgmm = pickle.load(pkl)
             logger.info(f"Resume cacgmm model from {cacgmm}")
-            self.gamma, self.K = self.cacgmm.predict(self.obs)
+            self.gamma = self.cacgmm.predict(self.obs)
 
     def train(self, num_iters):
         """
         Train in EM progress
         """
         for i in range(num_iters):
-            self.cacgmm.update(self.obs, self.gamma, self.K)
-            self.gamma, self.K, Q = self.cacgmm.predict(self.obs,
-                                                        return_Q=True)
+            self.cacgmm.update(self.obs,
+                               self.gamma,
+                               update_alpha=self.update_alpha)
+            self.gamma, Q = self.cacgmm.predict(self.obs, return_Q=True)
             logger.info(f"Iter {i + 1:2d}/{num_iters}: Q = {Q:.4f}")
         return self.gamma

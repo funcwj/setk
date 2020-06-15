@@ -49,7 +49,8 @@ def run(args):
                 trainer = CacgmmTrainer(stft,
                                         args.num_classes,
                                         gamma=init_mask,
-                                        cgmm_init=args.cgmm_init)
+                                        cgmm_init=args.cgmm_init,
+                                        update_alpha=args.update_alpha)
                 try:
                     # EM progress
                     masks = trainer.train(args.num_iters)
@@ -107,8 +108,12 @@ if __name__ == "__main__":
                         help="For 2 classes, using the cgmm init way")
     parser.add_argument("--solve-permu",
                         action=StrToBoolAction,
-                        default=False,
+                        default=True,
                         help="If true, solving permutation problems")
+    parser.add_argument("--update-alpha",
+                        action=StrToBoolAction,
+                        default=True,
+                        help="If true, update alpha in M-step")
     parser.add_argument("--mask-format",
                         type=str,
                         dest="fmt",

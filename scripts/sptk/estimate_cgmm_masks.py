@@ -44,7 +44,10 @@ def run(args):
                         init_mask = np.transpose(init_mask, (0, 2, 1))
                     logger.info("Using external TF-mask to initialize cgmm")
                 # stft: N x F x T
-                trainer = CgmmTrainer(stft, args.num_classes, gamma=init_mask)
+                trainer = CgmmTrainer(stft,
+                                      args.num_classes,
+                                      gamma=init_mask,
+                                      update_alpha=args.update_alpha)
                 try:
                     masks = trainer.train(args.num_iters)
                     # K x F x T => K x T x F
@@ -100,6 +103,10 @@ if __name__ == "__main__":
                         action=StrToBoolAction,
                         default=False,
                         help="If true, solving permutation problems")
+    parser.add_argument("--update-alpha",
+                        action=StrToBoolAction,
+                        default=False,
+                        help="If true, update alpha in M-step")
     parser.add_argument("--mask-format",
                         type=str,
                         dest="fmt",
