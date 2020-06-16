@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 
 from pathlib import Path
-from libs.cluster import CgmmTrainer, permu_aligner
+from libs.cluster import CgmmTrainer, NcgmmTrainer, permu_aligner
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, NumpyWriter
 from libs.utils import get_logger
 from libs.opts import StftParser, StrToBoolAction
@@ -29,6 +29,7 @@ def run(args):
     init_mask_reader = MaskReader[args.fmt](
         args.init_mask) if args.init_mask else None
 
+    Trainer = {"cgmm": CgmmTrainer, "ncgmm": NcgmmTrainer}[args.backend]
     num_done = 0
     with NumpyWriter(args.dst_dir) as writer:
         dst_dir = Path(args.dst_dir)
@@ -44,10 +45,10 @@ def run(args):
                         init_mask = np.transpose(init_mask, (0, 2, 1))
                     logger.info("Using external TF-mask to initialize cgmm")
                 # stft: N x F x T
-                trainer = CgmmTrainer(stft,
-                                      args.num_classes,
-                                      gamma=init_mask,
-                                      update_alpha=args.update_alpha)
+                trainer = Trainer(stft,
+                                  args.num_classes,
+                                  gamma=init_mask,
+                                  update_alpha=args.update_alpha)
                 try:
                     masks = trainer.train(args.num_iters)
                     # K x F x T => K x T x F
@@ -85,6 +86,11 @@ if __name__ == "__main__":
                         type=int,
                         default=20,
                         help="Number of iterations to train CGMM parameters")
+    parser.add_argument("--backend",
+                        type=str,
+                        default="cgmm",
+                        choices=["cgmm", "ncgmm"],
+                        help="Backend model to use")
     parser.add_argument("--num-classes",
                         type=int,
                         default=2,

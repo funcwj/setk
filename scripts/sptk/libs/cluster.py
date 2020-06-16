@@ -316,14 +316,15 @@ class NcgDistribution(Distribution):
         # K x F x T x M x M
         phi_v = sigma + np.einsum("...x,...y->...xy", mu, mu.conj())
         # K x F x T x M x M
-        phi_0 = np.sum(sigma + np.einsum("...x,...y->...xy", mu - obs,
-                                         (mu - obs).conj()) * v[:1],
+        ymu_ymu_h = np.einsum("...x,...y->...xy", obs - mu, (obs - mu).conj())
+        # K x F x T x M x M
+        phi_0 = np.sum((sigma + ymu_ymu_h) * gamma[..., None, None],
                        axis=0,
                        keepdims=True)
         # K+1 x F x T x M x M
-        phi = np.stack([phi_0, phi_v], axis=0)
+        phi = np.concatenate([phi_0, phi_v], axis=0)
         # K+1 x F x T
-        gamma = np.stack([np.ones(1, F, T), gamma])
+        gamma = np.concatenate([np.ones([1, F, T]), gamma], axis=0)
         # update R
         denominator = np.sum(gamma, -1, keepdims=True)
         # K+1 x F x M x M
@@ -350,15 +351,21 @@ class NcgDistribution(Distribution):
             logpdf: K x F x T
         """
         self.check_status()
-        # K x F x M x M
-        covar_inv = self.covar(inv=True)
+        # K+1 x F x 1 x M x M
+        R = self.covar(inv=False)[:, :, None]
+        # K+1 x F x T
+        v = self.parameters["v"]
+        # K x F x T x M x M
+        covar = R[1:] * v[1:, ..., None, None] + R[:1] * v[:1, ..., None, None]
+        covar = Covariance(covar)
+        covar_inv = covar.mat(inv=True)
         # K x F x T
-        yh_covar_inv_y = np.einsum("...xt,...xy,...yt->...t", obs.conj(),
+        yh_covar_inv_y = np.einsum("...xt,...txy,...yt->...t", obs.conj(),
                                    covar_inv, obs)
         yh_covar_inv_y = np.maximum(np.abs(yh_covar_inv_y), EPSILON)
-        # K x F x 1
-        log_det = self.parameters["covar"].det(log=True)
-        log_pdf = -yh_covar_inv_y - log_det
+        # K x F x T x 1
+        log_det = covar.det(log=True)
+        log_pdf = -yh_covar_inv_y - log_det[..., 0]
         if return_covar_inv:
             return log_pdf, covar_inv
         else:
@@ -404,7 +411,7 @@ class Ncgmm(object):
             # K x F x T => F x T
             pdf_tf = np.sum(np.exp(log_pdf) * self.alpha[..., None], 0)
             # each TF-bin
-            Q = np.mean(np.log(pdf_tf))
+            Q = np.mean(np.log(pdf_tf + EPSILON))
         log_pdf = log_pdf - np.amax(log_pdf, 0, keepdims=True)
         # K x F x T
         pdf = np.exp(log_pdf)
@@ -590,6 +597,69 @@ class CgmmTrainer(object):
                              self.gamma,
                              update_alpha=self.update_alpha)
             self.gamma, Q = self.cgmm.predict(self.obs, return_Q=True)
+            logger.info(f"Iter {i + 1:2d}/{num_iters}: Q = {Q:.4f}")
+        return self.gamma
+
+
+class NcgmmTrainer(object):
+    """
+    N-Cgmm Trainer
+    """
+    def __init__(self,
+                 obs,
+                 num_classes,
+                 gamma=None,
+                 ncgmm=None,
+                 update_alpha=False):
+        """
+        Arguments:
+            obs: mixture observation, M x F x T
+            gamma: initial gamma, K x F x T
+        """
+        self.update_alpha = update_alpha
+        # F x M x T
+        self.obs = np.einsum("mft->fmt", obs)
+        F, M, T = self.obs.shape
+        logger.info(f"N-CGMM instance: F = {F:d}, T = {T:}, M = {M}")
+
+        if ncgmm is None:
+            if gamma is None:
+                gamma = np.random.uniform(size=[num_classes, F, T])
+                gamma = gamma / np.sum(gamma, 0, keepdims=True)
+                logger.info(f"Random initialized, num_classes = {num_classes}")
+
+            den = np.maximum(np.sum(gamma, axis=-1, keepdims=True), EPSILON)
+            # K x F x M x M
+            R = np.einsum("...t,...xt,...yt->...xy", gamma, self.obs,
+                          self.obs.conj()) / den[..., None]
+            # for noise
+            R0 = np.stack([np.identity(M) for _ in range(F)])
+            R = np.concatenate([R0[None, ...], R], axis=0)
+
+            R_inv = Covariance(R).mat(inv=True)
+            # K x F x T
+            v = np.einsum("...xt,...xy,...yt->...t", self.obs.conj(), R_inv,
+                          self.obs)
+            v = np.maximum(np.abs(v), EPSILON)
+            ncg = NcgDistribution(v=v / M, covar=R)
+            alpha = np.ones([num_classes, F]) / num_classes
+            self.ncgmm = Ncgmm(ncg, alpha)
+            self.gamma = self.ncgmm.predict(self.obs)
+        else:
+            with open(ncgmm, "r") as pkl:
+                self.ncgmm = pickle.load(pkl)
+            logger.info(f"Resume cgmm model from {ncgmm}")
+            self.gamma = self.ncgmm.predict(self.obs)
+
+    def train(self, num_iters):
+        """
+        Train in EM progress
+        """
+        for i in range(num_iters):
+            self.ncgmm.update(self.obs,
+                              self.gamma,
+                              update_alpha=self.update_alpha)
+            self.gamma, Q = self.ncgmm.predict(self.obs, return_Q=True)
             logger.info(f"Iter {i + 1:2d}/{num_iters}: Q = {Q:.4f}")
         return self.gamma
 
