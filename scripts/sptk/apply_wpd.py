@@ -41,17 +41,19 @@ def run(args):
                 tf_mask, wpd_enh = facted_wpd(obs,
                                               wpd_iters=args.wpd_iters,
                                               cgmm_iters=args.cgmm_iters,
+                                              update_alpha=args.update_alpha,
                                               context=args.context,
                                               taps=args.taps,
                                               delay=args.delay)
             except np.linalg.LinAlgError:
                 logger.warn(f"{key}: Failed cause LinAlgError in wpd")
                 continue
+            norm = spectrogram_reader.maxabs(key)
             # dump multi-channel
-            samps = inverse_stft(wpd_enh, **stft_kwargs)
+            samps = inverse_stft(wpd_enh, norm=norm, **stft_kwargs)
             writer.write(key, samps)
             if args.dump_mask:
-                np.save(f"{args.dst_dir}/{key}", tf_mask)
+                np.save(f"{args.dst_dir}/{key}", tf_mask[..., 0])
             # show progress cause slow speed
             num_done += 1
             if not num_done % 100:
@@ -93,6 +95,10 @@ if __name__ == "__main__":
                         default=20,
                         type=int,
                         help="Number of iterations for WPD")
+    parser.add_argument("--update-alpha",
+                        action=StrToBoolAction,
+                        default=False,
+                        help="If true, update alpha in M-step")
     parser.add_argument("--sr",
                         type=int,
                         default=16000,

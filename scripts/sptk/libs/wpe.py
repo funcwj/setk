@@ -109,7 +109,13 @@ def wpe(reverb, taps=10, delay=3, context=1, num_iters=3):
     return dereverb
 
 
-def facted_wpd(obs, cgmm_iters=10, wpd_iters=3, taps=10, delay=3, context=1):
+def facted_wpd(obs,
+               cgmm_iters=10,
+               wpd_iters=3,
+               taps=10,
+               delay=3,
+               context=1,
+               update_alpha=False):
     """
     Joint dereverberation & denoising
     Reference:
@@ -149,7 +155,7 @@ def facted_wpd(obs, cgmm_iters=10, wpd_iters=3, taps=10, delay=3, context=1):
         der_r = np.einsum("fnt->nft", der)
         logger.info(f"Facted WPD: mask estimation...")
         # TF-mask
-        trainer = CgmmTrainer(der_r)
+        trainer = CgmmTrainer(der_r, 2, update_alpha=update_alpha)
         # F x T
         tf_mask = trainer.train(cgmm_iters)
         logger.info(f"Facted WPD: perform weighted mvdr...")
@@ -157,7 +163,7 @@ def facted_wpd(obs, cgmm_iters=10, wpd_iters=3, taps=10, delay=3, context=1):
         Rd = np.einsum("...nt,...mt->...nm", der / lambda_[:, None],
                        der.conj()) / der.shape[-1]
         # F x N x N
-        Rs = compute_covar(der_r, tf_mask.T)
+        Rs = compute_covar(der_r, tf_mask[0].T)
         # F x N
         sv = solve_pevd(Rs)
         # F x N
