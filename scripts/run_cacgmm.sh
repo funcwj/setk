@@ -6,10 +6,11 @@ set -eu
 
 nj=40
 cmd="run.pl"
-epoches=50
+iters=50
 stft_conf=conf/stft.conf
 init_mask=
 num_classes=3
+solve_permu=true
 mask_format="numpy"
 
 echo "$0 $@"
@@ -19,8 +20,9 @@ function usage {
   echo "  --nj          <nj>                  # number of jobs to run parallel, (default=$nj)"
   echo "  --cmd         <run.pl|queue.pl>     # how to run jobs, (default=$cmd)"
   echo "  --stft-conf   <stft-conf>           # stft configurations files, (default=$stft_conf)"
-  echo "  --epoches     <epoches>              # number of epoches to run cacgmm, (default=$epoches)"
+  echo "  --iters       <iters>               # number of interations to run cacgmm, (default=$iters)"
   echo "  --num-classes <num-classes>         # number of the cluster used in cacgmm model, (default=$num_classes)"
+  echo "  --solve-permu <solve-permu>         # solve frequency permutation or not, (default=$solve_permu)"
   echo "  --init-mask   <init-mask>           # dir or script for mask initialization, (default=$init_mask)"
   echo "  --mask-format <kaldi|numpy>         # mask storage type, (default=$mask_format)"
 }
@@ -43,7 +45,7 @@ split_wav_scp="" && for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_d
 
 ./utils/split_scp.pl $wav_scp $split_wav_scp
 
-cacgmm_opts="--num-epoches $epoches --num-classes $num_classes"
+cacgmm_opts="--num-iters $iters --num-classes $num_classes --solve-permu $solve_permu"
 [ ! -z $init_mask ] && cacgmm_opts="$cacgmm_opts --init-mask $init_mask --mask-format $mask_format"
 
 mkdir -p $dst_dir

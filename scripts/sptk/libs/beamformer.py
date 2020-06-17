@@ -10,12 +10,6 @@ from .utils import EPSILON, cmat_abs
 Implement for some classic beamformer
 """
 
-__all__ = [
-    "FixedBeamformer", "LinearDSBeamformer", "LinearSDBeamformer",
-    "MvdrBeamformer", "GevdBeamformer", "PmwfBeamformer",
-    "OnlineMvdrBeamformer", "OnlineGevdBeamformer"
-]
-
 
 def do_ban(weight, Rn):
     """
@@ -285,7 +279,6 @@ class SupervisedBeamformer(Beamformer):
         Rn = self.compute_covar_mat(1 - mask_s if mask_n is None else mask_n,
                                     obs)
         Rs = self.compute_covar_mat(mask_s, obs)
-        # Rs = rank1_constraint(Rs)
         weight = self.weight(Rs, Rn)
         return self.beamform(do_ban(weight, Rn) if ban else weight, obs)
 
@@ -514,7 +507,7 @@ class CircularSDBeamformer(CircularDSBeamformer):
 
 class MvdrBeamformer(SupervisedBeamformer):
     """
-    MVDR(Minimum Variance Distortionless Response) Beamformer
+    MVDR (Minimum Variance Distortionless Response) Beamformer
     Formula:
         h_mvdr(f) = R(f)_{vv}^{-1}*d(f) / [d(f)^H*R(f)_{vv}^{-1}*d(f)]
     where
@@ -531,21 +524,61 @@ class MvdrBeamformer(SupervisedBeamformer):
         Return:
             weight: shape as F x N
         """
-        steer_vector = self.compute_steer_vector(Rs)
+        steer_vector = solve_pevd(Rs)
         numerator = np.linalg.solve(Rn, steer_vector)
         denominator = np.einsum("...d,...d->...", steer_vector.conj(),
                                 numerator)
         return numerator / np.expand_dims(denominator, axis=-1)
 
-    def compute_steer_vector(self, Rs):
+
+class MpdrBeamformer(SupervisedBeamformer):
+    """
+    MPDR (Minimum Power Distortionless Response) Beamformer
+    Formula:
+        h_mpdr(f) = R(f)_{yy}^{-1}*d(f) / [d(f)^H*R(f)_{yy}^{-1}*d(f)]
+    where
+        d(f) = P(R(f)_{xx}) P: principle eigenvector
+    """
+    def __init__(self, num_bins, whiten=False):
+        super(MpdrBeamformer, self).__init__(num_bins)
+        self.whiten = whiten
+
+    def weight(self, Rs, Ry, Rn=None):
         """
-        Compute steer vector using PCA methods
         Arguments: (for N: num_mics, F: num_bins, T: num_frames)
             Rs: shape as F x N x N
-        Returns:
-            steer_vector: shape as F x N
+            Rn: shape as F x N x N
+        Return:
+            weight: shape as F x N
         """
-        return solve_pevd(Rs)
+        if Rn is None:
+            steer_vector = solve_pevd(Rs)
+        else:
+            gev = solve_pevd(Rs, Rn)
+            steer_vector = np.einsum("...ab,...b->...a", Rn, gev)
+        numerator = np.linalg.solve(Ry, steer_vector)
+        denominator = np.einsum("...d,...d->...", steer_vector.conj(),
+                                numerator)
+        return numerator / np.expand_dims(denominator, axis=-1)
+
+    def run(self, mask_s, obs, mask_n=None, ban=False):
+        """
+        Run beamformer based on TF-mask
+        Arguments: (for N: num_mics, F: num_bins, T: num_frames)
+            mask_s: shape as T x F, same shape as network output
+            obs: shape as N x T x F
+        Returns:
+            stft_enhan: shape as F x T
+        """
+        Rs = self.compute_covar_mat(mask_s, obs)
+        Ry = self.compute_covar_mat(np.ones_like(mask_s), obs)
+        if self.whiten:
+            Rn = self.compute_covar_mat(
+                1 - mask_s if mask_n is None else mask_n, obs)
+            weight = self.weight(Rs, Ry, Rn=Rn)
+        else:
+            weight = self.weight(Rs, Ry)
+        return self.beamform(do_ban(weight, Rn) if ban else weight, obs)
 
 
 class PmwfBeamformer(SupervisedBeamformer):
@@ -636,84 +669,6 @@ class GevdBeamformer(SupervisedBeamformer):
             weight: shape as F x N
         """
         return solve_pevd(Rs, Rn)
-
-
-from .wpe import compute_tap_mat
-
-
-class WpdBeamformer(object):
-    """
-    Weighted Power minimization Distortionless response (WPD) beamformer
-    NOTE: on testing
-    """
-    def __init__(self, num_bins, delay=3, taps=10):
-        self.num_bins = num_bins
-        self.delay = delay
-        self.taps = taps
-
-    def compute_lambda(self, obs, mask_s):
-        """
-        Compute time-varying power of the desired signal
-        Arguments:
-            obs: STFT of observed signals, shape as N x F x T
-            mask_s: shape as T x F
-        Return:
-            lambda_: F x T
-        """
-        # N x F x T
-        mask_obs = obs * np.transpose(mask_s)
-        # F x T
-        lambda_ = np.maximum(np.mean(mask_obs**2, 0), EPSILON)
-        return lambda_
-
-    def compute_steer_vector(self, obs, mask_s):
-        """
-        Compute steer vector
-        Arguments:
-            obs: STFT of observed signals, shape as N x F x T
-            mask_s: shape as T x F
-        Return:
-            sv: F x N
-        """
-        # F x N x N
-        Rs = compute_covar(obs, mask_s)
-        # F x N
-        sv = solve_pevd(Rs)
-        return sv
-
-    def run(self, mask_s, obs, mask_n=None, ban=False):
-        """
-        Run beamformer based on TF-mask
-        Arguments: (for N: num_mics, F: num_bins, T: num_frames)
-            mask_s: shape as T x F
-            obs: STFT of observed signals, shape as N x F x T
-        Returns:
-            wpe_enh: shape as F x T
-        """
-        # F x T
-        lambda_ = self.compute_lambda(obs, mask_s)
-        # F x N x T
-        obs = np.transpose(obs, (1, 0, 2))
-        # F x NK x T
-        xt = compute_tap_mat(obs, self.taps, self.delay)
-        # F x NK x NK
-        R = np.einsum("...mt,...nt->...mn", xt / lambda_[:, None, :],
-                      xt.conj())
-        # N x F x T
-        obs = np.transpose(obs, (1, 0, 2))
-        # F x N
-        sv = self.compute_steer_vector(obs, mask_s)
-        # F x NK
-        sv = np.pad(sv, ((0, 0), (0, (self.taps - 1) * sv.shape[-1])))
-        # F x NK
-        numerator = np.linalg.solve(R, sv)
-        # F
-        denominator = np.einsum("...d,...d->...", sv.conj(), numerator)
-        # F x NK
-        weight = numerator / denominator[:, None]
-        # F x T
-        wpd_enh = np.einsum("...n,...nt->...t", weight.conj(), xt)
-        return wpd_enh
 
 
 class OnlineGevdBeamformer(OnlineSupervisedBeamformer):

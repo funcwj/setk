@@ -11,18 +11,42 @@ See `./scripts/sptk/estimate_cacgmm_masks.py -h` and `./scripts/sptk/estimate_cg
 
 1. Blind Speech Separation
     ```bash
+    # choose cacgmm model
     echo "2spk asset/2spk.wav" | ../../scripts/sptk/estimate_cacgmm_masks.py \
         --num-classes 3 \
-        --num-epoches 20 \
+        --num-iters 20 \
         --frame-len 512 \
         - mask
+    # choose cgmm model
+    echo "2spk asset/2spk.wav" | ../../scripts/sptk/estimate_cgmm_masks.py \
+        --num-classes 3 \
+        --num-iters 20 \
+        --frame-len 512 \
+        --solve-permu true \
+        - mask
     ```
-    This command estimates TF-masks of the three sources (2 active speakers and 1 for noise). The output order of the sources are random and the masks are generated at `mask/2spk.npy`. You can use `./scripts/sptk/visualize_tf_matrix.py` for mask visualization.
+    This command estimates TF-masks of the three sources (2 active speakers and 1 for noise). The output order of the sources are random and the masks are generated at `mask/2spk.npy`. You can use `./scripts/sptk/visualize_tf_matrix.py` for mask visualization, e.g.,
+    ```bash
+    ../../scripts/sptk/visualize_tf_matrix.py \
+        --input dir --cmap binary \
+        --frame-hop 256 \
+        --cache-dir mask mask
+    ```
 
 2. Speech Enhancement
     ```bash
+    # use cgmm model
     echo "noisy asset/noisy.wav" | ../../scripts/sptk/estimate_cgmm_masks.py \
-        --num-epoches 20 \
+        --num-iters 20 \
+        --frame-len 512 \
+        - mask
+    # use cacgmm model
+    echo "noisy asset/noisy.wav" | ../../scripts/sptk/estimate_cacgmm_masks.py \
+        --num-classes 2 \
+        --num-iters 20 \
+        --solve-permu false \
+        --cgmm-init true \
+        --update-alpha false \
         --frame-len 512 \
         - mask
     ```

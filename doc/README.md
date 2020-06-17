@@ -12,7 +12,7 @@ Document on usage of the scripts under [scripts/sptk](../scripts/sptk).
 * [Steer Vector](steer_vector)
 * [Room Impluse Response](rir)
 * [Spatial Clustering](spatial_clustering)
-* [WPE](wpe)
+* [WPE & WPD](wpe)
 * [Time-frequency Mask](tf_mask)
 * [Format Transform](format_transform)
 * [Data Simulation](data_simu)

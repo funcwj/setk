@@ -2,14 +2,14 @@
 
 # wujian@2018
 """
-Do WPE Dereverbration Algorithm
+Do GWPE Dereverbration Algorithm
 """
 import argparse
 
 from libs.opts import StrToBoolAction
 from libs.utils import get_logger, inverse_stft
-from libs.opts import StftParser
-from libs.wpe import wpe
+from libs.opts import StftParser, StrToBoolAction
+from libs.wpe import facted_wpd
 from libs.data_handler import SpectrogramReader, WaveWriter
 
 import numpy as np
@@ -32,36 +32,28 @@ def run(args):
 
     num_done = 0
     with WaveWriter(args.dst_dir, fs=args.sr) as writer:
-        for key, reverbed in spectrogram_reader:
+        for key, obs in spectrogram_reader:
             logger.info(f"Processing utt {key}...")
-            if reverbed.ndim == 2:
-                reverbed = reverbed[None, ...]
-            # N x T x F => F x N x T
-            reverbed = np.transpose(reverbed, (2, 0, 1))
+            if obs.ndim != 3:
+                raise RuntimeError(f"Expected 3D array, but got {obs.ndim}")
             try:
-                if args.nara_wpe:
-                    from nara_wpe.wpe import wpe_v8
-                    # T x F x N
-                    dereverb = wpe_v8(reverbed,
-                                      taps=args.taps,
-                                      delay=args.delay,
-                                      iterations=args.num_iters,
-                                      psd_context=args.context)
-                else:
-                    dereverb = wpe(reverbed,
-                                   num_iters=args.num_iters,
-                                   context=args.context,
-                                   taps=args.taps,
-                                   delay=args.delay)
+                # N x T x F => T x F
+                tf_mask, wpd_enh = facted_wpd(obs,
+                                              wpd_iters=args.wpd_iters,
+                                              cgmm_iters=args.cgmm_iters,
+                                              update_alpha=args.update_alpha,
+                                              context=args.context,
+                                              taps=args.taps,
+                                              delay=args.delay)
             except np.linalg.LinAlgError:
-                logger.warn(f"{key}: Failed cause LinAlgError in wpe")
+                logger.warn(f"{key}: Failed cause LinAlgError in wpd")
                 continue
-            # F x N x T => N x T x F
-            dereverb = np.transpose(dereverb, (1, 2, 0))
+            norm = spectrogram_reader.maxabs(key)
             # dump multi-channel
-            samps = np.stack(
-                [inverse_stft(spectra, **stft_kwargs) for spectra in dereverb])
+            samps = inverse_stft(wpd_enh, norm=norm, **stft_kwargs)
             writer.write(key, samps)
+            if args.dump_mask:
+                np.save(f"{args.dst_dir}/{key}", tf_mask[..., 0])
             # show progress cause slow speed
             num_done += 1
             if not num_done % 100:
@@ -72,8 +64,8 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Command to do GWPE dereverbration algorithm (recommended "
-        "configuration: 512/128/blackman)",
+        description="Command to do joint dereverbration & denoising algorithm "
+        "(facted form of WPD)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -81,33 +73,39 @@ if __name__ == "__main__":
                         help="Multi-channel rspecifier in kaldi format")
     parser.add_argument("dst_dir",
                         type=str,
-                        help="Location to dump dereverbrated files")
+                        help="Location to dump enhanced audio")
     parser.add_argument("--taps",
                         default=10,
                         type=int,
-                        help="Value of taps used in GWPE algorithm")
+                        help="Value of taps used in WPE")
     parser.add_argument("--delay",
                         default=3,
                         type=int,
-                        help="Value of delay used in GWPE algorithm")
+                        help="Value of delay used in WPE")
     parser.add_argument("--context",
                         default=1,
-                        dest="context",
                         type=int,
                         help="Context value to compute PSD "
-                        "matrix in GWPE algorithm")
-    parser.add_argument("--num-iters",
+                        "matrix in WPE algorithm")
+    parser.add_argument("--wpd-iters",
                         default=3,
                         type=int,
-                        help="Number of iterations to step in GWPE")
-    parser.add_argument("--sample-rate",
+                        help="Number of iterations for WPD")
+    parser.add_argument("--cgmm-iters",
+                        default=20,
                         type=int,
-                        default=16000,
-                        dest="sr",
-                        help="Waveform data sample rate")
-    parser.add_argument("--nara-wpe",
+                        help="Number of iterations for WPD")
+    parser.add_argument("--update-alpha",
                         action=StrToBoolAction,
                         default=False,
-                        help="Use nara-wpe package")
+                        help="If true, update alpha in M-step")
+    parser.add_argument("--sr",
+                        type=int,
+                        default=16000,
+                        help="Sample rate of the input audio")
+    parser.add_argument("--dump-mask",
+                        default=False,
+                        action=StrToBoolAction,
+                        help="Dump cgmm mask or not")
     args = parser.parse_args()
     run(args)

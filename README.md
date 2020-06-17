@@ -11,7 +11,7 @@ Here are some speech enhancement/separation tools integrated with [Kaldi](https:
 * Unsupervised mask estimation (CGMM/CACGMM)
 * Spatial/Spectral feature computation
 * DS (delay and sum) beamformer, SD (supper-directive) beamformer
-* AuxIVA, GWPE, FB (Fixed Beamformer)
+* AuxIVA, WPE & WPD, FB (Fixed Beamformer)
 * Mask computation (iam, irm, ibm, psm, crm)
 * RIR simulation (1D/2D arrays)
 * Single channel speech separation (TF spectral masking)
@@ -34,7 +34,7 @@ Please check out the following instruction for usage of the scripts.
 * [Steer Vector](doc/steer_vector)
 * [Room Impluse Response](doc/rir)
 * [Spatial Clustering](doc/spatial_clustering)
-* [WPE](doc/wpe)
+* [WPE & WPD](wpe)
 * [Time-frequency Mask](doc/tf_mask)
 * [Format Transform](doc/format_transform)
 * [Data Simulation](doc/data_simu)

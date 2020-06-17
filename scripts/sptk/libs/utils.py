@@ -142,7 +142,7 @@ def forward_stft(samps,
     return stft_mat
 
 
-# accept F x T or T x F(tranpose=True)
+# accept F x T or T x F (tranpose=True)
 def inverse_stft(stft_mat,
                  frame_len=1024,
                  frame_hop=256,

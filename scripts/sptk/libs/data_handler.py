@@ -6,6 +6,7 @@ import sys
 import glob
 import codecs
 import pickle
+import random
 import warnings
 
 import _thread
@@ -41,7 +42,7 @@ def run_command(command, wait=True):
 
     if wait:
         [stdout, stderr] = p.communicate()
-        if p.returncode is not 0:
+        if p.returncode != 0:
             raise Exception(
                 "There was an error while running the command \"{0}\":\n{1}\n".
                 format(command, bytes.decode(stderr)))
@@ -178,24 +179,42 @@ class Reader(object):
         self.index_keys = list(self.index_dict.keys())
 
     def _load(self, key):
-        # return path
+        """
+        Object loading
+        """
         return self.index_dict[key]
 
-    # number of utterance
+    def sample(self, num_items):
+        """
+        Object sampling
+        """
+        keys = random.sample(self.index_keys, num_items)
+        samp = [(key, self._load(key)) for key in keys]
+        return samp[0] if num_items == 1 else samp
+
     def __len__(self):
+        """
+        Number of the objects
+        """
         return len(self.index_dict)
 
-    # avoid key error
     def __contains__(self, key):
+        """
+        Weather key exists
+        """
         return key in self.index_dict
 
-    # sequential index
     def __iter__(self):
+        """
+        Sequentially index
+        """
         for key in self.index_keys:
             yield key, self._load(key)
 
-    # random index, support str/int as index
     def __getitem__(self, index):
+        """
+        Randomly index
+        """
         if type(index) not in [int, str]:
             raise IndexError(f"Unsupported index type: {type(index)}")
         if type(index) == int:
@@ -214,8 +233,15 @@ class ScpReader(Reader):
     """
     Kaldi's scp reader
     """
-    def __init__(self, scp_rspecifier, **kwargs):
-        index_dict = parse_scps(scp_rspecifier, **kwargs)
+    def __init__(self,
+                 scp_rspecifier,
+                 value_processor=lambda x: x,
+                 num_tokens=2,
+                 restrict=True):
+        index_dict = parse_scps(scp_rspecifier,
+                                value_processor=value_processor,
+                                num_tokens=num_tokens,
+                                restrict=restrict)
         super(ScpReader, self).__init__(index_dict)
 
 
