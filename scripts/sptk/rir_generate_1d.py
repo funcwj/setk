@@ -119,6 +119,7 @@ class Room(object):
         ax.set_yticks([round(y, 1) for y in np.linspace(0, w, 5)])
         ax.set_title(f"{room_id} ({self.memo})")
         fig.savefig(dest, dpi=default_dpi, format=default_fmt)
+        plt.close(fig)
 
     def rir(self, fname, fs=16000, rir_nsamps=4096, v=340, gpu=False):
         """

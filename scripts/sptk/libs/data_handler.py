@@ -42,7 +42,7 @@ def run_command(command, wait=True):
 
     if wait:
         [stdout, stderr] = p.communicate()
-        if p.returncode is not 0:
+        if p.returncode != 0:
             raise Exception(
                 "There was an error while running the command \"{0}\":\n{1}\n".
                 format(command, bytes.decode(stderr)))
