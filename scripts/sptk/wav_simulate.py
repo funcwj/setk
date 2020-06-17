@@ -14,10 +14,18 @@ from libs.opts import str2tuple
 
 
 def coeff_snr(sig_pow, ref_pow, snr):
+    """
+    For
+        mix = Sa + alpha*Sb
+    Given
+        SNR = 10*log10[Pa/(Pb * alpha^2)]
+    we got
+        alpha = Pa/[Pb*10^(SNR/10)]^0.5
+    """
     return (ref_pow / (sig_pow * 10**(snr / 10) + EPSILON))**0.5
 
 
-def add_room_response(spk, rir, early_energy=True, sr=16000):
+def add_room_response(spk, rir, early_energy=False, sr=16000):
     """
     Convolute source signal with selected rirs
     Args
@@ -29,8 +37,8 @@ def add_room_response(spk, rir, early_energy=True, sr=16000):
     if spk.ndim != 1:
         raise RuntimeError(f"Can not convolve rir with {spk.ndim}D signals")
     S = spk.shape[-1]
-    # revb = [ss.fftconvolve(spk, r)[:S] for r in rir]
-    revb = ss.oaconvolve(spk[None, ...], rir)[..., :S]
+    revb = [ss.fftconvolve(spk, r)[:S] for r in rir]
+    # revb = ss.oaconvolve(spk[None, ...], rir)[..., :S]
     revb = np.asarray(revb)
 
     if early_energy:
@@ -96,10 +104,15 @@ def add_point_noise(mix_nsamps,
     Add pointsource noises
     """
     image = []
+    image_power = []
     for i, noise in enumerate(noise):
+        beg = noise_begin[i]
+        dur = min(noise.shape[-1], mix_nsamps - beg)
+
         if noise_rir is None:
             src = noise[None, ...] if noise.ndim == 1 else noise
             image.append(src)
+            image_power.append(np.mean(src[0, :dur]**2))
         else:
             rir = noise_rir[i]
             if rir.ndim == 1:
@@ -107,17 +120,16 @@ def add_point_noise(mix_nsamps,
             if channel >= 0:
                 if rir.ndim == 2:
                     rir = rir[channel:channel + 1]
-            revb, _ = add_room_response(noise, rir, sr=sr)
+            revb, revb_power = add_room_response(noise[:dur], rir, sr=sr)
             image.append(revb)
+            image_power.append(revb_power)
     # make noise mix
     N, _ = image[0].shape
     mix = np.zeros([N, mix_nsamps])
     # start mixing
     for i, img in enumerate(image):
         beg = noise_begin[i]
-        dur = min(img.shape[-1], mix_nsamps - beg)
-        power = np.mean(img[0, :dur]**2)
-        coeff = 1 if i == 0 else coeff_snr(power, ref_power, snr[i])
+        coeff = coeff_snr(image_power[i], ref_power, snr[i])
         mix[..., beg:beg + dur] += coeff * img[..., :dur]
     return mix
 
@@ -127,6 +139,7 @@ def run(args):
         if src_args:
             src_path = src_args.split(",")
             if beg:
+                beg = [int(v) for v in beg.split(",")]
                 return [
                     read_wav(s, sr=args.sr, beg=b)
                     for s, b in zip(src_path, beg)
@@ -165,8 +178,7 @@ def run(args):
     # number samples of the mixture
     mix_nsamps = max([b + s.size for b, s in zip(src_begin, src_spk)])
 
-    point_offset = [int(v) for v in arg_float(args.point_noise_offset)]
-    point_noise = arg_audio(args.point_noise, beg=point_offset)
+    point_noise = arg_audio(args.point_noise, beg=args.point_noise_offset)
     point_noise_rir = arg_audio(args.point_noise_rir)
     if point_noise:
         if point_noise_rir:
@@ -190,7 +202,7 @@ def run(args):
             point_begin = [0 for _ in point_noise]
 
     isotropic_noise = arg_audio(args.isotropic_noise,
-                                beg=[args.isotropic_noise_offset])
+                                beg=str(args.isotropic_noise_offset))
     if isotropic_noise:
         isotropic_noise = isotropic_noise[0]
         isotropic_snr = arg_float(args.isotropic_noise_snr)
@@ -213,8 +225,8 @@ def run(args):
     spk_utt = sum(spk)
     mix = spk_utt.copy()
 
+    spk_power = np.mean(spk_utt[0]**2)
     if point_noise:
-        spk_power = np.mean(spk_utt[0]**2)
         noise = add_point_noise(mix_nsamps,
                                 spk_power,
                                 point_noise,
@@ -255,7 +267,11 @@ def run(args):
         power = np.mean(isotropic_chunk**2)
         coeff = coeff_snr(power, spk_power, isotropic_snr)
         mix[..., :dur] += coeff * isotropic_chunk
-        noise[..., :dur] += coeff * isotropic_chunk
+
+        if noise is None:
+            noise = coeff * isotropic_chunk
+        else:
+            noise[..., :dur] += coeff * isotropic_chunk
 
     factor = args.norm_factor / (np.max(np.abs(mix)) + EPSILON)
 
@@ -270,7 +286,7 @@ def run(args):
             write_wav(ref_dir / "noise" / basename, factor * noise, sr=args.sr)
         # one speaker
         if len(spk) == 1:
-            write_wav(ref_dir / "speaker" / basename,
+            write_wav(ref_dir / "clean" / basename,
                       factor * spk[0],
                       sr=args.sr)
         else:
@@ -324,8 +340,8 @@ if __name__ == "__main__":
                         "pointsource noises on the mixture "
                         "utterances (if needed)")
     parser.add_argument("--point-noise-offset",
-                        type=int,
-                        default=0,
+                        type=str,
+                        default="",
                         help="Add from the offset position "
                         "of the pointsource noise")
     parser.add_argument("--isotropic-noise",
