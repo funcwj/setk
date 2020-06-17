@@ -46,7 +46,7 @@ def cmat_abs(cmat):
     return np.sqrt(cmat.real**2 + cmat.imag**2)
 
 
-def write_wav(fname, samps, fs=16000, normalize=True):
+def write_wav(fname, samps, sr=16000, normalize=True):
     """
     Write wav files, support single/multi-channel
     """
@@ -62,18 +62,18 @@ def write_wav(fname, samps, fs=16000, normalize=True):
         os.makedirs(fdir)
     # NOTE: librosa 0.6.0 seems could not write non-float narray
     #       so use scipy.io.wavfile/soundfile instead
-    # wf.write(fname, fs, samps_int16)
-    sf.write(fname, samps, fs)
+    # wf.write(fname, sr, samps_int16)
+    sf.write(fname, samps, sr)
 
 
-def read_wav(fname, beg=0, end=None, normalize=True, fs=16000):
+def read_wav(fname, beg=0, end=None, normalize=True, sr=16000):
     """
     Read wave files using soundfile (support multi-channel & chunk)
     args:
         fname: file name or object
         beg, end: begin and end index for chunk-level reading
         norm: normalized samples between -1 and 1
-        fs: sample rate of the audio
+        sr: sample rate of the audio
     return:
         samps: in shape C x N
         sr: sample rate
@@ -81,12 +81,12 @@ def read_wav(fname, beg=0, end=None, normalize=True, fs=16000):
     # samps: N x C or N
     #   N: number of samples
     #   C: number of channels
-    samps, sr = sf.read(fname,
-                        start=beg,
-                        stop=end,
-                        dtype="float32" if normalize else "int16")
-    if sr != fs:
-        raise RuntimeError(f"Expect sr={fs} of {fname}, get {sr} instead")
+    samps, ret_sr = sf.read(fname,
+                            start=beg,
+                            stop=end,
+                            dtype="float32" if normalize else "int16")
+    if sr != ret_sr:
+        raise RuntimeError(f"Expect sr={sr} of {fname}, get {ret_sr} instead")
     if not normalize:
         samps = samps.astype("float32")
     # put channel axis first

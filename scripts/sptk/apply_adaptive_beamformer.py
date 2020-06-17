@@ -134,7 +134,7 @@ def run(args):
                     f"chunk size = {args.chunk_size:d}")
 
     num_done = 0
-    with WaveWriter(args.dst_dir, fs=args.samp_freq) as writer:
+    with WaveWriter(args.dst_dir, sr=args.sr) as writer:
         for key, stft_mat in spectrogram_reader:
             if key in tgt_mask_reader:
                 power = spectrogram_reader.power(key)
@@ -223,11 +223,10 @@ if __name__ == "__main__":
                         type=int,
                         default=-1,
                         help="Reference channel for PMWF beamformer")
-    parser.add_argument("--sample-frequency",
+    parser.add_argument("--sr",
                         type=int,
                         default=16000,
-                        dest="samp_freq",
-                        help="Waveform data sample frequency")
+                        help="Sample rate of the waveform")
     parser.add_argument("--ban",
                         action=StrToBoolAction,
                         default=False,

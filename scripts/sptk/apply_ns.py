@@ -36,7 +36,7 @@ def run(args):
         suppressor = iMCRA()
 
     if args.output == "wave":
-        with WaveWriter(args.dst_dir, fs=args.sr) as writer:
+        with WaveWriter(args.dst_dir, sr=args.sr) as writer:
             for key, stft in spectrogram_reader:
                 logger.info(f"Processing utterance {key}...")
                 gain = suppressor.run(stft)

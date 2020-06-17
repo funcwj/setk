@@ -66,16 +66,15 @@ class VoiceSpliter(object):
 
 
 def run(args):
-    def ms_to_n(ms, fs):
-        return int(ms * fs / 1000.0)
+    def ms_to_n(ms, sr):
+        return int(ms * sr / 1000.0)
 
-    fs = args.fs
-    splitter = VoiceSpliter(args.mode, args.cache_size, fs)
-    wav_reader = WaveReader(args.wav_scp, sample_rate=fs, normalize=False)
+    splitter = VoiceSpliter(args.mode, args.cache_size, args.sr)
+    wav_reader = WaveReader(args.wav_scp, sr=args.sr, normalize=False)
     logger.info(f"Setting vad mode: {args.mode:d}")
 
-    step = ms_to_n(args.chunk_size, fs)
-    with WaveWriter(args.dst_dir, fs=fs, normalize=False) as wav_writer:
+    step = ms_to_n(args.chunk_size, args.sr)
+    with WaveWriter(args.dst_dir, sr=args.sr, normalize=False) as wav_writer:
         for key, ori_wav in wav_reader:
             splitter.reset()
             for frame in split_frame(ori_wav, step):
@@ -110,10 +109,10 @@ if __name__ == "__main__":
                         type=int,
                         default=20,
                         help="Chunk size in ms(x10)")
-    parser.add_argument("--fs",
+    parser.add_argument("--sr",
                         type=int,
                         default=16000,
-                        help="Waveform sample frequency")
+                        help="Waveform sample rate")
     parser.add_argument("--cache-size",
                         type=int,
                         default=5,

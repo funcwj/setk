@@ -31,7 +31,7 @@ def run(args):
         **stft_kwargs)
 
     num_done = 0
-    with WaveWriter(args.dst_dir, fs=args.sr) as writer:
+    with WaveWriter(args.dst_dir, sr=args.sr) as writer:
         for key, obs in spectrogram_reader:
             logger.info(f"Processing utt {key}...")
             if obs.ndim != 3:

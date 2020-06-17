@@ -8,7 +8,7 @@ nj=40
 cmd="run.pl"
 
 mode=3
-fs=16000
+sr=16000
 chunk_size=20
 cache_size=5
 
@@ -16,7 +16,7 @@ function usage {
   echo "Options:"
   echo "  --nj          <nj>                 # number of jobs to run parallel, (default=40)"
   echo "  --cmd         <run.pl|queue.pl>    # how to run jobs, (default=run.pl)"
-  echo "  --fs          <fs>                 # sample rate for input wave, (default=16000)"
+  echo "  --sr          <sr>                 # sample rate for input wave, (default=16000)"
   echo "  --mode        <0-3>                # vad mode (0->3 less->more aggressive) used in webrtc, (default=3)"
   echo "  --chunk-size  <chunk-size>         # frame length in ms, must be x10, (default=20)"
   echo "  --cache-size  <cache-size>         # number of frames remembered in history, (default=5)"
@@ -43,7 +43,7 @@ for n in $(seq $nj); do split_wav_scp="$split_wav_scp $exp_dir/wav.$n.scp"; done
 $cmd JOB=1:$nj $exp_dir/log/cut_silence.JOB.log \
   ./scripts/sptk/do_vad.py \
   --mode $mode \
-  --fs $fs \
+  --sr $sr \
   --chunk-size $chunk_size \
   --cache-size $cache_size \
   $exp_dir/wav.JOB.scp \

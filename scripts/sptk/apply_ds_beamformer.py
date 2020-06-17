@@ -67,7 +67,7 @@ def run(args):
         **stft_kwargs)
 
     done = 0
-    with WaveWriter(args.dst_dir, fs=args.sr) as writer:
+    with WaveWriter(args.dst_dir, sr=args.sr) as writer:
         for key, stft_src in spectrogram_reader:
             if utt2doa:
                 if key not in utt2doa:

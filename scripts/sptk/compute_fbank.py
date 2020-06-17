@@ -37,12 +37,12 @@ def run(args):
         "transpose": False  # F x T
     }
 
-    if args.max_freq > args.samp_freq // 2:
+    if args.max_freq > args.sr // 2:
         raise RuntimeError("Max frequency for mel exceeds sample frequency")
     spectrogram_reader = SpectrogramReader(args.wav_scp, **stft_kwargs)
     # N x F
     mel_weights = filters.mel(
-        args.samp_freq,
+        args.sr,
         nextpow2(args.frame_len)
         if args.round_power_of_two else args.frame_len, **mel_kwargs)
     WriterImpl = {"kaldi": ArchiveWriter, "exraw": BinaryWriter}[args.format]
@@ -83,11 +83,10 @@ if __name__ == "__main__":
                         default="",
                         help="If assigned, generate corresponding "
                         "scripts for archives")
-    parser.add_argument("--sample-frequency",
+    parser.add_argument("--sr",
                         type=int,
                         default=16000,
-                        dest="samp_freq",
-                        help="Waveform data sample frequency")
+                        help="Waveform data sample rate")
     parser.add_argument("--apply-log",
                         action=StrToBoolAction,
                         default=False,
