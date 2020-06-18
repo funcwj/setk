@@ -13,7 +13,7 @@ from libs.utils import nextpow2, get_logger
 from libs.opts import StftParser
 from libs.spatial import directional_feats
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, ArchiveWriter
-from libs.beamformer import MvdrBeamformer
+from libs.beamformer import solve_pevd, compute_covar
 
 logger = get_logger(__name__)
 
@@ -31,9 +31,6 @@ def run(args):
     MaskReader = {"numpy": NumpyReader, "kaldi": ScriptReader}
     mask_reader = MaskReader[args.fmt](args.mask_scp)
 
-    num_bins = nextpow2(args.frame_len) // 2 + 1
-    beamformer = MvdrBeamformer(num_bins)
-
     df_pair = [tuple(map(int, p.split(","))) for p in args.df_pair.split(";")]
     if not len(df_pair):
         raise RuntimeError(f"Bad configurations with --pair {args.pair}")
@@ -41,19 +38,18 @@ def run(args):
 
     num_done = 0
     with ArchiveWriter(args.dup_ark, args.scp) as writer:
-        for key, spect in feat_reader:
+        for key, obs in feat_reader:
             if key in mask_reader:
                 speech_masks = mask_reader[key]
                 # make sure speech_masks in T x F
-                _, F, _ = spect.shape
+                _, F, _ = obs.shape
                 if speech_masks.shape[0] == F:
                     speech_masks = np.transpose(speech_masks)
                 speech_masks = np.minimum(speech_masks, 1)
-                # spectrogram: N x F x T
-                speech_covar = beamformer.compute_covar_mat(
-                    speech_masks, spect)
-                sv = beamformer.compute_steer_vector(speech_covar)
-                df = directional_feats(spect, sv.T, df_pair=df_pair)
+                # obs: N x F x T
+                speech_covar = compute_covar(obs, speech_masks)
+                sv = solve_pevd(speech_covar)
+                df = directional_feats(obs, sv.T, df_pair=df_pair)
                 writer.write(key, df)
                 num_done += 1
                 if not num_done % 1000:

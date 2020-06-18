@@ -14,7 +14,7 @@ echo "egs asset/egs.wav" > wav.scp
 ../../scripts/sptk/estimate_cgmm_masks.py \
     --frame-len 512 \
     --frame-hop 256 \
-    --num-epoches 20 \
+    --num-iters 20 \
     wav.scp mask
 # visualize and check
 ../../scripts/sptk/visualize_tf_matrix.py \

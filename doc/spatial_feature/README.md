@@ -35,7 +35,7 @@ See `./scripts/sptk/compute_ipd_and_linear_srp.py -h` for IPD and `./scripts/spt
     # estimate TF-mask of the source speaker
     echo "egs asset/egs.wav" | ../../scripts/sptk/estimate_cgmm_masks.py \
         --frame-len 512 \
-        --num-epoches 20 \
+        --num-iters 20 \
         - mask
     # compute DF
     echo "egs mask/egs.npy" > mask.scp
