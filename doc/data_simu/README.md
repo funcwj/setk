@@ -48,7 +48,7 @@ See `./scripts/sptk/wav_simulate.py -h`
         --point-noise-rir asset/4ch-rir3.wav \
         --isotropic-noise-snr 8 \
         --isotropic-noise asset/iso.wav \
-        --isotropic-noise-begin 16000 \
+        --isotropic-noise-offset 16000 \
         spk1_noisy3.wav
     ```
 
@@ -79,7 +79,7 @@ See `./scripts/sptk/wav_simulate.py -h`
         --point-noise-rir asset/4ch-rir3.wav \
         --isotropic-noise-snr 8 \
         --isotropic-noise asset/iso.wav \
-        --isotropic-noise-begin 16000 \
+        --isotropic-noise-offset 16000 \
         --dump-ref-dir ref \
         2spk_mix1.wav 
     ```

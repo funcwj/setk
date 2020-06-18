@@ -33,7 +33,7 @@ def run(args):
             round_power_of_two=args.round_power_of_two)
         logger.info(f"Using phase reference from {args.phase_ref}")
 
-    with WaveWriter(args.dump_dir, fs=args.sr,
+    with WaveWriter(args.dump_dir, sr=args.sr,
                     normalize=args.normalize) as writer:
         for key, spec in feature_reader:
             logger.info(f"Processing utterance {key}...")

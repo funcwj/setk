@@ -115,7 +115,7 @@ class Room(object):
         fig.savefig(dest, dpi=default_dpi, format=default_fmt)
         plt.close(fig)
 
-    def rir(self, fname, fs=16000, rir_nsamps=4096, v=340, gpu=False):
+    def rir(self, fname, sr=16000, rir_nsamps=4096, v=340, gpu=False):
         """
         Generate rir for current settings
         """
@@ -125,7 +125,7 @@ class Room(object):
             beta = pygpurir.beta_SabineEstimation(self.size, self.beta)
             # NOTE: do not clear here
             # diff = pygpurir.att2t_SabineEstimator(15, self.beta)
-            tmax = rir_nsamps / fs
+            tmax = rir_nsamps / sr
             nb_img = pygpurir.t2n(tmax, self.size)
             # S x R x T
             rirs = pygpurir.simulateRIR(self.size,
@@ -134,11 +134,11 @@ class Room(object):
                                         np.array(self.rpos),
                                         nb_img,
                                         tmax,
-                                        fs,
+                                        sr,
                                         mic_pattern="omni")
             S, _, _ = rirs.shape
             for s in range(S):
-                write_wav(f"{fname}-{s + 1}.wav", rirs[s], fs=fs)
+                write_wav(f"{fname}-{s + 1}.wav", rirs[s], sr=sr)
         elif cpp_rir_available:
             # format float
             ffloat = lambda f: "{:.3f}".format(f)
@@ -154,7 +154,7 @@ class Room(object):
                 "--room-topo={room_size} --receiver-location=\"{receiver_location}\" "
                 "--source-location={source_location} {dump_dest}".format(
                     v=v,
-                    sample_rate=fs,
+                    sample_rate=sr,
                     rir_samples=rir_nsamps,
                     room_size=",".join(map(ffloat, self.size)),
                     beta=beta,
@@ -166,7 +166,7 @@ class Room(object):
                                        self.spos,
                                        self.rpos,
                                        soundVelocity=v,
-                                       fs=fs,
+                                       fs=sr,
                                        nDim=3,
                                        nSamples=rir_nsamps,
                                        nOrder=-1,
@@ -175,7 +175,7 @@ class Room(object):
                                        isHighPassFilter=True)
             if isinstance(rir, list):
                 rir = np.stack(rir)
-            write_wav(fname, rir, fs=fs)
+            write_wav(fname, rir, sr=sr)
         else:
             raise RuntimeError("Both rir-simulate and pyrirgen unavailable")
 
@@ -237,7 +237,7 @@ class RirSimulator(object):
                                             args.room_dim)
         self.mx, self.my = args.array_relx, args.array_rely
         self.array_topo = [str2tuple(t) for t in args.array_topo.split(";")]
-        self.sr = args.sample_rate
+        self.sr = args.sr
         self.args = args
 
     def _place_mic(self, room):
@@ -316,7 +316,7 @@ class RirSimulator(object):
                 # place all spakers and generate at once
                 room.set_spk([cfg["pos"] for cfg in scfg])
                 room.rir(f"{self.args.dump_dir}/Room{room_id}",
-                         fs=self.sr,
+                         sr=self.sr,
                          rir_nsamps=int(self.sr * self.args.rir_dur),
                          v=self.args.speed,
                          gpu=True)
@@ -325,7 +325,7 @@ class RirSimulator(object):
                     # place one spk and generate rir one by one
                     room.set_spk(cfg["pos"])
                     room.rir(cfg["loc"],
-                             fs=self.sr,
+                             sr=self.sr,
                              rir_nsamps=int(self.sr * self.args.rir_dur),
                              v=self.args.speed)
             # plot room
@@ -400,7 +400,7 @@ if __name__ == "__main__":
                         type=float,
                         default=0.5,
                         help="Duration of the simulated rir (s)")
-    parser.add_argument("--sample-rate",
+    parser.add_argument("--sr",
                         type=int,
                         default=16000,
                         help="Sample rate of simulated signal")

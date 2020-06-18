@@ -79,7 +79,7 @@ def run(args):
             samps = inverse_stft(mixture * mask, **stft_kwargs, nsamps=nsamps)
             write_wav(os.path.join(args.dump_dir, f"spk{index + 1}/{key}.wav"),
                       samps,
-                      fs=args.fs)
+                      sr=args.sr)
     logger.info(f"Processed {num_utts} utterance")
 
 
@@ -107,11 +107,10 @@ if __name__ == "__main__":
                         default="irm",
                         choices=["iam", "irm", "ibm", "psm"],
                         help="Type of mask to use for speech separation")
-    parser.add_argument("--sample-frequency",
+    parser.add_argument("--sr",
                         type=int,
                         default=16000,
-                        dest="fs",
-                        help="Waveform data sample frequency")
+                        help="Waveform data sample rate")
     parser.add_argument("--keep-length",
                         action=StrToBoolAction,
                         default=False,

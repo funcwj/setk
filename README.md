@@ -34,7 +34,7 @@ Please check out the following instruction for usage of the scripts.
 * [Steer Vector](doc/steer_vector)
 * [Room Impluse Response](doc/rir)
 * [Spatial Clustering](doc/spatial_clustering)
-* [WPE & WPD](wpe)
+* [WPE & WPD](doc/wpe)
 * [Time-frequency Mask](doc/tf_mask)
 * [Format Transform](doc/format_transform)
 * [Data Simulation](doc/data_simu)

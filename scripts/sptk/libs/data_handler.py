@@ -324,9 +324,9 @@ class WaveReader(ScpReader):
     or output from commands, egs:
         key1 sox /home/data/key1.wav -t wav - remix 1 |
     """
-    def __init__(self, wav_scp, sample_rate=16000, normalize=True):
+    def __init__(self, wav_scp, sr=16000, normalize=True):
         super(WaveReader, self).__init__(wav_scp)
-        self.samp_rate = sample_rate
+        self.sr = sr
         self.normalize = normalize
         self.wav_ark_mgr = {}
 
@@ -348,13 +348,13 @@ class WaveReader(ScpReader):
                              beg=beg,
                              end=end,
                              normalize=self.normalize,
-                             fs=self.samp_rate)
+                             sr=self.sr)
         else:
             samps = read_wav(addr,
                              beg=beg,
                              end=end,
                              normalize=self.normalize,
-                             fs=self.samp_rate)
+                             sr=self.sr)
         return samps
 
     def read(self, key, beg=None, end=None):
@@ -389,7 +389,7 @@ class WaveReader(ScpReader):
 
     def duration(self, key):
         samps = self.read(key)
-        return samps.shape[-1] / self.samp_rate
+        return samps.shape[-1] / self.sr
 
     def nsamps(self, key):
         samps = self.read(key)
@@ -405,7 +405,7 @@ class SegmentWaveReader(ScpReader):
     """
     WaveReader with segments
     """
-    def __init__(self, wav_scp, segments, sample_rate=None, normalize=True):
+    def __init__(self, wav_scp, segments, sr=None, normalize=True):
         def processor(x):
             wav, beg, end = x
             return {"wav": wav, "beg": float(beg), "end": float(end)}
@@ -413,7 +413,7 @@ class SegmentWaveReader(ScpReader):
         super(SegmentWaveReader, self).__init__(segments,
                                                 num_tokens=4,
                                                 value_processor=processor)
-        self.wav_reader = WaveReader(wav_scp)
+        self.wav_reader = WaveReader(wav_scp, sr=sr)
 
     def _load(self, key):
         info = self.index_dict[key]
@@ -569,14 +569,15 @@ class WaveWriter(Writer):
     """
     Writer for wave files
     """
-    def __init__(self, dump_dir, scp_path=None, **wav_kwargs):
+    def __init__(self, dump_dir, scp_path=None, sr=16000, normalize=True):
         super(WaveWriter, self).__init__(dump_dir, scp_path, is_dir=True)
-        self.wav_kwargs = wav_kwargs
+        self.sr = sr
+        self.normalize = normalize
 
     def write(self, key, obj):
         self.check_args(obj)
         obj_path = self.path_or_dir / f"{key}.wav"
-        write_wav(obj_path, obj, **self.wav_kwargs)
+        write_wav(obj_path, obj, sr=self.sr, normalize=self.normalize)
         if self.scp_file:
             self.scp_file.write(f"{key}\t{obj_path}\n")
 

@@ -37,7 +37,7 @@ def run(args):
     mask_reader = MaskReader[args.fmt](args.mask_scp)
 
     num_done = 0
-    with WaveWriter(args.dst_dir, fs=args.sf) as writer:
+    with WaveWriter(args.dst_dir, sr=args.sr) as writer:
         for key, specs in spectrogram_reader:
             # if multi-channel, choose ch0
             if specs.ndim == 3:
@@ -95,11 +95,10 @@ if __name__ == "__main__":
     parser.add_argument("dst_dir",
                         type=str,
                         help="Location to dump separated wave files")
-    parser.add_argument("--sample-frequency",
+    parser.add_argument("--sr",
                         type=int,
                         default=16000,
-                        dest="sf",
-                        help="Waveform data sample frequency")
+                        help="Waveform data sample rate")
     parser.add_argument("--phase-ref",
                         type=str,
                         default="",

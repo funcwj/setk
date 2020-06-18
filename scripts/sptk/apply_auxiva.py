@@ -77,7 +77,7 @@ def run(args):
         for idx in range(separated.shape[0]):
             samps = inverse_stft(separated[idx], **stft_kwargs, norm=norm)
             fname = Path(args.dst_dir) / f"{key}.src{idx + 1}.wav"
-            write_wav(fname, samps, fs=args.fs)
+            write_wav(fname, samps, sr=args.sr)
     logger.info(f"Processed {len(spectrogram_reader)} utterances")
 
 
@@ -97,10 +97,9 @@ if __name__ == "__main__":
                         type=int,
                         dest="epochs",
                         help="Number of epochs to run AuxIVA algorithm")
-    parser.add_argument("--sample-frequency",
+    parser.add_argument("--sr",
                         type=int,
                         default=16000,
-                        dest="fs",
-                        help="Waveform data sample frequency")
+                        help="Waveform data sample rate")
     args = parser.parse_args()
     run(args)
