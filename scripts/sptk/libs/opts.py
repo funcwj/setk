@@ -21,9 +21,9 @@ def str2bool(value):
     """
     Map "true"/"false" => True/False
     """
-    if value in ["true", "True"]:
+    if value.lower() in ["true", "t", "1", "yes", "y"]:
         return True
-    elif value in ["false", "False"]:
+    elif value.lower() in ["false", "f", "no", "n", "0"]:
         return False
     else:
         raise ValueError

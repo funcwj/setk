@@ -3,7 +3,6 @@
 # wujian@2020
 
 import os
-import time
 import argparse
 import pathlib
 
@@ -310,16 +309,8 @@ def run_simu(args):
 
 
 def run(args):
-    start = time.time()
     # run simulation
     mix, spk_ref, noise = run_simu(args)
-    # Show RTF
-    utt_dur = mix.shape[-1] / float(args.sr)
-    time_cost = float(time.time() - start)
-    print(
-        f"Time cost: {time_cost:.4f}s, Utterance duration: {utt_dur:.2f}s, "
-        f"RTF = {time_cost / utt_dur:.4f}",
-        flush=True)
     # dump mixture
     write_wav(args.mix, mix, sr=args.sr)
     # dump reference
