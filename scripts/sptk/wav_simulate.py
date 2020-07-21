@@ -3,6 +3,7 @@
 # wujian@2020
 
 import os
+import time
 import argparse
 import pathlib
 
@@ -10,7 +11,7 @@ import numpy as np
 import scipy.signal as ss
 
 from libs.utils import EPSILON, read_wav, write_wav
-from libs.opts import str2tuple
+from libs.opts import StrToBoolAction
 
 
 def coeff_snr(sig_pow, ref_pow, snr):
@@ -37,8 +38,7 @@ def add_room_response(spk, rir, early_energy=False, sr=16000):
     if spk.ndim != 1:
         raise RuntimeError(f"Can not convolve rir with {spk.ndim}D signals")
     S = spk.shape[-1]
-    revb = [ss.fftconvolve(spk, r)[:S] for r in rir]
-    # revb = ss.oaconvolve(spk[None, ...], rir)[..., :S]
+    revb = ss.convolve(spk[None, ...], rir)[..., :S]
     revb = np.asarray(revb)
 
     if early_energy:
@@ -46,8 +46,9 @@ def add_room_response(spk, rir, early_energy=False, sr=16000):
         rir_peak = np.argmax(rir_ch0)
         rir_beg_idx = max(0, int(rir_peak - 0.001 * sr))
         rir_end_idx = min(rir_ch0.size, int(rir_peak + 0.05 * sr))
-        early_rir = rir_ch0[rir_beg_idx:rir_end_idx]
-        early_rev = ss.oaconvolve(spk, early_rir)[:S]
+        early_rir = np.zeros_like(rir_ch0)
+        early_rir[rir_beg_idx:rir_end_idx] = rir_ch0[rir_beg_idx:rir_end_idx]
+        early_rev = ss.convolve(spk, early_rir)[:S]
         return revb, np.mean(early_rev**2)
     else:
         return revb, np.mean(revb[0]**2)
@@ -99,6 +100,7 @@ def add_point_noise(mix_nsamps,
                     snr,
                     noise_rir=None,
                     channel=-1,
+                    repeat=False,
                     sr=16000):
     """
     Add pointsource noises
@@ -107,10 +109,17 @@ def add_point_noise(mix_nsamps,
     image_power = []
     for i, noise in enumerate(noise):
         beg = noise_begin[i]
-        dur = min(noise.shape[-1], mix_nsamps - beg)
+        if not repeat:
+            dur = min(noise.shape[-1], mix_nsamps - beg)
+        else:
+            dur = mix_nsamps - beg
+            # if short, then padding
+            if noise.shape[-1] < dur:
+                noise = np.pad(noise, (0, dur - noise.shape[-1]), mode="wrap")
 
         if noise_rir is None:
             src = noise[None, ...] if noise.ndim == 1 else noise
+
             image.append(src)
             image_power.append(np.mean(src[0, :dur]**2))
         else:
@@ -134,26 +143,32 @@ def add_point_noise(mix_nsamps,
     return mix
 
 
-def run(args):
-    def arg_audio(src_args, beg=None):
-        if src_args:
-            src_path = src_args.split(",")
-            if beg:
-                beg = [int(v) for v in beg.split(",")]
-                return [
-                    read_wav(s, sr=args.sr, beg=b)
-                    for s, b in zip(src_path, beg)
-                ]
-            else:
-                return [read_wav(s, sr=args.sr) for s in src_path]
-        else:
-            return None
+def load_audio(src_args, beg=None, end=None, sr=16000):
+    """
+    Load audio from args.xxx
+    """
+    if src_args:
+        src_path = src_args.split(",")
+        beg_int = [None for _ in src_path]
+        end_int = [None for _ in src_path]
+        if beg:
+            beg_int = [int(v) for v in beg.split(",")]
+        if end:
+            end_int = [int(v) for v in end.split(",")]
+        return [
+            read_wav(s, sr=sr, beg=b, end=e)
+            for s, b, e in zip(src_path, beg_int, end_int)
+        ]
+    else:
+        return None
 
+
+def run_simu(args):
     def arg_float(src_args):
         return [float(s) for s in src_args.split(",")] if src_args else None
 
-    src_spk = arg_audio(args.src_spk)
-    src_rir = arg_audio(args.src_rir)
+    src_spk = load_audio(args.src_spk, sr=args.sr)
+    src_rir = load_audio(args.src_rir, sr=args.sr)
     if src_rir:
         if len(src_rir) != len(src_spk):
             raise RuntimeError(
@@ -178,9 +193,17 @@ def run(args):
     # number samples of the mixture
     mix_nsamps = max([b + s.size for b, s in zip(src_begin, src_spk)])
 
-    point_noise = arg_audio(args.point_noise, beg=args.point_noise_offset)
-    point_noise_rir = arg_audio(args.point_noise_rir)
-    if point_noise:
+    point_noise_rir = load_audio(args.point_noise_rir, sr=args.sr)
+
+    point_noise_end = [
+        str(int(v) + mix_nsamps) for v in args.point_noise_offset.split()
+    ]
+    point_noise = load_audio(args.point_noise,
+                             beg=args.point_noise_offset,
+                             end=",".join(point_noise_end),
+                             sr=args.sr)
+
+    if args.point_noise:
         if point_noise_rir:
             if len(point_noise) != len(point_noise_rir):
                 raise RuntimeError(
@@ -201,8 +224,11 @@ def run(args):
         else:
             point_begin = [0 for _ in point_noise]
 
-    isotropic_noise = arg_audio(args.isotropic_noise,
-                                beg=str(args.isotropic_noise_offset))
+    isotropic_noise = load_audio(args.isotropic_noise,
+                                 beg=str(args.isotropic_noise_offset),
+                                 end=str(args.isotropic_noise_offset +
+                                         mix_nsamps),
+                                 sr=args.sr)
     if isotropic_noise:
         isotropic_noise = isotropic_noise[0]
         isotropic_snr = arg_float(args.isotropic_noise_snr)
@@ -234,6 +260,7 @@ def run(args):
                                 point_snr,
                                 noise_rir=point_noise_rir,
                                 channel=args.dump_channel,
+                                repeat=args.point_noise_repeat,
                                 sr=args.sr)
         if spk_utt.shape[0] != noise.shape[0]:
             raise RuntimeError("Channel mismatch between source speaker " +
@@ -275,25 +302,42 @@ def run(args):
 
     factor = args.norm_factor / (np.max(np.abs(mix)) + EPSILON)
 
-    write_wav(args.mix, factor * mix, sr=args.sr)
+    mix = mix.squeeze() * factor
+    spk = [s[0] * factor for s in spk]
 
+    if noise is None:
+        return mix, spk, None
+    else:
+        return mix, spk, noise[0] * factor
+
+
+def run(args):
+    start = time.time()
+    # run simulation
+    mix, spk_ref, noise = run_simu(args)
+    # Show RTF
+    utt_dur = mix.shape[-1] / float(args.sr)
+    time_cost = float(time.time() - start)
+    print(
+        f"Time cost: {time_cost:.4f}s, Utterance duration: {utt_dur:.2f}s, "
+        f"RTF = {time_cost / utt_dur:.4f}",
+        flush=True)
+    # dump mixture
+    write_wav(args.mix, mix, sr=args.sr)
+    # dump reference
     if args.dump_ref_dir:
         basename = os.path.basename(args.mix)
         ref_dir = pathlib.Path(args.dump_ref_dir)
         ref_dir.mkdir(parents=True, exist_ok=True)
         # has noise
         if noise is not None:
-            write_wav(ref_dir / "noise" / basename, factor * noise, sr=args.sr)
+            write_wav(ref_dir / "noise" / basename, noise, sr=args.sr)
         # one speaker
-        if len(spk) == 1:
-            write_wav(ref_dir / "clean" / basename,
-                      factor * spk[0],
-                      sr=args.sr)
+        if len(spk_ref) == 1:
+            write_wav(ref_dir / "clean" / basename, spk_ref, sr=args.sr)
         else:
-            for i, s in enumerate(spk):
-                write_wav(ref_dir / f"spk{i + 1}" / basename,
-                          factor * s,
-                          sr=args.sr)
+            for i, s in enumerate(spk_ref):
+                write_wav(ref_dir / f"spk{i + 1}" / basename, s, sr=args.sr)
 
 
 if __name__ == "__main__":
@@ -344,6 +388,10 @@ if __name__ == "__main__":
                         default="",
                         help="Add from the offset position "
                         "of the pointsource noise")
+    parser.add_argument("--point-noise-repeat",
+                        action=StrToBoolAction,
+                        default="false",
+                        help="Repeat the pointsource noise or not")
     parser.add_argument("--isotropic-noise",
                         type=str,
                         default="",
