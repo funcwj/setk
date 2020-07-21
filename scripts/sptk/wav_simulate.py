@@ -143,7 +143,7 @@ def add_point_noise(mix_nsamps,
     return mix
 
 
-def load_audio(src_args, beg=None, end=None):
+def load_audio(src_args, beg=None, end=None, sr=16000):
     """
     Load audio from args.xxx
     """
@@ -156,7 +156,7 @@ def load_audio(src_args, beg=None, end=None):
         if end:
             end_int = [int(v) for v in end.split(",")]
         return [
-            read_wav(s, sr=args.sr, beg=b, end=e)
+            read_wav(s, sr=sr, beg=b, end=e)
             for s, b, e in zip(src_path, beg_int, end_int)
         ]
     else:
@@ -167,8 +167,8 @@ def run_simu(args):
     def arg_float(src_args):
         return [float(s) for s in src_args.split(",")] if src_args else None
 
-    src_spk = load_audio(args.src_spk)
-    src_rir = load_audio(args.src_rir)
+    src_spk = load_audio(args.src_spk, sr=args.sr)
+    src_rir = load_audio(args.src_rir, sr=args.sr)
     if src_rir:
         if len(src_rir) != len(src_spk):
             raise RuntimeError(
@@ -193,14 +193,15 @@ def run_simu(args):
     # number samples of the mixture
     mix_nsamps = max([b + s.size for b, s in zip(src_begin, src_spk)])
 
-    point_noise_rir = load_audio(args.point_noise_rir)
+    point_noise_rir = load_audio(args.point_noise_rir, sr=args.sr)
 
     point_noise_end = [
         str(int(v) + mix_nsamps) for v in args.point_noise_offset.split()
     ]
     point_noise = load_audio(args.point_noise,
                              beg=args.point_noise_offset,
-                             end=",".join(point_noise_end))
+                             end=",".join(point_noise_end),
+                             sr=args.sr)
 
     if args.point_noise:
         if point_noise_rir:
@@ -226,7 +227,8 @@ def run_simu(args):
     isotropic_noise = load_audio(args.isotropic_noise,
                                  beg=str(args.isotropic_noise_offset),
                                  end=str(args.isotropic_noise_offset +
-                                         mix_nsamps))
+                                         mix_nsamps),
+                                 sr=args.sr)
     if isotropic_noise:
         isotropic_noise = isotropic_noise[0]
         isotropic_snr = arg_float(args.isotropic_noise_snr)
@@ -300,13 +302,13 @@ def run_simu(args):
 
     factor = args.norm_factor / (np.max(np.abs(mix)) + EPSILON)
 
-    mix = mix * factor
-    spk = [s * factor for s in spk]
+    mix = mix.squeeze() * factor
+    spk = [s[0] * factor for s in spk]
 
     if noise is None:
         return mix, spk, None
     else:
-        return mix, spk, noise * factor
+        return mix, spk, noise[0] * factor
 
 
 def run(args):
@@ -332,7 +334,7 @@ def run(args):
             write_wav(ref_dir / "noise" / basename, noise, sr=args.sr)
         # one speaker
         if len(spk_ref) == 1:
-            write_wav(ref_dir / "clean" / basename, spk_ref[0], sr=args.sr)
+            write_wav(ref_dir / "clean" / basename, spk_ref, sr=args.sr)
         else:
             for i, s in enumerate(spk_ref):
                 write_wav(ref_dir / f"spk{i + 1}" / basename, s, sr=args.sr)
