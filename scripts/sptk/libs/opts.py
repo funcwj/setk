@@ -10,9 +10,9 @@ def str2tuple(string, sep=","):
     Map "1.0,2,0" => (1.0, 2.0)
     """
     tokens = string.split(sep)
-    if len(tokens) == 1:
-        raise ValueError("Get only one token by " +
-                         f"sep={sep}, string={string}")
+    # if len(tokens) == 1:
+    #     raise ValueError("Get only one token by " +
+    #                      f"sep={sep}, string={string}")
     floats = map(float, tokens)
     return tuple(floats)
 

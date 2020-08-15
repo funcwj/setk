@@ -26,6 +26,8 @@ def split_frame(samps, step):
 
 class VoiceSpliter(object):
     def __init__(self, mode, cache_size, fs=16000):
+        if cache_size <= 0:
+            raise ValueError("--cache-size must >= 1")
         self.pyvad = vad.Vad(mode=args.mode)
         self.fs = fs
         self.cache_size = cache_size
@@ -52,10 +54,22 @@ class VoiceSpliter(object):
                     self.segments.append((self.cpt_point, self.cur_frame))
         self.cur_frame += 1
 
-    def report(self):
+    def report(self, voice=True):
         if self.voiced and self.cpt_point != self.cur_frame:
             self.segments.append((self.cpt_point, self.cur_frame))
-        return self.segments
+        if voice:
+            return self.segments
+        else:
+            nsegs = []
+            prev = 0
+            for i, (m, n) in enumerate(self.segments):
+                if i == 0:
+                    if m != 0:
+                        nsegs.append((i, m))
+                else:
+                    nsegs.append((prev, m))
+                prev = n
+            return nsegs
 
     def reset(self):
         self.cur_steps = 0
@@ -80,7 +94,7 @@ def run(args):
             for frame in split_frame(ori_wav, step):
                 frame = frame.astype(np.int16)
                 splitter.run(frame.tobytes())
-            segments = splitter.report()
+            segments = splitter.report(voice=False)
             gather = []
             for seg in segments:
                 s, t = seg
@@ -107,8 +121,8 @@ if __name__ == "__main__":
                         "(0->3 less->more aggressive)")
     parser.add_argument("--chunk-size",
                         type=int,
-                        default=20,
-                        help="Chunk size in ms(x10)")
+                        default=10,
+                        help="Chunk size in ms (x10)")
     parser.add_argument("--sr",
                         type=int,
                         default=16000,

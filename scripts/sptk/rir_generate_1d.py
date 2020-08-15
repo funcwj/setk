@@ -294,7 +294,7 @@ class RirSimulator(object):
                 sx = my - np.cos(doa) * dst
                 sy = mx + np.sin(doa) * dst
             # check speaker location
-            if 0 > sx or sx > rx or 0 > sy or sy > ry:
+            if 0 >= sx or sx >= rx or 0 >= sy or sy >= ry:
                 continue
             done += 1
             stat = {
