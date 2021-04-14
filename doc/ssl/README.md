@@ -24,7 +24,7 @@ echo "egs asset/egs.wav" > wav.scp
 # compute steer vector
 ../../scripts/sptk/compute_steer_vector.py \
     --num-doas 360 \
-    --num-bins 267 \
+    --num-bins 257 \
     --sr 16000 \
     --geometry circular \
     --circular-radius 0.05 \
@@ -37,7 +37,7 @@ echo "egs asset/egs.wav" > wav.scp
     --backend srp \
     --doa-range 0,360 \
     --output degree \
-    --srp-pair "0,8;1,9;2,10;3,11;4,12;5,13;6,14;7,15" 
+    --srp-pair "0,8;1,9;2,10;3,11;4,12;5,13;6,14;7,15" \
     wav.scp 16mic_sv.npy doa.scp
 # run SSL using ml backend (also got 59 degree)
 ../../scripts/sptk/do_ssl.py \
