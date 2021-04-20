@@ -595,8 +595,8 @@ class PmwfBeamformer(SupervisedBeamformer):
             beta = 0 => mvdr
             beta = 1 => mcwf
     where
-        numerator(f) = R(f)_vv^{-1}*R(f)_xx = R(f)_vv^{-1}*(R(f)_yy^{-1} - R(f)_vv^{-1})
-                     = R(f)_vv^{-1}*R(f)_yy^{-1} - I
+        numerator(f) = R(f)_vv^{-1}*R(f)_xx = R(f)_vv^{-1}*(R(f)_yy - R(f)_vv)
+                     = R(f)_vv^{-1}*R(f)_yy - I
         trace(numerator(f)) = trace(R(f)_vv^{-1}*R(f)_yy^{-1} - I)
                             = trace(R(f)_vv^{-1}*R(f)_yy^{-1}) - N
         u(f): pre-assigned or estimated using snr in 1)

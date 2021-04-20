@@ -3,8 +3,8 @@
 # wujian@2020
 
 import numpy as np
-import scipy.signal as ss
 import scipy.integrate as si
+import scipy.signal as ss
 
 
 class MCRA(object):
@@ -109,15 +109,15 @@ class MCRA(object):
                 # <<< eq.33
 
             if (t + 1) % self.L == beg:
-                # >>> eq.34 & eq.35
+                # >>> eq.36 & eq.37
                 var_s_min = np.minimum(var_s_tmp, var_s)
                 var_s_tmp = var_s
-                # <<< eq.34 & eq.35
+                # <<< eq.36 & eq.37
             else:
-                # >>> eq.36 & eq.37
+                # >>> eq.34 & eq.35
                 var_s_min = np.minimum(var_s_min, var_s)
                 var_s_tmp = np.minimum(var_s_tmp, var_s)
-                # <<< eq.36 & eq.37
+                # <<< eq.34 & eq.35
 
             # >>> eq.39
             var_sr = var_s / np.maximum(eps, var_s_min)
@@ -198,7 +198,7 @@ class MCRA(object):
             # <<< eq.28
 
             # >>> eq.9
-            p_inv = 1 + q_hat * (1 + xi_hat) * np.exp(-v) / (1 + q_hat)
+            p_inv = 1 + q_hat * (1 + xi_hat) * np.exp(-v) / (1 - q_hat)
             p = 1 / p_inv
             # <<< eq.10
 
@@ -250,7 +250,7 @@ class iMCRA(object):
         Return:
             gain: real array, T x F
         """
-        T, F = stft.shape        
+        T, F = stft.shape
         obs_power = np.abs(stft)**2
         lambda_d_hat = obs_power[0]
         gh1 = 1
