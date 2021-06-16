@@ -10,7 +10,7 @@ See `./scripts/sptk/do_vad.py -h`
 
 ```bash
 # - means stdin
-echo "utt asset/utt.wav" |  ../../scripts/sptk/do_vad.py --mode 3 --fs 16000 - vad
+echo "utt asset/utt.wav" |  ../../scripts/sptk/do_vad.py --mode 3 --sr 16000 - vad
 ```
 The processed audio are generated under directory `vad`.
 
