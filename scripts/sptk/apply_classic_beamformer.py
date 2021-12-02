@@ -15,13 +15,20 @@ logger = get_logger(__name__)
 beamformers = ["ds", "sd"]
 
 
-def parse_doa(args):
+def process_doa(doa, online):
+    if online:
+        return list(map(float, doa.split()))
+    else:
+        return float(doa)
+
+
+def parse_doa(args, online):
     if args.utt2doa:
-        reader = ScpReader(args.utt2doa, value_processor=float)
-        utt2doa = lambda utt: reader.get(utt, None)
+        reader = ScpReader(args.utt2doa, value_processor=lambda doa: process_doa(doa, online))
+        utt2doa = reader.get
         logger.info(f"Use --utt2doa={args.utt2doa} for each utterance")
     else:
-        doa = args.doa
+        doa = process_doa(args.doa, online)
         utt2doa = lambda _: doa
         logger.info(f"Use --doa={doa:.2f} for all utterances")
     return utt2doa
@@ -48,8 +55,9 @@ def run(args):
     }
 
     beamformer = supported_beamformer[args.beamformer][args.geometry]
+    online = args.chunk_size <= 0
 
-    utt2doa = parse_doa(args)
+    utt2doa = parse_doa(args, online)
 
     spectrogram_reader = SpectrogramReader(
         args.wav_scp,
@@ -125,8 +133,8 @@ if __name__ == "__main__":
                         default="",
                         help="Given DoA for each utterances, in degrees")
     parser.add_argument("--doa",
-                        type=float,
-                        default=0,
+                        type=str,
+                        default="0",
                         help="DoA for all utterances if "
                              "--utt2doa is not assigned")
     parser.add_argument("--normalize",

@@ -63,8 +63,8 @@ if __name__ == "__main__":
                         default="",
                         help="Given DoA for each utterances, in degrees")
     parser.add_argument("--doa",
-                        type=float,
-                        default=0,
+                        type=str,
+                        default="0",
                         help="DoA for all utterances if "
                              "--utt2doa is not assigned")
     parser.add_argument("--normalize",
