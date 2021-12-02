@@ -15,6 +15,20 @@ logger = get_logger(__name__)
 beamformers = ["ds", "sd"]
 
 
+def parse_doa(args):
+    utt2doa = None
+    doa = None
+    if args.utt2doa:
+        utt2doa = ScpReader(args.utt2doa, value_processor=float)
+        logger.info(f"Use --utt2doa={args.utt2doa} for each utterance")
+    else:
+        doa = args.doa
+        if not check_doa(args.geometry, doa):
+            logger.info(f"Invalid doa {doa:.2f} for {args.geometry} array")
+        logger.info(f"Use --doa={doa:.2f} for all utterances")
+    return utt2doa, doa
+
+
 def run(args):
     stft_kwargs = {
         "frame_len": args.frame_len,
@@ -37,16 +51,7 @@ def run(args):
 
     beamformer = supported_beamformer[args.beamformer][args.geometry]
 
-    utt2doa = None
-    doa = None
-    if args.utt2doa:
-        utt2doa = ScpReader(args.utt2doa, value_processor=float)
-        logger.info(f"Use --utt2doa={args.utt2doa} for each utterance")
-    else:
-        doa = args.doa
-        if not check_doa(args.geometry, doa):
-            logger.info(f"Invalid doa {doa:.2f} for {args.geometry} array")
-        logger.info(f"Use --doa={doa:.2f} for all utterances")
+    utt2doa, doa = parse_doa(args)
 
     spectrogram_reader = SpectrogramReader(
         args.wav_scp,
@@ -65,7 +70,7 @@ def run(args):
                     continue
             stft_enh = beamformer.run(doa, stft_src, c=args.speed, sr=args.sr)
             done += 1
-            norm = spectrogram_reader.maxabs(key)
+            norm = spectrogram_reader.maxabs(key) if args.normalize else None
             samps = inverse_stft(stft_enh, **stft_kwargs, norm=norm)
             writer.write(key, samps)
     logger.info(f"Processed {done} utterances over {len(spectrogram_reader)}")
@@ -126,5 +131,9 @@ if __name__ == "__main__":
                         default=0,
                         help="DoA for all utterances if "
                              "--utt2doa is not assigned")
+    parser.add_argument("--normalize",
+                        action=StrToBoolAction,
+                        default=False,
+                        help="Normalize stft after enhancement?")
     args = parser.parse_args()
     run(args)

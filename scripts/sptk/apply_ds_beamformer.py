@@ -67,5 +67,9 @@ if __name__ == "__main__":
                         default=0,
                         help="DoA for all utterances if "
                              "--utt2doa is not assigned")
+    parser.add_argument("--normalize",
+                        action=StrToBoolAction,
+                        default=False,
+                        help="Normalize stft after enhancement?")
     args = parser.parse_args()
     run(args)
