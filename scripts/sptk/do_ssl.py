@@ -27,13 +27,13 @@ def add_wta(masks_list, eps=1e-4):
     return wta_masks
 
 
-def get_doa(stft, steer_vector, mask, srp_pair, angles, output):
+def get_doa(stft, steer_vector, mask, srp_pair, angles, output, backend):
     if srp_pair:
         idx = srp_ssl(stft,
                       steer_vector,
                       srp_pair=srp_pair,
                       mask=mask)
-    elif args.backend == "ml":
+    elif backend == "ml":
         idx = ml_ssl(stft,
                      steer_vector,
                      mask=mask,
@@ -98,7 +98,7 @@ def run(args):
             else:
                 mask = None
             if not online:
-                doa = get_doa(stft, steer_vector, mask, srp_pair, angles, args.output)
+                doa = get_doa(stft, steer_vector, mask, srp_pair, angles, args.output, args.backend)
                 logger.info(f"Processing utterance {key}: {doa:.4f}")
                 doa_out.write(f"{key}\t{doa:.4f}\n")
             else:
@@ -112,7 +112,7 @@ def run(args):
                     else:
                         chunk_mask = None
                     stft_chunk = stft[:, s:t + args.chunk_len, :]
-                    doa = get_doa(stft_chunk, steer_vector, chunk_mask, srp_pair, angles, args.output)
+                    doa = get_doa(stft_chunk, steer_vector, chunk_mask, srp_pair, angles, args.output, args.backend)
                     online_doa.append(doa)
                 doa_str = " ".join([f"{d:.4f}" for d in online_doa])
                 doa_out.write(f"{key}\t{doa_str}\n")
