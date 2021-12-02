@@ -14,7 +14,8 @@ from urllib import request
 from libs.cluster import CacgmmTrainer, permu_aligner
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, NumpyWriter
 from libs.utils import get_logger, nextpow2
-from libs.opts import StftParser, StrToBoolAction
+from libs.opts import StftParser
+from distutils.util import strtobool
 
 logger = get_logger(__name__)
 
@@ -103,15 +104,15 @@ if __name__ == "__main__":
                         dest="init_mask",
                         help="Mask scripts for cacgmm initialization")
     parser.add_argument("--cgmm-init",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="For 2 classes, using the cgmm init way")
     parser.add_argument("--solve-permu",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=True,
                         help="If true, solving permutation problems")
     parser.add_argument("--update-alpha",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=True,
                         help="If true, update alpha in M-step")
     parser.add_argument("--mask-format",

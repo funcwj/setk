@@ -8,9 +8,10 @@ Compute melspectrogram/fbank features (using librosa kernels) and write in kaldi
 import argparse
 import numpy as np
 import librosa.filters as filters
+from distutils.util import strtobool
 
 from libs.utils import get_logger, nextpow2, EPSILON
-from libs.opts import StftParser, StrToBoolAction
+from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 from libs.exraw import BinaryWriter
 
@@ -88,13 +89,13 @@ if __name__ == "__main__":
                         default=16000,
                         help="Waveform data sample rate")
     parser.add_argument("--apply-log",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         dest="log",
                         help="If true, using log mel-spectrogram "
                         "instead of linear")
     parser.add_argument("--normalize-samples",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         dest="norm",
                         help="If true, normalize sample "

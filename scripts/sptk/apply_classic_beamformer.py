@@ -10,9 +10,8 @@ import numpy as np
 from libs.utils import inverse_stft, get_logger, check_doa
 from libs.opts import StftParser, str2tuple
 from libs.data_handler import SpectrogramReader, WaveWriter, ScpReader
-from libs.beamformer import LinearDSBeamformer, CircularDSBeamformer
-from libs.beamformer import LinearSDBeamformer, CircularSDBeamformer
-from libs.opts import StrToBoolAction
+from libs.beamformer import LinearDSBeamformer, CircularDSBeamformer, LinearSDBeamformer, CircularSDBeamformer
+from distutils.util import strtobool
 
 logger = get_logger(__name__)
 beamformers = ["ds", "sd"]
@@ -141,7 +140,7 @@ if __name__ == "__main__":
                         default=0.05,
                         help="Radius of circular array")
     parser.add_argument("--circular-center",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Is there a microphone put in the "
                              "center of the circular array?")
@@ -155,7 +154,7 @@ if __name__ == "__main__":
                         help="DoA for all utterances if "
                              "--utt2doa is not assigned")
     parser.add_argument("--normalize",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Normalize stft after enhancement?")
     parser.add_argument("--chunk-len",

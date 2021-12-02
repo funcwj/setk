@@ -6,11 +6,12 @@ Compute score for speaker varification tasks
 """
 
 import argparse
+from distutils.util import strtobool
+
 import numpy as np
 
 from libs.data_handler import NumpyReader, ScriptReader, parse_scps
 from libs.utils import get_logger
-from libs.opts import StrToBoolAction
 
 logger = get_logger(__name__)
 
@@ -75,7 +76,7 @@ if __name__ == "__main__":
                         default="kaldi",
                         help="Storage format for embeddings")
     parser.add_argument("--normalize",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If true, normalize embeddings "
                         "before compute dot product")

@@ -3,13 +3,15 @@
 # wujian@2018
 
 import argparse
+from distutils.util import strtobool
+
 import numpy as np
 
 from pathlib import Path
 from libs.cluster import CgmmTrainer, permu_aligner
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, NumpyWriter
 from libs.utils import get_logger
-from libs.opts import StftParser, StrToBoolAction
+from libs.opts import StftParser
 
 logger = get_logger(__name__)
 
@@ -100,11 +102,11 @@ if __name__ == "__main__":
                         dest="init_mask",
                         help="Initial TF-mask for cgmm initialization")
     parser.add_argument("--solve-permu",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If true, solving permutation problems")
     parser.add_argument("--update-alpha",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If true, update alpha in M-step")
     parser.add_argument("--mask-format",

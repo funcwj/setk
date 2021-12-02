@@ -4,11 +4,12 @@
 
 import argparse
 import os
+from distutils.util import strtobool
 
 import numpy as np
 
 from libs.utils import inverse_stft, get_logger
-from libs.opts import StftParser, StrToBoolAction
+from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, NumpyReader, ScriptReader, WaveWriter
 
 logger = get_logger(__name__)
@@ -111,11 +112,11 @@ if __name__ == "__main__":
                         help="Define format of masks, kaldi's "
                         "archives or numpy's ndarray")
     parser.add_argument("--keep-length",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If ture, keep result the same length as orginal")
     parser.add_argument("--use-mixed-norm",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=True,
                         dest="mixed_norm",
                         help="If true, keep norm of separated "

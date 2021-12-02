@@ -22,7 +22,7 @@ default_format_str = "%(asctime)s [%(pathname)s:%(lineno)s - %(levelname)s ] %(m
 
 __all__ = [
     "forward_stft", "inverse_stft", "get_logger", "filekey", "write_wav",
-    "read_wav", "check_doa", "cmat_abs", "nextpow2", "EPSILON"
+    "read_wav", "check_doa", "cmat_abs", "nextpow2", "EPSILON", "griffin_lim"
 ]
 
 

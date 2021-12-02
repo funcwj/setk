@@ -6,9 +6,9 @@ Do GWPE Dereverbration Algorithm
 """
 import argparse
 
-from libs.opts import StrToBoolAction
+from distutils.util import strtobool
 from libs.utils import get_logger, inverse_stft
-from libs.opts import StftParser, StrToBoolAction
+from libs.opts import StftParser
 from libs.wpe import facted_wpd
 from libs.data_handler import SpectrogramReader, WaveWriter
 
@@ -96,7 +96,7 @@ if __name__ == "__main__":
                         type=int,
                         help="Number of iterations for WPD")
     parser.add_argument("--update-alpha",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If true, update alpha in M-step")
     parser.add_argument("--sr",
@@ -105,7 +105,7 @@ if __name__ == "__main__":
                         help="Sample rate of the input audio")
     parser.add_argument("--dump-mask",
                         default=False,
-                        action=StrToBoolAction,
+                        type=strtobool,
                         help="Dump cgmm mask or not")
     args = parser.parse_args()
     run(args)

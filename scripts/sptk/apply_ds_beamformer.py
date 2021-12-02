@@ -7,7 +7,7 @@ import argparse
 from apply_classic_beamformer import run as run_classic_beamformer
 from libs.utils import get_logger
 from libs.opts import StftParser, str2tuple
-from libs.opts import StrToBoolAction
+from distutils.util import strtobool
 
 logger = get_logger(__name__)
 
@@ -54,7 +54,7 @@ if __name__ == "__main__":
                         default=0.05,
                         help="Radius of circular array")
     parser.add_argument("--circular-center",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Is there a microphone put in the "
                              "center of the circular array?")
@@ -68,7 +68,7 @@ if __name__ == "__main__":
                         help="DoA for all utterances if "
                              "--utt2doa is not assigned")
     parser.add_argument("--normalize",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Normalize stft after enhancement?")
     parser.add_argument("--chunk-len",

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from libs.data_handler import SpectrogramReader
 from libs.utils import get_logger
-from libs.opts import StrToBoolAction, StftParser
+from libs.opts import StftParser
 
 default_font = "Times New Roman"
 default_font_size = 10

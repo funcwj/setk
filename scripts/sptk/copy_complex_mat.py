@@ -10,7 +10,7 @@ import numpy as np
 import scipy.io as sio
 
 from libs.kaldi_io import write_common_mat, write_token, write_int32, write_binary_symbol
-from libs.opts import StrToBoolAction
+from distutils.util import strtobool
 
 
 def write_complex_mat(fd, cmat):
@@ -67,16 +67,16 @@ if __name__ == '__main__':
                         type=str,
                         help="Key values to index matrix in mmat")
     parser.add_argument("--double",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If true, then write matrix "
                         "in float64/complex128")
     parser.add_argument("--float",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If true, then write matrix in float32/complex64")
     parser.add_argument("--transpose",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If true, write transpose of "
                         "original matrix instead")

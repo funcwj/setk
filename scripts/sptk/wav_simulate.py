@@ -6,12 +6,12 @@ import os
 import time
 import argparse
 import pathlib
+from distutils.util import strtobool
 
 import numpy as np
 import scipy.signal as ss
 
 from libs.utils import EPSILON, read_wav, write_wav
-from libs.opts import StrToBoolAction
 
 
 def coeff_snr(sig_pow, ref_pow, snr):
@@ -389,7 +389,7 @@ if __name__ == "__main__":
                         help="Add from the offset position "
                         "of the pointsource noise")
     parser.add_argument("--point-noise-repeat",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default="false",
                         help="Repeat the pointsource noise or not")
     parser.add_argument("--isotropic-noise",

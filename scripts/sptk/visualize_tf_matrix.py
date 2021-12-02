@@ -4,6 +4,7 @@
 
 import glob
 import argparse
+from distutils.util import strtobool
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,7 +12,6 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from libs.data_handler import ScriptReader, ArchiveReader, DirReader
 from libs.utils import get_logger, filekey, EPSILON
-from libs.opts import StrToBoolAction
 
 default_font = "Times New Roman"
 default_dpi = 200
@@ -146,15 +146,15 @@ if __name__ == "__main__":
                         default="figure",
                         help="Directory to cache pictures")
     parser.add_argument("--apply-log",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Apply log on input features")
     parser.add_argument("--trans",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Apply matrix transpose on input features")
     parser.add_argument("--norm",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Normalize values in [-1, 1] "
                         "before visualization")

@@ -7,7 +7,7 @@ import numpy as np
 
 from libs.data_handler import NumpyReader, NumpyWriter, parse_scps
 from libs.utils import get_logger
-from libs.opts import StrToBoolAction
+from distutils.util import strtobool
 
 logger = get_logger(__name__)
 
@@ -64,7 +64,7 @@ if __name__ == "__main__":
                         default="",
                         help="If assigned, generate corresponding scripts")
     parser.add_argument("--normalize",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If true, normalize vectors before compute means")
     args = parser.parse_args()

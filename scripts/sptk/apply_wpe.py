@@ -6,7 +6,7 @@ Do WPE Dereverbration Algorithm
 """
 import argparse
 
-from libs.opts import StrToBoolAction
+from distutils.util import strtobool
 from libs.utils import get_logger, inverse_stft
 from libs.opts import StftParser
 from libs.wpe import wpe
@@ -106,7 +106,7 @@ if __name__ == "__main__":
                         dest="sr",
                         help="Waveform data sample rate")
     parser.add_argument("--nara-wpe",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Use nara-wpe package")
     args = parser.parse_args()

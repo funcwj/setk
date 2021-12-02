@@ -4,12 +4,13 @@
 
 import argparse
 import os
+from distutils.util import strtobool
 
 import numpy as np
 from tqdm import tqdm
 from libs.data_handler import SpectrogramReader
 from libs.utils import inverse_stft, get_logger, cmat_abs, write_wav, EPSILON
-from libs.opts import StftParser, StrToBoolAction
+from libs.opts import StftParser
 
 logger = get_logger(__name__)
 
@@ -112,7 +113,7 @@ if __name__ == "__main__":
                         default=16000,
                         help="Waveform data sample rate")
     parser.add_argument("--keep-length",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If ture, keep result the same length as orginal")
     args = parser.parse_args()

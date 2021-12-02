@@ -10,9 +10,10 @@ import argparse
 
 import numpy as np
 import math
+from distutils.util import strtobool
 
 from libs.utils import inverse_stft, get_logger, nextpow2, cmat_abs
-from libs.opts import StftParser, StrToBoolAction
+from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, WaveWriter
 from libs.beamformer import MvdrBeamformer, GevdBeamformer, PmwfBeamformer, MpdrBeamformer
 from libs.beamformer import OnlineGevdBeamformer, OnlineMvdrBeamformer
@@ -220,7 +221,7 @@ if __name__ == "__main__":
                         default=16000,
                         help="Sample rate of the waveform")
     parser.add_argument("--ban",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Do Blind Analytical Normalization (BAN) or not")
     parser.add_argument("--rank1-appro",
@@ -230,7 +231,7 @@ if __name__ == "__main__":
                         help="Weather to use rank1 approximation in PMWF")
     parser.add_argument("--post-masking",
                         dest="mask",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Masking enhanced spectrogram "
                              "after beamforming or not")

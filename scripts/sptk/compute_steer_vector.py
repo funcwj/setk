@@ -10,12 +10,12 @@ import argparse
 import numpy as np
 
 from libs.beamformer import linear_steer_vector, circular_steer_vector
-from libs.opts import StrToBoolAction, str2tuple
-
+from libs.opts import str2tuple
+from distutils.util import strtobool
 
 def run(args):
     if args.geometry == "linear":
-        topo = np.array(str2tuple(args.linear_topo))
+        topo = np.array(args.linear_topo)
         candidate_doa = np.linspace(0, 180, args.num_doas)
     else:
         topo = None
@@ -75,8 +75,8 @@ if __name__ == "__main__":
                         default=343,
                         help="Speed of sound")
     parser.add_argument("--linear-topo",
-                        type=str,
-                        default="",
+                        type=str2tuple,
+                        default=(),
                         help="Topology of linear microphone arrays")
     parser.add_argument("--circular-around",
                         type=int,
@@ -87,7 +87,7 @@ if __name__ == "__main__":
                         default=0.05,
                         help="Radius of circular array")
     parser.add_argument("--circular-center",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Is there a microphone put in the "
                         "center of the circular array?")
@@ -97,7 +97,7 @@ if __name__ == "__main__":
                         default="linear",
                         help="Geometry of the microphone array")
     parser.add_argument("--normalize",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Normalzed steer vector or not")
     args = parser.parse_args()

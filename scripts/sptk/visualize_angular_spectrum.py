@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 from libs.data_handler import ArchiveReader
 from libs.utils import get_logger
-from libs.opts import StrToBoolAction
+from distutils.util import strtobool
 
 default_font = "Times New Roman"
 default_dpi = 200
@@ -77,7 +77,7 @@ if __name__ == '__main__':
                         help="Location to dump pictures")
     parser.add_argument("--sample-tdoa",
                         dest="tdoa",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Sample TDoA instead of DoA when "
                         "computing spectrum")

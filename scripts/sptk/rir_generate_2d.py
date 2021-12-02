@@ -12,6 +12,7 @@ import json
 import shutil
 import random
 import argparse
+from distutils.util import strtobool
 
 from pathlib import Path
 import numpy as np
@@ -19,7 +20,7 @@ import matplotlib.pyplot as plt
 
 from libs.data_handler import run_command
 from libs.utils import get_logger, write_wav
-from libs.opts import StrToFloatTupleAction, StrToBoolAction, str2tuple
+from libs.opts import str2tuple
 from libs.sampler import UniformSampler
 
 try:
@@ -393,7 +394,7 @@ if __name__ == "__main__":
                         default=40,
                         help="Number of rirs to simulate for each room")
     parser.add_argument("--dump-cfg",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=True,
                         help="If true, dump rir configures out in json format")
     parser.add_argument("--rir-dur",
@@ -414,21 +415,21 @@ if __name__ == "__main__":
                         help="Constraint for room length/width/height, "
                         "separated by semicolon")
     parser.add_argument("--array-height",
-                        action=StrToFloatTupleAction,
+                        type=str2tuple,
                         default=(1, 2),
                         help="Range of array's height")
     parser.add_argument("--array-relx",
-                        action=StrToFloatTupleAction,
+                        type=str2tuple,
                         default=(0.4, 0.6),
                         help="Area of room to place microphone array randomly"
                         "(relative values to room's length)")
     parser.add_argument("--array-rely",
-                        action=StrToFloatTupleAction,
+                        type=str2tuple,
                         default=(0.4, 0.6),
                         help="Area of room to place microphone array randomly"
                         "(relative values to room's width)")
     parser.add_argument("--speaker-height",
-                        action=StrToFloatTupleAction,
+                        type=str2tuple,
                         default=(1.6, 2),
                         help="Range of speaker's height")
     parser.add_argument("--array-topo",
@@ -436,7 +437,7 @@ if __name__ == "__main__":
                         default="0,0.05;0.05,0;0,-0.05;-0.05,0",
                         help="Topology of the 2D microphone arrays.")
     parser.add_argument("--absorption-coefficient-range",
-                        action=StrToFloatTupleAction,
+                        type=str2tuple,
                         dest="abs_range",
                         default=(0.2, 0.8),
                         help="Range of absorption coefficient "
@@ -461,13 +462,13 @@ if __name__ == "__main__":
                         help="Max number of times tried to generate rirs "
                         "for a specific room (retry * num_rirs)")
     parser.add_argument("--source-distance",
-                        action=StrToFloatTupleAction,
+                        type=str2tuple,
                         dest="src_dist",
                         default=(1, 3),
                         help="Range of distance between "
                         "microphone arrays and speakers")
     parser.add_argument("--gpu",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Use gpuRIR from "
                         "https://github.com/DavidDiazGuerra/gpuRIR.git")
