@@ -245,14 +245,19 @@ def get_logger(name,
     return logger
 
 
-def check_doa(geometry, doa):
+def check_doa(geometry, doa, online=False):
     """
     Check value of the DoA
     """
-    if doa < 0:
-        return False
-    if geometry == "linear" and doa > 180:
-        return False
-    if geometry == "circular" and doa >= 360:
-        return False
+    if not online:
+       doas = [doa]
+    else:
+       doas = doa
+    for doa in doas:
+        if doa < 0:
+            return False
+        if geometry == "linear" and doa > 180:
+            return False
+        if geometry == "circular" and doa >= 360:
+            return False
     return True

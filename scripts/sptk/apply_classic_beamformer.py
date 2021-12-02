@@ -18,7 +18,7 @@ beamformers = ["ds", "sd"]
 
 
 def do_online_beamform(beamformer, doa, stft_mat, args):
-    chunk_size = args.chunk_size
+    chunk_size = args.chunk_len
     num_chunks = math.ceil(stft_mat.shape[-1] / chunk_size)
     enh_chunks = []
     for c in range(num_chunks):
@@ -30,14 +30,14 @@ def do_online_beamform(beamformer, doa, stft_mat, args):
 
 def process_doa(doa, online):
     if online:
-        return list(map(float, doa.split()))
+        return list(map(float, doa))
     else:
         return float(doa)
 
 
 def parse_doa(args, online):
     if args.utt2doa:
-        reader = ScpReader(args.utt2doa, value_processor=lambda doa: process_doa(doa, online))
+        reader = ScpReader(args.utt2doa, value_processor=lambda doa: process_doa(doa, online), num_tokens=-1)
         utt2doa = reader.get
         logger.info(f"Use --utt2doa={args.utt2doa} for each utterance")
     else:
@@ -68,7 +68,7 @@ def run(args):
     }
 
     beamformer = supported_beamformer[args.beamformer][args.geometry]
-    online = args.chunk_size <= 0
+    online = args.chunk_len > 0
 
     utt2doa = parse_doa(args, online)
 
@@ -84,7 +84,7 @@ def run(args):
             if doa is None:
                 logger.info(f"Missing doa for utterance {key}")
                 continue
-            if not check_doa(args.geometry, doa):
+            if not check_doa(args.geometry, doa, online):
                 logger.info(f"Invalid doa {doa:.2f} for utterance {key}")
                 continue
             if online:
