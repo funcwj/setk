@@ -92,7 +92,7 @@ def permu_aligner(masks, transpose=False):
 
 class Covariance(object):
     """
-    Object of covariance matrice
+    Object of covariance matrix
     """
     def __init__(self, covar, force_hermitian=True):
         if force_hermitian:

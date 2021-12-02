@@ -26,7 +26,7 @@ from .utils import forward_stft, read_wav, write_wav, filekey
 __all__ = [
     "ArchiveReader", "ArchiveWriter", "WaveWriter", "NumpyWriter",
     "SpectrogramReader", "ScriptReader", "WaveReader", "NumpyReader",
-    "PickleReader", "MatReader", "BinaryReader"
+    "PickleReader", "MatReader", "BinaryReader", "ScpReader"
 ]
 
 

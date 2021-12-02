@@ -22,7 +22,7 @@ default_format_str = "%(asctime)s [%(pathname)s:%(lineno)s - %(levelname)s ] %(m
 
 __all__ = [
     "forward_stft", "inverse_stft", "get_logger", "filekey", "write_wav",
-    "read_wav"
+    "read_wav", "check_doa"
 ]
 
 
@@ -246,3 +246,16 @@ def get_logger(name,
     else:
         logger.addHandler(logging.StreamHandler())
     return logger
+
+
+def check_doa(geometry, doa):
+    """
+    Check value of the DoA
+    """
+    if doa < 0:
+        return False
+    if geometry == "linear" and doa > 180:
+        return False
+    if geometry == "circular" and doa >= 360:
+        return False
+    return True

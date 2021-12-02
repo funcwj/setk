@@ -6,26 +6,13 @@ import argparse
 
 import numpy as np
 
-from libs.utils import inverse_stft, get_logger
+from libs.utils import inverse_stft, get_logger, check_doa
 from libs.opts import StftParser, str2tuple
 from libs.data_handler import SpectrogramReader, WaveWriter, ScpReader
 from libs.beamformer import LinearDSBeamformer, CircularDSBeamformer
 from libs.opts import StrToBoolAction
 
 logger = get_logger(__name__)
-
-
-def check_doa(geometry, doa):
-    """
-    Check value of the DoA
-    """
-    if doa < 0:
-        return False
-    if geometry == "linear" and doa > 180:
-        return False
-    if geometry == "circular" and doa >= 360:
-        return False
-    return True
 
 
 def run(args):
