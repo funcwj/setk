@@ -3,6 +3,9 @@
 # gleb-shnshn@2021
 
 import argparse
+import math
+
+import numpy as np
 
 from libs.utils import inverse_stft, get_logger, check_doa
 from libs.opts import StftParser, str2tuple
@@ -13,6 +16,17 @@ from libs.opts import StrToBoolAction
 
 logger = get_logger(__name__)
 beamformers = ["ds", "sd"]
+
+
+def do_online_beamform(beamformer, doa, stft_mat, args):
+    chunk_size = args.chunk_size
+    num_chunks = math.ceil(stft_mat.shape[-1] / chunk_size)
+    enh_chunks = []
+    for c in range(num_chunks):
+        base = chunk_size * c
+        chunk = beamformer.run(doa[c], stft_mat[:, :, base:base + chunk_size], c=args.speed, sr=args.sr)
+        enh_chunks.append(chunk)
+    return np.hstack(enh_chunks)
 
 
 def process_doa(doa, online):
@@ -74,7 +88,10 @@ def run(args):
             if not check_doa(args.geometry, doa):
                 logger.info(f"Invalid doa {doa:.2f} for utterance {key}")
                 continue
-            stft_enh = beamformer.run(doa, stft_src, c=args.speed, sr=args.sr)
+            if online:
+                stft_enh = do_online_beamform(beamformer, doa, stft_src, args)
+            else:
+                stft_enh = beamformer.run(doa, stft_src, c=args.speed, sr=args.sr)
             norm = spectrogram_reader.maxabs(key) if args.normalize else None
             samps = inverse_stft(stft_enh, **stft_kwargs, norm=norm)
             writer.write(key, samps)
