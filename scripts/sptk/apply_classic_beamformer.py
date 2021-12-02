@@ -16,17 +16,15 @@ beamformers = ["ds", "sd"]
 
 
 def parse_doa(args):
-    utt2doa = None
-    doa = None
     if args.utt2doa:
-        utt2doa = ScpReader(args.utt2doa, value_processor=float)
+        reader = ScpReader(args.utt2doa, value_processor=float)
+        utt2doa = lambda utt: reader.get(utt, None)
         logger.info(f"Use --utt2doa={args.utt2doa} for each utterance")
     else:
         doa = args.doa
-        if not check_doa(args.geometry, doa):
-            logger.info(f"Invalid doa {doa:.2f} for {args.geometry} array")
+        utt2doa = lambda _: doa
         logger.info(f"Use --doa={doa:.2f} for all utterances")
-    return utt2doa, doa
+    return utt2doa
 
 
 def run(args):
@@ -51,7 +49,7 @@ def run(args):
 
     beamformer = supported_beamformer[args.beamformer][args.geometry]
 
-    utt2doa, doa = parse_doa(args)
+    utt2doa = parse_doa(args)
 
     spectrogram_reader = SpectrogramReader(
         args.wav_scp,
@@ -61,18 +59,18 @@ def run(args):
     done = 0
     with WaveWriter(args.dst_dir, sr=args.sr) as writer:
         for key, stft_src in spectrogram_reader:
-            if utt2doa:
-                if key not in utt2doa:
-                    continue
-                doa = utt2doa[key]
-                if not check_doa(args.geometry, doa):
-                    logger.info(f"Invalid doa {doa:.2f} for utterance {key}")
-                    continue
+            doa = utt2doa(key)
+            if doa is None:
+                logger.info(f"Missing doa for utterance {key}")
+                continue
+            if not check_doa(args.geometry, doa):
+                logger.info(f"Invalid doa {doa:.2f} for utterance {key}")
+                continue
             stft_enh = beamformer.run(doa, stft_src, c=args.speed, sr=args.sr)
-            done += 1
             norm = spectrogram_reader.maxabs(key) if args.normalize else None
             samps = inverse_stft(stft_enh, **stft_kwargs, norm=norm)
             writer.write(key, samps)
+            done += 1
     logger.info(f"Processed {done} utterances over {len(spectrogram_reader)}")
 
 
@@ -135,5 +133,10 @@ if __name__ == "__main__":
                         action=StrToBoolAction,
                         default=False,
                         help="Normalize stft after enhancement?")
+    parser.add_argument("--chunk-len",
+                        type=int,
+                        default=-1,
+                        help="Number frames per chunk "
+                             "(for online setups)")
     args = parser.parse_args()
     run(args)

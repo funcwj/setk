@@ -228,6 +228,12 @@ class Reader(object):
             raise KeyError(f"Missing utterance {index}!")
         return self._load(index)
 
+    def get(self, index, default=None):
+        if not self.__contains__(index):
+            return default
+        else:
+            return self.__getitem__(index)
+
 
 class ScpReader(Reader):
     """

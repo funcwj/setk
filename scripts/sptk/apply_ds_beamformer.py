@@ -71,5 +71,10 @@ if __name__ == "__main__":
                         action=StrToBoolAction,
                         default=False,
                         help="Normalize stft after enhancement?")
+    parser.add_argument("--chunk-len",
+                        type=int,
+                        default=-1,
+                        help="Number frames per chunk "
+                        "(for online setups)")
     args = parser.parse_args()
     run(args)
