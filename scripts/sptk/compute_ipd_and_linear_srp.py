@@ -6,14 +6,14 @@ Compute some typical spatial features(SRP/IPD/MSC)
 """
 
 import argparse
-
-import numpy as np
 from distutils.util import strtobool
 
-from libs.utils import get_logger, nextpow2
-from libs.opts import StftParser, str2tuple
+import numpy as np
+
 from libs.data_handler import SpectrogramReader, ArchiveWriter
+from libs.opts import StftParser, str2tuple
 from libs.spatial import srp_phat_linear, ipd, msc
+from libs.utils import get_logger, nextpow2
 
 logger = get_logger(__name__)
 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="If assigned, generate corresponding "
-                        "feature scripts")
+                             "feature scripts")
     parser.add_argument("--type",
                         type=str,
                         default="srp",
@@ -107,7 +107,7 @@ if __name__ == "__main__":
                         default=False,
                         dest="samp_tdoa",
                         help="Sample TDoA instead of DoA "
-                        "when computing spectrum")
+                             "when computing spectrum")
     parser.add_argument("--srp.num_doa",
                         type=int,
                         dest="num_doa",
@@ -133,8 +133,8 @@ if __name__ == "__main__":
                         dest="ipd_pair",
                         default="0,1",
                         help="Given several channel index "
-                        "pairs to compute IPD spatial features, "
-                        "separated by semicolon, egs: 0,3;1,4")
+                             "pairs to compute IPD spatial features, "
+                             "separated by semicolon, egs: 0,3;1,4")
     parser.add_argument("--msc.ctx",
                         type=int,
                         dest="msc_ctx",

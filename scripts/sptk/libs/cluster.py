@@ -17,9 +17,10 @@ Reference:
     Signal Processing Conference (EUSIPCO). IEEE, 2016, pp. 1153–1157.
 """
 import pickle
-import numpy as np
 
+import numpy as np
 from scipy.optimize import linear_sum_assignment
+
 from .utils import get_logger, EPSILON
 
 logger = get_logger(__name__)
@@ -94,6 +95,7 @@ class Covariance(object):
     """
     Object of covariance matrix
     """
+
     def __init__(self, covar, force_hermitian=True):
         if force_hermitian:
             covar_h = np.einsum("...xy->...yx", covar.conj())
@@ -137,6 +139,7 @@ class Distribution(object):
     """
     Basic distribution class
     """
+
     def __init__(self, covar=None):
         self.parameters = {
             "covar": None if covar is None else Covariance(covar)
@@ -182,6 +185,7 @@ class CgDistribution(Distribution):
     """
     Complex Gaussian Distribution (K classes, F bins)
     """
+
     def __init__(self, phi=None, covar=None):
         super(CgDistribution, self).__init__(covar)
         self.parameters["phi"] = phi
@@ -235,6 +239,7 @@ class Cgmm(object):
     """
     Complex Gaussian Mixture Model (CGMM)
     """
+
     def __init__(self, mdl, alpha):
         self.cg = CgDistribution() if mdl is None else mdl
         # K x F
@@ -286,6 +291,7 @@ class CacgDistribution(Distribution):
     """
     Complex Angular Central Gaussian Distribution (K classes, F bins)
     """
+
     def __init__(self, covar=None):
         super(CacgDistribution, self).__init__(covar)
 
@@ -335,6 +341,7 @@ class Cacgmm(object):
     """
     Complex Angular Central Gaussian Mixture Model (CACGMM)
     """
+
     def __init__(self, mdl, alpha, kernel=None):
         self.cacg = CacgDistribution() if mdl is None else mdl
         # K x F
@@ -390,6 +397,7 @@ class CgmmTrainer(object):
     """
     Cgmm Trainer
     """
+
     def __init__(self,
                  obs,
                  num_classes,
@@ -457,10 +465,12 @@ class CgmmTrainer(object):
             logger.info(f"Iter {i + 1:2d}/{num_iters}: Q = {Q:.4f}")
         return self.gamma
 
+
 class CacgmmTrainer(object):
     """
     Cacgmm Trainer
     """
+
     def __init__(self,
                  obs,
                  num_classes,

@@ -2,12 +2,12 @@
 # wujian@2018
 
 import argparse
+from distutils.util import strtobool
 
 import numpy as np
 
 from libs.data_handler import NumpyReader, NumpyWriter, parse_scps
 from libs.utils import get_logger
-from distutils.util import strtobool
 
 logger = get_logger(__name__)
 
@@ -23,7 +23,7 @@ def run(args):
                 if mat.ndim != 2:
                     raise RuntimeError(
                         "--spk2utt is None, so input ndarray must be 2D, got {:d}"
-                        .format(mat.ndim))
+                            .format(mat.ndim))
                 if args.normalize:
                     mat = mat / np.linalg.norm(
                         mat, ord=2, axis=1, keepdims=True)
@@ -37,7 +37,7 @@ def run(args):
                     if vec.ndim != 1:
                         raise RuntimeError(
                             "--spk2utt is not None, expect input as vector, got {:d}"
-                            .format(vec.ndim))
+                                .format(vec.ndim))
                     if args.normalize:
                         vec = vec / np.linalg.norm(vec)
                     spkset.append(vec)

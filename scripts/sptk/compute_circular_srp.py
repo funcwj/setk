@@ -7,9 +7,9 @@ import argparse
 import numpy as np
 
 from libs.data_handler import SpectrogramReader, ArchiveWriter
-from libs.utils import get_logger, nextpow2, EPSILON
 from libs.opts import StftParser
 from libs.spatial import gcc_phat_diag
+from libs.utils import get_logger, nextpow2
 
 logger = get_logger(__name__)
 

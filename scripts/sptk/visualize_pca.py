@@ -1,24 +1,21 @@
 #!/usr/bin/env python
 # wujian@2018
 
-import os
-import glob
 import argparse
-
-import numpy as np
+import os
 
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
+import numpy as np
 from sklearn.decomposition import PCA
+
 from libs.data_handler import ArchiveReader, DirReader
-from libs.utils import filekey
 
 
 class NumpyReader(DirReader):
     """
     Numpy matrix reader
     """
+
     def __init__(self, obj_dir):
         super(NumpyReader, self).__init__(obj_dir, "npy")
 
@@ -56,7 +53,7 @@ if __name__ == "__main__":
     parser.add_argument("rspec_or_dir",
                         type=str,
                         help="Read specifier of "
-                        "archives/Directory of ndarrays")
+                             "archives/Directory of ndarrays")
     parser.add_argument("--dim",
                         type=int,
                         default=3,

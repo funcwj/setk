@@ -55,13 +55,13 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to compute scores between candidate embeddings "
-        "and registered ones, output results to stdout, which could "
-        "be used to compute eer using compute-eer in kaldi.",
+                    "and registered ones, output results to stdout, which could "
+                    "be used to compute eer using compute-eer in kaldi.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("spks_scp",
                         type=str,
                         help="Embedding rspecifier computed "
-                        "from enrollment utterances")
+                             "from enrollment utterances")
     parser.add_argument("eval_scp",
                         type=str,
                         help="Embedding rspecifier to evaluate perfermance")
@@ -79,6 +79,6 @@ if __name__ == "__main__":
                         type=strtobool,
                         default=False,
                         help="If true, normalize embeddings "
-                        "before compute dot product")
+                             "before compute dot product")
     args = parser.parse_args()
     run(args)

@@ -7,30 +7,31 @@ Generate scripts for RIR simulation which use
     2) pyrirgen (see https://github.com/Marvin182/rir-generator)
     3) gpurir (see https://github.com/DavidDiazGuerra/gpuRIR)
 """
-import os
-import json
-import shutil
-import random
 import argparse
+import json
+import random
+import shutil
 from distutils.util import strtobool
-
 from pathlib import Path
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 from libs.data_handler import run_command
-from libs.utils import get_logger, write_wav
 from libs.opts import str2tuple
 from libs.sampler import UniformSampler
+from libs.utils import get_logger, write_wav
 
 try:
     import pyrirgen
+
     pyrirgen_available = True
 except ImportError:
     pyrirgen_available = False
 
 try:
     import gpuRIR as pygpurir
+
     gpu_rir_available = True
     pygpurir.activateMixedPrecision(False)
     pygpurir.activateLUT(True)
@@ -54,6 +55,7 @@ class Room(object):
     """
     Room instance
     """
+
     def __init__(self, l, w, h, rt60=None, refl=None):
         self.size = (l, w, h)
         self.beta = rt60 if rt60 is not None else [refl] * 6
@@ -88,7 +90,7 @@ class Room(object):
             "receiver_location": [tuple(Rf(n) for n in p) for p in self.rpos],
             "room_size": [Rf(n) for n in self.size],
             "receiver_geometric":
-            self.topo
+                self.topo
         }
 
     def plot(self, scfg, dest, room_id):
@@ -185,6 +187,7 @@ class RoomGenerator(object):
     """
     Room generator
     """
+
     def __init__(self, rt60_opt, absc_opt, room_dim):
         """
         rt60_opt: "" or "a,b", higher priority than absc_opt
@@ -228,6 +231,7 @@ class RirSimulator(object):
     """
     RIR simulator
     """
+
     def __init__(self, args):
         if args.gpu and not gpu_rir_available:
             raise RuntimeError("Please install gpuRIR first if --gpu=True")
@@ -256,7 +260,7 @@ class RirSimulator(object):
         mx, my = rpos_2d
         rx, ry = room_size_2d
         bound = [(0, 0), (0, ry), (rx, 0), (rx, ry)]
-        dist = [((mx - x)**2 + (my - y)**2)**0.5 for (x, y) in bound]
+        dist = [((mx - x) ** 2 + (my - y) ** 2) ** 0.5 for (x, y) in bound]
         return max(dist)
 
     def _place_spk(self, center, room):
@@ -382,9 +386,9 @@ $cmd JOB=1:$nj ./exp/rir_simu/rir_generate_2d.JOB.log \
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to generate single/multi-channel RIRs "
-        "(using rir-simulate or pyrirgen from https://github.com/Marvin182/rir-generator). "
-        "In this command, we will simulate several rirs for each room, which is "
-        "configured using --num-rirs",
+                    "(using rir-simulate or pyrirgen from https://github.com/Marvin182/rir-generator). "
+                    "In this command, we will simulate several rirs for each room, which is "
+                    "configured using --num-rirs",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("num_rooms",
                         type=int,
@@ -413,7 +417,7 @@ if __name__ == "__main__":
                         type=str,
                         default="7,10;7,10;3,4",
                         help="Constraint for room length/width/height, "
-                        "separated by semicolon")
+                             "separated by semicolon")
     parser.add_argument("--array-height",
                         type=str2tuple,
                         default=(1, 2),
@@ -422,12 +426,12 @@ if __name__ == "__main__":
                         type=str2tuple,
                         default=(0.4, 0.6),
                         help="Area of room to place microphone array randomly"
-                        "(relative values to room's length)")
+                             "(relative values to room's length)")
     parser.add_argument("--array-rely",
                         type=str2tuple,
                         default=(0.4, 0.6),
                         help="Area of room to place microphone array randomly"
-                        "(relative values to room's width)")
+                             "(relative values to room's width)")
     parser.add_argument("--speaker-height",
                         type=str2tuple,
                         default=(1.6, 2),
@@ -441,16 +445,16 @@ if __name__ == "__main__":
                         dest="abs_range",
                         default=(0.2, 0.8),
                         help="Range of absorption coefficient "
-                        "of the room material. Absorption coefficient "
-                        "is located between 0 and 1, if a material "
-                        "offers no reflection, the absorption "
-                        "coefficient is close to 1.")
+                             "of the room material. Absorption coefficient "
+                             "is located between 0 and 1, if a material "
+                             "offers no reflection, the absorption "
+                             "coefficient is close to 1.")
     parser.add_argument("--rt60",
                         type=str,
                         default="0.2,0.7",
                         help="Range of RT60, this option "
-                        "has higher priority than "
-                        "--absorption-coefficient-range")
+                             "has higher priority than "
+                             "--absorption-coefficient-range")
     parser.add_argument("--sound-speed",
                         type=float,
                         dest="speed",
@@ -460,17 +464,17 @@ if __name__ == "__main__":
                         type=int,
                         default=5,
                         help="Max number of times tried to generate rirs "
-                        "for a specific room (retry * num_rirs)")
+                             "for a specific room (retry * num_rirs)")
     parser.add_argument("--source-distance",
                         type=str2tuple,
                         dest="src_dist",
                         default=(1, 3),
                         help="Range of distance between "
-                        "microphone arrays and speakers")
+                             "microphone arrays and speakers")
     parser.add_argument("--gpu",
                         type=strtobool,
                         default=False,
                         help="Use gpuRIR from "
-                        "https://github.com/DavidDiazGuerra/gpuRIR.git")
+                             "https://github.com/DavidDiazGuerra/gpuRIR.git")
     args = parser.parse_args()
     run(args)

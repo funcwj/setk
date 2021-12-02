@@ -6,11 +6,10 @@ import argparse
 
 import numpy as np
 
-from libs.ssl import ml_ssl, srp_ssl, music_ssl
-
 from libs.data_handler import SpectrogramReader, NumpyReader
-from libs.utils import get_logger, EPSILON
 from libs.opts import StftParser, str2tuple
+from libs.ssl import ml_ssl, srp_ssl, music_ssl
+from libs.utils import get_logger, EPSILON
 
 logger = get_logger(__name__)
 
@@ -123,7 +122,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to ML/SRP based sound souce localization (SSL)."
-        "Also see scripts/sptk/compute_steer_vector.py",
+                    "Also see scripts/sptk/compute_steer_vector.py",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -132,8 +131,8 @@ if __name__ == "__main__":
     parser.add_argument("steer_vector",
                         type=str,
                         help="Pre-computed steer vector in each "
-                        "directions (in shape A x M x F, A: number "
-                        "of DoAs, M: microphone number, F: FFT bins)")
+                             "directions (in shape A x M x F, A: number "
+                             "of DoAs, M: microphone number, F: FFT bins)")
     parser.add_argument("doa_scp",
                         type=str,
                         help="Wspecifier for estimated DoA")
@@ -167,11 +166,11 @@ if __name__ == "__main__":
                         type=int,
                         default=-1,
                         help="Number frames per chunk "
-                        "(for online setups)")
+                             "(for online setups)")
     parser.add_argument("--look-back",
                         type=int,
                         default=125,
                         help="Number of frames to look back "
-                        "(for online setups)")
+                             "(for online setups)")
     args = parser.parse_args()
     run(args)

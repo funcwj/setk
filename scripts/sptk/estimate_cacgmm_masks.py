@@ -2,20 +2,16 @@
 
 # wujian@2018
 
-import sys
-import types
-
 import argparse
-import numpy as np
-
+from distutils.util import strtobool
 from pathlib import Path
-from urllib import request
+
+import numpy as np
 
 from libs.cluster import CacgmmTrainer, permu_aligner
 from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, NumpyWriter
-from libs.utils import get_logger, nextpow2
 from libs.opts import StftParser
-from distutils.util import strtobool
+from libs.utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -76,7 +72,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Speaker masks estimation using Complex Angular "
-        "Central Gaussian Mixture Model (CACGMM)",
+                    "Central Gaussian Mixture Model (CACGMM)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -93,7 +89,7 @@ if __name__ == "__main__":
                         type=int,
                         default=2,
                         help="Number of the cluster "
-                        "used in cacgmm model")
+                             "used in cacgmm model")
     parser.add_argument("--seed",
                         type=int,
                         default=777,

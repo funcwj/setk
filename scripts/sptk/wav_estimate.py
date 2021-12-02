@@ -5,12 +5,13 @@
 Esimate signal from fbank or (log)-magnitude/power spectrum using Griffin Lim algorithm
 """
 import argparse
+from distutils.util import strtobool
+
 import numpy as np
 
-from libs.utils import get_logger, griffin_lim, inverse_stft
-from libs.opts import StftParser
 from libs.data_handler import ScriptReader, WaveWriter, SpectrogramReader, NumpyReader
-from distutils.util import strtobool
+from libs.opts import StftParser
+from libs.utils import get_logger, griffin_lim, inverse_stft
 
 logger = get_logger(__name__)
 
@@ -83,7 +84,7 @@ if __name__ == "__main__":
                         choices=["kaldi", "numpy"],
                         default="kaldi",
                         help="Define format of features, kaldi's "
-                        "archives or numpy's ndarray")
+                             "archives or numpy's ndarray")
     parser.add_argument("--apply-log",
                         type=strtobool,
                         default=False,
@@ -97,16 +98,16 @@ if __name__ == "__main__":
                         default=False,
                         dest="normalize",
                         help="If true, normalize sample "
-                        "values between [-1, 1]")
+                             "values between [-1, 1]")
     parser.add_argument("--epoches",
                         type=int,
                         default=30,
                         help="Number of epoches to iterate "
-                        "griffin lim algorithm")
+                             "griffin lim algorithm")
     parser.add_argument("--phase-ref",
                         type=str,
                         default="",
                         help="If assigned, use phase of it "
-                        "instead of griffin lim algorithm")
+                             "instead of griffin lim algorithm")
     args = parser.parse_args()
     run(args)

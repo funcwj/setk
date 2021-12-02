@@ -2,16 +2,15 @@
 # coding=utf-8
 # wujian@2018
 
-import glob
 import argparse
 from distutils.util import strtobool
-
-import numpy as np
-import matplotlib.pyplot as plt
-
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+
 from libs.data_handler import ScriptReader, ArchiveReader, DirReader
-from libs.utils import get_logger, filekey, EPSILON
+from libs.utils import get_logger, EPSILON
 
 default_font = "Times New Roman"
 default_dpi = 200
@@ -24,6 +23,7 @@ class NumpyReader(DirReader):
     """
     Numpy matrix reader
     """
+
     def __init__(self, obj_dir):
         super(NumpyReader, self).__init__(obj_dir, "npy")
 
@@ -41,6 +41,7 @@ def save_figure(key,
     """
     Save figure to disk
     """
+
     def sub_plot(ax, mat, num_frames, num_bins, xticks=True, title=""):
         ax.imshow(np.transpose(mat),
                   origin="lower",
@@ -127,7 +128,7 @@ if __name__ == "__main__":
     parser.add_argument("rspec",
                         type=str,
                         help="Read specifier of archives "
-                        "or directory of ndarrays")
+                             "or directory of ndarrays")
     parser.add_argument("--input",
                         type=str,
                         choices=["ark", "scp", "dir"],
@@ -157,7 +158,7 @@ if __name__ == "__main__":
                         type=strtobool,
                         default=False,
                         help="Normalize values in [-1, 1] "
-                        "before visualization")
+                             "before visualization")
     parser.add_argument("--cmap",
                         choices=["binary", "jet", "hot"],
                         default="jet",

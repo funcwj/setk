@@ -5,14 +5,14 @@
 Do GWPE Dereverbration Algorithm
 """
 import argparse
-
 from distutils.util import strtobool
-from libs.utils import get_logger, inverse_stft
-from libs.opts import StftParser
-from libs.wpe import facted_wpd
-from libs.data_handler import SpectrogramReader, WaveWriter
 
 import numpy as np
+
+from libs.data_handler import SpectrogramReader, WaveWriter
+from libs.opts import StftParser
+from libs.utils import get_logger, inverse_stft
+from libs.wpe import facted_wpd
 
 logger = get_logger(__name__)
 
@@ -65,7 +65,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to do joint dereverbration & denoising algorithm "
-        "(facted form of WPD)",
+                    "(facted form of WPD)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -86,7 +86,7 @@ if __name__ == "__main__":
                         default=1,
                         type=int,
                         help="Context value to compute PSD "
-                        "matrix in WPE algorithm")
+                             "matrix in WPE algorithm")
     parser.add_argument("--wpd-iters",
                         default=3,
                         type=int,

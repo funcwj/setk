@@ -3,11 +3,11 @@
 # wujian@2020
 
 import argparse
+from distutils.util import strtobool
 
 from apply_classic_beamformer import run as run_classic_beamformer
-from libs.utils import get_logger
 from libs.opts import StftParser, str2tuple
-from distutils.util import strtobool
+from libs.utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -75,6 +75,6 @@ if __name__ == "__main__":
                         type=int,
                         default=-1,
                         help="Number frames per chunk "
-                        "(for online setups)")
+                             "(for online setups)")
     args = parser.parse_args()
     run(args)

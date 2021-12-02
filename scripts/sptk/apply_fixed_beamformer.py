@@ -6,10 +6,10 @@ import argparse
 
 import numpy as np
 
-from libs.utils import inverse_stft, get_logger
-from libs.opts import StftParser
-from libs.data_handler import SpectrogramReader, WaveWriter, ScpReader
 from libs.beamformer import FixedBeamformer
+from libs.data_handler import SpectrogramReader, WaveWriter, ScpReader
+from libs.opts import StftParser
+from libs.utils import inverse_stft, get_logger
 
 logger = get_logger(__name__)
 
@@ -54,7 +54,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to run fixed beamformer. Runing this command needs "
-        "to design fixed beamformer first.",
+                    "to design fixed beamformer first.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument("weights",
                         type=str,
                         help="Fixed beamformer weights in numpy format " +
-                        "(in shape F x M or B x F x M)")
+                             "(in shape F x M or B x F x M)")
     parser.add_argument("dst_dir",
                         type=str,
                         help="Location to dump the enhanced audio")
@@ -71,6 +71,6 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="Beam index to use in beamformer weights "
-                        "(in shape B x F x M)")
+                             "(in shape B x F x M)")
     args = parser.parse_args()
     run(args)

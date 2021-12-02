@@ -6,12 +6,12 @@ Compute Si-SDR as the evaluation metric
 """
 
 import argparse
+from collections import defaultdict
 
 from tqdm import tqdm
 
-from collections import defaultdict
-from libs.metric import si_snr, permute_si_snr
 from libs.data_handler import WaveReader, ScpReader
+from libs.metric import si_snr, permute_si_snr
 
 
 class SpeakersReader(object):
@@ -116,21 +116,21 @@ if __name__ == "__main__":
     parser.add_argument("sep_scp",
                         type=str,
                         help="Separated speech scripts, waiting for measure"
-                        "(support multi-speaker, egs: spk1.scp,spk2.scp)")
+                             "(support multi-speaker, egs: spk1.scp,spk2.scp)")
     parser.add_argument("ref_scp",
                         type=str,
                         help="Reference speech scripts, as ground truth for"
-                        " Si-SDR computation")
+                             " Si-SDR computation")
     parser.add_argument("--spk2class",
                         type=str,
                         default="",
                         help="If assigned, report results"
-                        " per class (gender or degree)")
+                             " per class (gender or degree)")
     parser.add_argument("--per-utt",
                         type=str,
                         default="",
                         help="If assigned, report snr "
-                        "improvement for each utterance")
+                             "improvement for each utterance")
     parser.add_argument("--utt-ali",
                         type=str,
                         default="",

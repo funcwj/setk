@@ -4,8 +4,8 @@
 
 import numpy as np
 
-from .cluster import CgmmTrainer
 from .beamformer import compute_covar, solve_pevd
+from .cluster import CgmmTrainer
 from .utils import EPSILON, get_logger
 
 logger = get_logger(__name__)
@@ -38,8 +38,9 @@ def compute_lambda(dereverb, ctx=0):
     Returns:
         lambda: F x T
     """
+
     def cpw(mat):
-        return mat.real**2 + mat.imag**2
+        return mat.real ** 2 + mat.imag ** 2
 
     # F x T
     L = np.mean(cpw(dereverb), axis=1)
@@ -146,7 +147,7 @@ def facted_wpd(obs,
         if i == 0:
             lambda_ = compute_lambda(obs, ctx=context)
         else:
-            lambda_ = np.abs(wpd_enh)**2
+            lambda_ = np.abs(wpd_enh) ** 2
         # lower bound
         lambda_ = np.maximum(lambda_, EPSILON)
         # F x N x T

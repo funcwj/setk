@@ -6,12 +6,13 @@ Compute steer vector (based on array geometry) for linear/circular arrays
 """
 
 import argparse
+from distutils.util import strtobool
 
 import numpy as np
 
 from libs.beamformer import linear_steer_vector, circular_steer_vector
 from libs.opts import str2tuple
-from distutils.util import strtobool
+
 
 def run(args):
     if args.geometry == "linear":
@@ -44,7 +45,7 @@ def run(args):
     sv = np.stack(sv)
     # norm or not
     if args.normalize:
-        sv = sv / sv.shape[-1]**0.5
+        sv = sv / sv.shape[-1] ** 0.5
     # A x M x F
     sv = sv.transpose(0, 2, 1)
     np.save(args.steer_vector, sv)
@@ -90,7 +91,7 @@ if __name__ == "__main__":
                         type=strtobool,
                         default=False,
                         help="Is there a microphone put in the "
-                        "center of the circular array?")
+                             "center of the circular array?")
     parser.add_argument("--geometry",
                         type=str,
                         choices=["linear", "circular"],

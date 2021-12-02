@@ -2,13 +2,12 @@
 # wujian@2019
 
 import argparse
-
-import numpy as np
-
 from collections import defaultdict
 
-from libs.data_handler import WaveReader, ScpReader
+import numpy as np
 from mir_eval.separation import bss_eval_sources
+
+from libs.data_handler import WaveReader, ScpReader
 
 
 class AudioReader(object):
@@ -57,7 +56,6 @@ class Report(object):
 
 
 def run(args):
-
     sep_reader = AudioReader(args.sep_scp)
     ref_reader = AudioReader(args.ref_scp)
     utt_snr = open(args.per_utt, "w") if args.per_utt else None
@@ -87,26 +85,26 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to eval speech separation (SDR) using "
-        "mir_eval (https://github.com/craffel/mir_eval)",
+                    "mir_eval (https://github.com/craffel/mir_eval)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("sep_scp",
                         type=str,
                         help="Separated speech scripts, waiting for measure"
-                        "(support multi-speaker, egs: spk1.scp,spk2.scp)")
+                             "(support multi-speaker, egs: spk1.scp,spk2.scp)")
     parser.add_argument("ref_scp",
                         type=str,
                         help="Reference speech scripts, as ground truth for "
-                        "separation evaluation")
+                             "separation evaluation")
     parser.add_argument("--spk2class",
                         type=str,
                         default="",
                         help="If assigned, report results"
-                        " per class (gender or degree)")
+                             " per class (gender or degree)")
     parser.add_argument("--per-utt",
                         type=str,
                         default="",
                         help="If assigned, report snr "
-                        "improvement for each utterance")
+                             "improvement for each utterance")
     parser.add_argument("--utt-ali",
                         type=str,
                         default="",

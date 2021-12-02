@@ -54,7 +54,7 @@ if __name__ == "__main__":
                         default=False,
                         dest="trans",
                         help="If true, transpose matrix "
-                        "before write to ndarray")
+                             "before write to ndarray")
     parser.add_argument("--scp",
                         type=str,
                         default="",

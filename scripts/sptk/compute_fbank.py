@@ -6,14 +6,15 @@ Compute melspectrogram/fbank features (using librosa kernels) and write in kaldi
 """
 
 import argparse
-import numpy as np
-import librosa.filters as filters
 from distutils.util import strtobool
 
-from libs.utils import get_logger, nextpow2, EPSILON
-from libs.opts import StftParser
+import librosa.filters as filters
+import numpy as np
+
 from libs.data_handler import SpectrogramReader, ArchiveWriter
 from libs.exraw import BinaryWriter
+from libs.opts import StftParser
+from libs.utils import get_logger, nextpow2, EPSILON
 
 logger = get_logger(__name__)
 
@@ -78,12 +79,12 @@ if __name__ == "__main__":
                         default="kaldi",
                         choices=["kaldi", "exraw"],
                         help="Output archive format, see "
-                        "format in sptk/libs/exraw.py")
+                             "format in sptk/libs/exraw.py")
     parser.add_argument("--scp",
                         type=str,
                         default="",
                         help="If assigned, generate corresponding "
-                        "scripts for archives")
+                             "scripts for archives")
     parser.add_argument("--sr",
                         type=int,
                         default=16000,
@@ -93,13 +94,13 @@ if __name__ == "__main__":
                         default=False,
                         dest="log",
                         help="If true, using log mel-spectrogram "
-                        "instead of linear")
+                             "instead of linear")
     parser.add_argument("--normalize-samples",
                         type=strtobool,
                         default=False,
                         dest="norm",
                         help="If true, normalize sample "
-                        "values between [-1, 1]")
+                             "values between [-1, 1]")
     parser.add_argument("--num-bins",
                         default=40,
                         type=int,

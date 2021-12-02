@@ -4,14 +4,14 @@
 
 import argparse
 import math
+from distutils.util import strtobool
 
 import numpy as np
 
-from libs.utils import inverse_stft, get_logger, check_doa
-from libs.opts import StftParser, str2tuple
-from libs.data_handler import SpectrogramReader, WaveWriter, ScpReader
 from libs.beamformer import LinearDSBeamformer, CircularDSBeamformer, LinearSDBeamformer, CircularSDBeamformer
-from distutils.util import strtobool
+from libs.data_handler import SpectrogramReader, WaveWriter, ScpReader
+from libs.opts import StftParser, str2tuple
+from libs.utils import inverse_stft, get_logger, check_doa
 
 logger = get_logger(__name__)
 beamformers = ["ds", "sd"]

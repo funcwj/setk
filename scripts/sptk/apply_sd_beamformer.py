@@ -4,9 +4,10 @@
 
 import argparse
 from distutils.util import strtobool
-from libs.utils import get_logger
-from libs.opts import StftParser, str2tuple
+
 from apply_classic_beamformer import run as run_classic_beamformer
+from libs.opts import StftParser, str2tuple
+from libs.utils import get_logger
 
 logger = get_logger(__name__)
 
