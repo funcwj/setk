@@ -19,9 +19,8 @@ beamformers = ["ds", "sd"]
 
 def do_online_beamform(beamformer, doa, stft_mat, args):
     chunk_size = args.chunk_len
-    num_chunks = math.ceil(stft_mat.shape[-1] / chunk_size)
     enh_chunks = []
-    for c in range(num_chunks):
+    for c in range(len(doa)):
         base = chunk_size * c
         chunk = beamformer.run(doa[c], stft_mat[:, :, base:base + chunk_size], c=args.speed, sr=args.sr)
         enh_chunks.append(chunk)
@@ -88,6 +87,14 @@ def run(args):
                 logger.info(f"Invalid doa {doa:.2f} for utterance {key}")
                 continue
             if online:
+                num_chunks = math.ceil(stft_src.shape[-1] / args.chunk_len)
+                if len(doa) != num_chunks:
+                    mn = math.ceil(stft_src.shape[-1] / len(doa))
+                    mx = math.floor(stft_src.shape[-1] / (len(doa) - 1))
+                    logger.info(
+                        f"Invalid chunk length {args.chunk_len} for utterance {key},"
+                        f" expected --chunk-len from {mn} to {mx}")
+                    continue
                 stft_enh = do_online_beamform(beamformer, doa, stft_src, args)
             else:
                 stft_enh = beamformer.run(doa, stft_src, c=args.speed, sr=args.sr)

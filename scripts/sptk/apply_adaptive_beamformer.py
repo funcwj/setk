@@ -35,7 +35,7 @@ def do_online_beamform(beamformer, speech_mask, interf_mask, stft_mat, args):
     beamformer.reset_stats(args.alpha)
     num_chunks = math.ceil(stft_mat.shape[-1] / chunk_size)
     enh_chunks = []
-    for c in range(num_chunks + 1):
+    for c in range(num_chunks):
         base = chunk_size * c
         mask_n = None if interf_mask is None else interf_mask[base:base + chunk_size]
         chunk = beamformer.run(speech_mask[base:base + chunk_size],
