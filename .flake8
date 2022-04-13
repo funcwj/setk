@@ -1,0 +1,32 @@
+[flake8]
+max-line-length = 80
+exclude =
+    # git
+    .git,
+    # local mantained directory
+    local/
+    cache/
+    examples/
+per-file-ignores =
+    # imported but unused
+    # unable to detect undefined names
+    __init__.py: F401, F403
+ignore =
+    # unexpected spaces around keyword / parameter equals
+    E251,
+    # yapf has issues: closing bracket does not match visual indentation
+    E124,
+    # yapf has issues: continuation line over-indented for hanging indent
+    E126,
+    # ambiguous variable name
+    E741,
+    # line too long (in some cases, yapf can not fix this issue)
+    E501,
+    # do not assign a lambda expression, use a def
+    E731
+    # continuation line unaligned for hanging indent
+    E131
+    # line break before binary operator
+    W503,
+    # line break after binary operator
+    W504

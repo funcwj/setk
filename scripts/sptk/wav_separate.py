@@ -23,9 +23,7 @@ def run(args):
         "center": args.center,
     }
     spectrogram_reader = SpectrogramReader(
-        args.wav_scp,
-        **stft_kwargs,
-        round_power_of_two=args.round_power_of_two)
+        args.wav_scp, **stft_kwargs, round_power_of_two=args.round_power_of_two)
     phase_reader = None
     if args.phase_ref:
         phase_reader = SpectrogramReader(
@@ -91,7 +89,7 @@ if __name__ == "__main__":
     parser.add_argument("mask_scp",
                         type=str,
                         help="Scripts of masks in kaldi's "
-                             "archive or numpy's ndarray")
+                        "archive or numpy's ndarray")
     parser.add_argument("dst_dir",
                         type=str,
                         help="Location to dump separated wave files")
@@ -103,13 +101,13 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="If assigned, use phase of it "
-                             "instead of mixture")
+                        "instead of mixture")
     parser.add_argument("--mask-format",
                         dest="fmt",
                         choices=["kaldi", "numpy"],
                         default="kaldi",
                         help="Define format of masks, kaldi's "
-                             "archives or numpy's ndarray")
+                        "archives or numpy's ndarray")
     parser.add_argument("--keep-length",
                         type=strtobool,
                         default=False,
@@ -119,6 +117,6 @@ if __name__ == "__main__":
                         default=True,
                         dest="mixed_norm",
                         help="If true, keep norm of separated "
-                             "same as mixed one")
+                        "same as mixed one")
     args = parser.parse_args()
     run(args)

@@ -6,7 +6,6 @@ import numpy as np
 import scipy as sp
 
 from .utils import EPSILON, cmat_abs
-
 """
 Implement for some classic beamformer
 """
@@ -21,12 +20,11 @@ def do_ban(weight, Rn):
     Return:
         ban_weight: shape as F x N
     """
-    nominator = np.einsum("...a,...ab,...bc,...c->...", np.conj(weight), Rn,
-                          Rn, weight)
-    denominator = np.einsum("...a,...ab,...b->...", np.conj(weight), Rn,
-                            weight)
-    filters = np.sqrt(cmat_abs(nominator)) / np.maximum(
-        np.real(denominator), EPSILON)
+    nominator = np.einsum("...a,...ab,...bc,...c->...", np.conj(weight), Rn, Rn,
+                          weight)
+    denominator = np.einsum("...a,...ab,...b->...", np.conj(weight), Rn, weight)
+    filters = np.sqrt(cmat_abs(nominator)) / np.maximum(np.real(denominator),
+                                                        EPSILON)
     return filters[:, None] * weight
 
 
@@ -116,7 +114,7 @@ def beam_pattern(weight, steer_vector):
     """
 
     if weight.shape[-1] != steer_vector.shape[-1] or weight.shape[
-        -2] != steer_vector.shape[0]:
+            -2] != steer_vector.shape[0]:
         raise RuntimeError("Shape mismatch between weight and steer_vector")
 
     def single_beam(weight, sv):
@@ -215,6 +213,7 @@ def circular_steer_vector(redius,
 
 
 class Beamformer(object):
+
     def __init__(self):
         pass
 
@@ -257,10 +256,9 @@ class SupervisedBeamformer(Beamformer):
                 "Input mask matrix should be shape as " +
                 f"[num_frames x num_bins], now is {target_mask.shape}")
         if obs.shape[1] != target_mask.shape[1] or obs.shape[
-            2] != target_mask.shape[0]:
-            raise ValueError(
-                "Shape of input obs do not match with " +
-                f"mask matrix, {obs.shape} vs {target_mask.shape}")
+                2] != target_mask.shape[0]:
+            raise ValueError("Shape of input obs do not match with " +
+                             f"mask matrix, {obs.shape} vs {target_mask.shape}")
         return compute_covar(obs, target_mask)
 
     def weight(self, Rs, Rn):
@@ -596,10 +594,10 @@ class PmwfBeamformer(SupervisedBeamformer):
     """
     PMWF(Parameterized Multichannel Non-Causal Wiener Filter)
     Reference:
-        1) Erdogan H, Hershey J R, Watanabe S, et al. Improved MVDR Beamforming Using 
+        1) Erdogan H, Hershey J R, Watanabe S, et al. Improved MVDR Beamforming Using
             Single-Channel Mask Prediction Networks[C]//Interspeech. 2016: 1981-1985.
-        2) Souden M, Benesty J, Affes S. On optimal frequency-domain multichannel 
-            linear filtering for noise reduction[J]. IEEE Transactions on audio, speech, 
+        2) Souden M, Benesty J, Affes S. On optimal frequency-domain multichannel
+            linear filtering for noise reduction[J]. IEEE Transactions on audio, speech,
             and language processing, 2010, 18(2): 260-276.
     Formula:
         h_pmwf(f) = numerator(f)*u(f) / (beta + trace(numerator(f)))
@@ -623,7 +621,7 @@ class PmwfBeamformer(SupervisedBeamformer):
         """
         Estimate SNR suppose we have beam weight
         Formula:
-            snr(w) = sum_f w(f)^H*R(f)_xx*w(f) / sum_f w(f)^H*R(f)_vv*w(f) 
+            snr(w) = sum_f w(f)^H*R(f)_xx*w(f) / sum_f w(f)^H*R(f)_vv*w(f)
         """
         pow_s = np.einsum("...fa,...fab,...fb->...", np.conj(weight), Rs,
                           weight)

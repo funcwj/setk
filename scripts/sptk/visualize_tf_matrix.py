@@ -31,13 +31,7 @@ class NumpyReader(DirReader):
         return np.load(self.index_dict[key])
 
 
-def save_figure(key,
-                mat,
-                dest,
-                cmap="jet",
-                hop=256,
-                sr=16000,
-                title=""):
+def save_figure(key, mat, dest, cmap="jet", hop=256, sr=16000, title=""):
     """
     Save figure to disk
     """
@@ -128,7 +122,7 @@ if __name__ == "__main__":
     parser.add_argument("rspec",
                         type=str,
                         help="Read specifier of archives "
-                             "or directory of ndarrays")
+                        "or directory of ndarrays")
     parser.add_argument("--input",
                         type=str,
                         choices=["ark", "scp", "dir"],
@@ -158,7 +152,7 @@ if __name__ == "__main__":
                         type=strtobool,
                         default=False,
                         help="Normalize values in [-1, 1] "
-                             "before visualization")
+                        "before visualization")
     parser.add_argument("--cmap",
                         choices=["binary", "jet", "hot"],
                         default="jet",

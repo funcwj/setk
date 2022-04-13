@@ -23,7 +23,7 @@ def run(args):
                 if mat.ndim != 2:
                     raise RuntimeError(
                         "--spk2utt is None, so input ndarray must be 2D, got {:d}"
-                            .format(mat.ndim))
+                        .format(mat.ndim))
                 if args.normalize:
                     mat = mat / np.linalg.norm(
                         mat, ord=2, axis=1, keepdims=True)
@@ -37,7 +37,7 @@ def run(args):
                     if vec.ndim != 1:
                         raise RuntimeError(
                             "--spk2utt is not None, expect input as vector, got {:d}"
-                                .format(vec.ndim))
+                            .format(vec.ndim))
                     if args.normalize:
                         vec = vec / np.linalg.norm(vec)
                     spkset.append(vec)

@@ -15,6 +15,7 @@ from libs.metric import si_snr, permute_si_snr
 
 
 class SpeakersReader(object):
+
     def __init__(self, scps):
         split_scps = scps.split(",")
         if len(split_scps) == 1:
@@ -42,6 +43,7 @@ class SpeakersReader(object):
 
 
 class Report(object):
+
     def __init__(self, spk2class=None):
         self.s2c = ScpReader(spk2class) if spk2class else None
         self.snr = defaultdict(float)
@@ -116,21 +118,21 @@ if __name__ == "__main__":
     parser.add_argument("sep_scp",
                         type=str,
                         help="Separated speech scripts, waiting for measure"
-                             "(support multi-speaker, egs: spk1.scp,spk2.scp)")
+                        "(support multi-speaker, egs: spk1.scp,spk2.scp)")
     parser.add_argument("ref_scp",
                         type=str,
                         help="Reference speech scripts, as ground truth for"
-                             " Si-SDR computation")
+                        " Si-SDR computation")
     parser.add_argument("--spk2class",
                         type=str,
                         default="",
                         help="If assigned, report results"
-                             " per class (gender or degree)")
+                        " per class (gender or degree)")
     parser.add_argument("--per-utt",
                         type=str,
                         default="",
                         help="If assigned, report snr "
-                             "improvement for each utterance")
+                        "improvement for each utterance")
     parser.add_argument("--utt-ali",
                         type=str,
                         default="",

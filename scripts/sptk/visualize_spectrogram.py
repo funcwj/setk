@@ -20,13 +20,7 @@ default_fmt = "jpg"
 logger = get_logger(__name__)
 
 
-def save_figure(key,
-                mat,
-                dest,
-                cmap="jet",
-                hop=256,
-                sr=16000,
-                title=""):
+def save_figure(key, mat, dest, cmap="jet", hop=256, sr=16000, title=""):
     """
     Save figure to disk
     """
@@ -82,7 +76,8 @@ def run(args):
         "frame_hop": args.frame_hop,
         "round_power_of_two": args.round_power_of_two,
         "window": args.window,
-        "center": args.center  # false to comparable with kaldi
+        "center":
+            args.center  # false to comparable with kaldi
     }
     reader = SpectrogramReader(args.wav_scp,
                                **stft_kwargs,

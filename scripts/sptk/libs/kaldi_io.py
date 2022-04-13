@@ -23,7 +23,7 @@ def throw_on_error(ok, info=''):
 
 
 def peek_char(fd, num_chars=1):
-    """ 
+    """
         Read a char and seek the point back
     """
     peek_c = fd.peek(num_chars)[:num_chars]
@@ -31,7 +31,7 @@ def peek_char(fd, num_chars=1):
 
 
 def expect_space(fd):
-    """ 
+    """
         Generally, there is a space following the string token, we need to consume it
     """
     space = bytes.decode(fd.read(1))
@@ -39,7 +39,7 @@ def expect_space(fd):
 
 
 def expect_binary(fd):
-    """ 
+    """
         Read the binary flags in kaldi, the scripts only support reading egs in binary format
     """
     flags = bytes.decode(fd.read(2))
@@ -48,7 +48,7 @@ def expect_binary(fd):
 
 
 def read_token(fd):
-    """ 
+    """
         Read {token + ' '} from the file(this function also consume the space)
     """
     key = ''
@@ -68,7 +68,7 @@ def write_token(fd, token):
 
 
 def expect_token(fd, ref):
-    """ 
+    """
         Check weather the token read equals to the reference
     """
     token = read_token(fd)
@@ -76,7 +76,7 @@ def expect_token(fd, ref):
 
 
 def read_key(fd):
-    """ 
+    """
         Read the binary flags following the key(key might be None)
     """
     key = read_token(fd)
@@ -86,7 +86,7 @@ def read_key(fd):
 
 
 def write_binary_symbol(fd):
-    """ 
+    """
         Write a binary symbol
     """
     fd.write(str.encode('\0B'))
@@ -102,7 +102,7 @@ def write_bytes(fd, np_obj):
 
 
 def read_int32(fd):
-    """ 
+    """
         Read a value in type 'int32' in kaldi setup
     """
     int_size = bytes.decode(fd.read(1))
@@ -122,7 +122,7 @@ def write_int32(fd, int32):
 
 
 def read_float32(fd):
-    """ 
+    """
         Read a value in type 'BaseFloat' in kaldi setup
     """
     float_size = bytes.decode(fd.read(1))
@@ -134,7 +134,7 @@ def read_float32(fd):
 
 
 def read_common_mat(fd):
-    """ 
+    """
         Read common matrix(for class Matrix in kaldi setup)
         see matrix/kaldi-matrix.cc::
             void Matrix<Real>::Read(std::istream & is, bool binary, bool add)
@@ -142,8 +142,7 @@ def read_common_mat(fd):
     """
     mat_type = read_token(fd)
     print_info(f'\tType of the common matrix: {mat_type}')
-    throw_on_error(mat_type in ['FM', 'DM'],
-                   f"Unknown matrix type: {mat_type}")
+    throw_on_error(mat_type in ['FM', 'DM'], f"Unknown matrix type: {mat_type}")
     float_size = 4 if mat_type == 'FM' else 8
     float_type = np.float32 if mat_type == 'FM' else np.float64
     num_rows = read_int32(fd)
@@ -181,7 +180,7 @@ def read_int32_vec(fd, direct_access=False):
 
 
 def read_sparse_vec(fd):
-    """ 
+    """
         Reference to function Read in SparseVector
         Return a list of key-value pair:
             [(I1, V1), ..., (In, Vn)]
@@ -206,8 +205,7 @@ def read_float_vec(fd, direct_access=False):
     if direct_access:
         expect_binary(fd)
     vec_type = read_token(fd)
-    throw_on_error(vec_type in ['FV', 'DV'],
-                   f"Unknown vector type: {vec_type}")
+    throw_on_error(vec_type in ['FV', 'DV'], f"Unknown vector type: {vec_type}")
     print_info(f'\tType of the common vector: {vec_type}')
     float_size = 4 if vec_type == 'FV' else 8
     float_type = np.float32 if vec_type == 'FV' else np.float64
@@ -232,7 +230,7 @@ def write_float_vec(fd, vec):
 
 
 def read_sparse_mat(fd):
-    """ 
+    """
         Reference to function Read in SparseMatrix
         A sparse matrix contains couples of sparse vector
     """
@@ -248,12 +246,12 @@ def read_sparse_mat(fd):
 # TODO: optimize speed here, original IO 200x slower than uncompressed matrix
 #       speed up 5x, now 50x slower than uncompressed one
 def uncompress(cdata, cps_type, head):
-    """ 
+    """
         In format CM(kOneByteWithColHeaders):
         PerColHeader, ...(x C), ... uint8 sequence ...
             first: get each PerColHeader pch for a single column
             then : using pch to uncompress each float in the column
-        We load it seperately at a time 
+        We load it seperately at a time
         In format CM2(kTwoByte):
         ...uint16 sequence...
         In format CM3(kOneByte):
@@ -295,7 +293,7 @@ def uncompress(cdata, cps_type, head):
 
 
 def read_compress_mat(fd):
-    """ 
+    """
         Reference to function Read in CompressMatrix
         Return a numpy ndarray object
     """
@@ -321,7 +319,7 @@ def read_compress_mat(fd):
 
 
 def read_general_mat(fd, direct_access=False):
-    """ 
+    """
         Reference to function Read in class GeneralMatrix
         Return compress_mat/sparse_mat/common_mat
     """
@@ -364,7 +362,7 @@ def write_float_mat_vec(fd, mat_or_vec):
 
 
 def read_float_ark(fd):
-    """ 
+    """
         Usage:
         for key, mat in read_ark(ark):
             print(key)

@@ -76,7 +76,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to compute directional features for linear arrays, "
-                    "based on given steer vector. Also see scripts/sptk/compute_steer_vector.py",
+        "based on given steer vector. Also see scripts/sptk/compute_steer_vector.py",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -85,8 +85,8 @@ if __name__ == "__main__":
     parser.add_argument("steer_vector",
                         type=str,
                         help="Pre-computed steer vector in each "
-                             "directions (in shape A x M x F, A: number "
-                             "of DoAs, M: microphone number, F: FFT bins)")
+                        "directions (in shape A x M x F, A: number "
+                        "of DoAs, M: microphone number, F: FFT bins)")
     parser.add_argument("dup_ark",
                         type=str,
                         help="Location to dump features (in ark format)")
@@ -94,7 +94,7 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="utt2idx for index (between "
-                             "[0, A - 1]) of the DoA.")
+                        "[0, A - 1]) of the DoA.")
     parser.add_argument("--doa-idx",
                         type=str,
                         default=0,
@@ -103,11 +103,11 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="If assigned, generate corresponding "
-                             "feature scripts")
+                        "feature scripts")
     parser.add_argument("--df-pair",
                         type=str,
                         default="0,1",
                         help="Microphone pairs for directional "
-                             "feature computation")
+                        "feature computation")
     args = parser.parse_args()
     run(args)

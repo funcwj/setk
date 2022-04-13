@@ -84,7 +84,7 @@ if __name__ == "__main__":
                         choices=["kaldi", "numpy"],
                         default="kaldi",
                         help="Define format of features, kaldi's "
-                             "archives or numpy's ndarray")
+                        "archives or numpy's ndarray")
     parser.add_argument("--apply-log",
                         type=strtobool,
                         default=False,
@@ -98,16 +98,16 @@ if __name__ == "__main__":
                         default=False,
                         dest="normalize",
                         help="If true, normalize sample "
-                             "values between [-1, 1]")
+                        "values between [-1, 1]")
     parser.add_argument("--epoches",
                         type=int,
                         default=30,
                         help="Number of epoches to iterate "
-                             "griffin lim algorithm")
+                        "griffin lim algorithm")
     parser.add_argument("--phase-ref",
                         type=str,
                         default="",
                         help="If assigned, use phase of it "
-                             "instead of griffin lim algorithm")
+                        "instead of griffin lim algorithm")
     args = parser.parse_args()
     run(args)

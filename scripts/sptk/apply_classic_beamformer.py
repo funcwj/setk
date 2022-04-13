@@ -22,7 +22,10 @@ def do_online_beamform(beamformer, doa, stft_mat, args):
     enh_chunks = []
     for c in range(len(doa)):
         base = chunk_size * c
-        chunk = beamformer.run(doa[c], stft_mat[:, :, base:base + chunk_size], c=args.speed, sr=args.sr)
+        chunk = beamformer.run(doa[c],
+                               stft_mat[:, :, base:base + chunk_size],
+                               c=args.speed,
+                               sr=args.sr)
         enh_chunks.append(chunk)
     return np.hstack(enh_chunks)
 
@@ -36,7 +39,9 @@ def process_doa(doa, online):
 
 def parse_doa(args, online):
     if args.utt2doa:
-        reader = ScpReader(args.utt2doa, value_processor=lambda doa: process_doa(doa, online), num_tokens=-1)
+        reader = ScpReader(args.utt2doa,
+                           value_processor=lambda doa: process_doa(doa, online),
+                           num_tokens=-1)
         utt2doa = reader.get
         logger.info(f"Use --utt2doa={args.utt2doa} for each utterance")
     else:
@@ -56,14 +61,22 @@ def run(args):
     }
 
     supported_beamformer = {
-        "ds": {"linear": LinearDSBeamformer(linear_topo=args.linear_topo),
-               "circular": CircularDSBeamformer(radius=args.circular_radius,
-                                                num_arounded=args.circular_around,
-                                                center=args.circular_center)},
-        "sd": {"linear": LinearSDBeamformer(linear_topo=args.linear_topo),
-               "circular": CircularSDBeamformer(radius=args.circular_radius,
-                                                num_arounded=args.circular_around,
-                                                center=args.circular_center)}
+        "ds": {
+            "linear":
+                LinearDSBeamformer(linear_topo=args.linear_topo),
+            "circular":
+                CircularDSBeamformer(radius=args.circular_radius,
+                                     num_arounded=args.circular_around,
+                                     center=args.circular_center)
+        },
+        "sd": {
+            "linear":
+                LinearSDBeamformer(linear_topo=args.linear_topo),
+            "circular":
+                CircularSDBeamformer(radius=args.circular_radius,
+                                     num_arounded=args.circular_around,
+                                     center=args.circular_center)
+        }
     }
 
     beamformer = supported_beamformer[args.beamformer][args.geometry]
@@ -72,9 +85,7 @@ def run(args):
     utt2doa = parse_doa(args, online)
 
     spectrogram_reader = SpectrogramReader(
-        args.wav_scp,
-        round_power_of_two=args.round_power_of_two,
-        **stft_kwargs)
+        args.wav_scp, round_power_of_two=args.round_power_of_two, **stft_kwargs)
 
     done = 0
     with WaveWriter(args.dst_dir, sr=args.sr) as writer:
@@ -97,7 +108,10 @@ def run(args):
                     continue
                 stft_enh = do_online_beamform(beamformer, doa, stft_src, args)
             else:
-                stft_enh = beamformer.run(doa, stft_src, c=args.speed, sr=args.sr)
+                stft_enh = beamformer.run(doa,
+                                          stft_src,
+                                          c=args.speed,
+                                          sr=args.sr)
             norm = spectrogram_reader.maxabs(key) if args.normalize else None
             samps = inverse_stft(stft_enh, **stft_kwargs, norm=norm)
             writer.write(key, samps)
@@ -107,7 +121,8 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Command to apply classic beamformer (linear & circular array).",
+        description=
+        "Command to apply classic beamformer (linear & circular array).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -150,7 +165,7 @@ if __name__ == "__main__":
                         type=strtobool,
                         default=False,
                         help="Is there a microphone put in the "
-                             "center of the circular array?")
+                        "center of the circular array?")
     parser.add_argument("--utt2doa",
                         type=str,
                         default="",
@@ -159,7 +174,7 @@ if __name__ == "__main__":
                         type=str,
                         default="0",
                         help="DoA for all utterances if "
-                             "--utt2doa is not assigned")
+                        "--utt2doa is not assigned")
     parser.add_argument("--normalize",
                         type=strtobool,
                         default=False,
@@ -168,6 +183,6 @@ if __name__ == "__main__":
                         type=int,
                         default=-1,
                         help="Number frames per chunk "
-                             "(for online setups)")
+                        "(for online setups)")
     args = parser.parse_args()
     run(args)

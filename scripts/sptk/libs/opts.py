@@ -27,17 +27,17 @@ class StftParser(object):
                         type=int,
                         default=512,
                         help="Frame length in number of samples "
-                             "(related to sample frequency)")
+                        "(related to sample frequency)")
     parser.add_argument("--frame-hop",
                         type=int,
                         default=256,
                         help="Frame shift in number of samples "
-                             "(related to sample frequency)")
+                        "(related to sample frequency)")
     parser.add_argument("--center",
                         type=strtobool,
                         default=True,
                         help="Value of parameter \'center\' in "
-                             "librosa.stft functions")
+                        "librosa.stft functions")
     parser.add_argument("--round-power-of-two",
                         type=strtobool,
                         default=True,
@@ -46,4 +46,4 @@ class StftParser(object):
                         type=str,
                         default="hann",
                         help="Type of window function, "
-                             "see scipy.signal.get_window")
+                        "see scipy.signal.get_window")

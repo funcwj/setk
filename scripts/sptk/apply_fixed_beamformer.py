@@ -23,9 +23,7 @@ def run(args):
         "transpose": False
     }
     spectrogram_reader = SpectrogramReader(
-        args.wav_scp,
-        round_power_of_two=args.round_power_of_two,
-        **stft_kwargs)
+        args.wav_scp, round_power_of_two=args.round_power_of_two, **stft_kwargs)
     # F x N or B x F x N
     weights = np.load(args.weights)
     if weights.ndim == 2:
@@ -54,7 +52,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to run fixed beamformer. Runing this command needs "
-                    "to design fixed beamformer first.",
+        "to design fixed beamformer first.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -63,7 +61,7 @@ if __name__ == "__main__":
     parser.add_argument("weights",
                         type=str,
                         help="Fixed beamformer weights in numpy format " +
-                             "(in shape F x M or B x F x M)")
+                        "(in shape F x M or B x F x M)")
     parser.add_argument("dst_dir",
                         type=str,
                         help="Location to dump the enhanced audio")
@@ -71,6 +69,6 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="Beam index to use in beamformer weights "
-                             "(in shape B x F x M)")
+                        "(in shape B x F x M)")
     args = parser.parse_args()
     run(args)

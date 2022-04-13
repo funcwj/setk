@@ -23,12 +23,14 @@ from .utils import forward_stft, read_wav, write_wav, filekey
 __all__ = [
     "ArchiveReader", "ArchiveWriter", "WaveWriter", "NumpyWriter",
     "SpectrogramReader", "ScriptReader", "WaveReader", "NumpyReader",
-    "PickleReader", "MatReader", "BinaryReader", "ScpReader", "MatWriter", "DirReader"]
+    "PickleReader", "MatReader", "BinaryReader", "ScpReader", "MatWriter",
+    "DirReader"
+]
 
 
 def run_command(command, wait=True):
-    """ 
-    Runs shell commands. These are usually a sequence of 
+    """
+    Runs shell commands. These are usually a sequence of
     commands connected by pipes, so we use shell=True
     """
     p = subprocess.Popen(command,
@@ -41,7 +43,7 @@ def run_command(command, wait=True):
         if p.returncode != 0:
             raise Exception(
                 "There was an error while running the command \"{0}\":\n{1}\n".
-                    format(command, bytes.decode(stderr)))
+                format(command, bytes.decode(stderr)))
         return stdout, stderr
     else:
         return p
@@ -73,7 +75,7 @@ def pipe_fopen(command, mode, background=True):
 
 def _fopen(fname, mode):
     """
-    Extend file open function, to support 
+    Extend file open function, to support
         1) "-", which means stdin/stdout
         2) "$cmd |" which means pipe.stdout
     """
@@ -152,8 +154,9 @@ def parse_scps(scp_path,
             if scp_tokens[-1] == "|":
                 key, value = scp_tokens[0], " ".join(scp_tokens[1:])
             else:
-                if (num_tokens >= 2 and len(scp_tokens) != num_tokens) or (
-                        restrict and len(scp_tokens) < 2):
+                if (num_tokens >= 2 and
+                        len(scp_tokens) != num_tokens) or (restrict and
+                                                           len(scp_tokens) < 2):
                     raise RuntimeError(f"For {scp_path}, format error in " +
                                        f"line[{line:d}]: {raw_line}")
                 if num_tokens == 2:
@@ -407,7 +410,7 @@ class WaveReader(ScpReader):
     def power(self, key):
         samps = self.read(key)
         s = samps if samps.ndim == 1 else samps[0]
-        return np.linalg.norm(s, 2) ** 2 / s.size
+        return np.linalg.norm(s, 2)**2 / s.size
 
 
 class SegmentWaveReader(ScpReader):
@@ -416,6 +419,7 @@ class SegmentWaveReader(ScpReader):
     """
 
     def __init__(self, wav_scp, segments, sr=None, normalize=True):
+
         def processor(x):
             wav, beg, end = x
             return {"wav": wav, "beg": float(beg), "end": float(end)}
@@ -505,6 +509,7 @@ class ScriptReader(ScpReader):
     """
 
     def __init__(self, ark_scp):
+
         def addr_processor(addr):
             addr_token = addr.split(":")
             if len(addr_token) == 1:

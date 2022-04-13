@@ -72,7 +72,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Speaker masks estimation using Complex Angular "
-                    "Central Gaussian Mixture Model (CACGMM)",
+        "Central Gaussian Mixture Model (CACGMM)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -89,7 +89,7 @@ if __name__ == "__main__":
                         type=int,
                         default=2,
                         help="Number of the cluster "
-                             "used in cacgmm model")
+                        "used in cacgmm model")
     parser.add_argument("--seed",
                         type=int,
                         default=777,

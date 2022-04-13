@@ -11,12 +11,7 @@ import numpy as np
 
 
 def _serialize(fd, arr):
-    support_dtype = {
-        "float32": 'f',
-        "float64": 'd',
-        "int32": 'i',
-        "int64": 'q'
-    }
+    support_dtype = {"float32": 'f', "float64": 'd', "int32": 'i', "int64": 'q'}
     dtype = str(arr.dtype)
     if dtype not in support_dtype:
         raise TypeError("Unsupported dtype: {}".format(arr.dtype))
@@ -77,9 +72,8 @@ def _parse_scripts(scp):
             toks = raw_line.strip().split()
             line += 1
             if len(toks) != 2:
-                raise RuntimeError(
-                    "Content format error in {}:{:d}, {}".format(
-                        scp, line, raw_line))
+                raise RuntimeError("Content format error in {}:{:d}, {}".format(
+                    scp, line, raw_line))
             key, value = toks
             index_toks = value.split(":")
             if len(index_toks) != 2:
@@ -200,8 +194,7 @@ def foo(N):
     D = 513
     frames = [random.randint(100, 200) for _ in range(N)]
     start = time.time()
-    with BinaryWriter(
-            "foo.uncompress.bin", scp="foo.uncompress.scp") as writer:
+    with BinaryWriter("foo.uncompress.bin", scp="foo.uncompress.scp") as writer:
         for i, t in enumerate(frames):
             arr = np.random.rand(t, D)
             writer.write("utt-{:d}".format(i + 1), arr)

@@ -47,7 +47,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to generate duration of the wave. "
-                    "We avoid to read whole utterance as it may slow down the speed",
+        "We avoid to read whole utterance as it may slow down the speed",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("wav_scp", type=str, help="Input wave script")
     parser.add_argument("utt2dur", type=str, help="Output utt2dur file")

@@ -45,8 +45,8 @@ def run(args):
     # N x F
     mel_weights = filters.mel(
         args.sr,
-        nextpow2(args.frame_len)
-        if args.round_power_of_two else args.frame_len, **mel_kwargs)
+        nextpow2(args.frame_len) if args.round_power_of_two else args.frame_len,
+        **mel_kwargs)
     WriterImpl = {"kaldi": ArchiveWriter, "exraw": BinaryWriter}[args.format]
 
     with WriterImpl(args.dup_ark, args.scp) as writer:
@@ -79,12 +79,12 @@ if __name__ == "__main__":
                         default="kaldi",
                         choices=["kaldi", "exraw"],
                         help="Output archive format, see "
-                             "format in sptk/libs/exraw.py")
+                        "format in sptk/libs/exraw.py")
     parser.add_argument("--scp",
                         type=str,
                         default="",
                         help="If assigned, generate corresponding "
-                             "scripts for archives")
+                        "scripts for archives")
     parser.add_argument("--sr",
                         type=int,
                         default=16000,
@@ -94,13 +94,13 @@ if __name__ == "__main__":
                         default=False,
                         dest="log",
                         help="If true, using log mel-spectrogram "
-                             "instead of linear")
+                        "instead of linear")
     parser.add_argument("--normalize-samples",
                         type=strtobool,
                         default=False,
                         dest="norm",
                         help="If true, normalize sample "
-                             "values between [-1, 1]")
+                        "values between [-1, 1]")
     parser.add_argument("--num-bins",
                         default=40,
                         type=int,
