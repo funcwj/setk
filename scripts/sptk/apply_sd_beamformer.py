@@ -58,7 +58,7 @@ if __name__ == "__main__":
                         type=strtobool,
                         default=False,
                         help="Is there a microphone put in the "
-                             "center of the circular array?")
+                        "center of the circular array?")
     parser.add_argument("--utt2doa",
                         type=str,
                         default="",
@@ -67,7 +67,7 @@ if __name__ == "__main__":
                         type=str,
                         default="0",
                         help="DoA for all utterances if "
-                             "--utt2doa is not assigned")
+                        "--utt2doa is not assigned")
     parser.add_argument("--normalize",
                         type=strtobool,
                         default=False,
@@ -76,6 +76,6 @@ if __name__ == "__main__":
                         type=int,
                         default=-1,
                         help="Number frames per chunk "
-                             "(for online setups)")
+                        "(for online setups)")
     args = parser.parse_args()
     run(args)

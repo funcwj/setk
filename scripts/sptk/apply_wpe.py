@@ -26,9 +26,7 @@ def run(args):
         "transpose": True  # T x F
     }
     spectrogram_reader = SpectrogramReader(
-        args.wav_scp,
-        round_power_of_two=args.round_power_of_two,
-        **stft_kwargs)
+        args.wav_scp, round_power_of_two=args.round_power_of_two, **stft_kwargs)
 
     num_done = 0
     with WaveWriter(args.dst_dir, sr=args.sr) as writer:
@@ -73,7 +71,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to do GWPE dereverbration algorithm (recommended "
-                    "configuration: 512/128/blackman)",
+        "configuration: 512/128/blackman)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -95,7 +93,7 @@ if __name__ == "__main__":
                         dest="context",
                         type=int,
                         help="Context value to compute PSD "
-                             "matrix in GWPE algorithm")
+                        "matrix in GWPE algorithm")
     parser.add_argument("--num-iters",
                         default=3,
                         type=int,

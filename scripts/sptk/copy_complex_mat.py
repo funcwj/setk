@@ -55,7 +55,7 @@ def run(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Command to copy MATLAB's (complex) "
-                    "matrix into (C)Matrix.",
+        "matrix into (C)Matrix.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("mmat",
@@ -71,7 +71,7 @@ if __name__ == '__main__':
                         type=strtobool,
                         default=False,
                         help="If true, then write matrix "
-                             "in float64/complex128")
+                        "in float64/complex128")
     parser.add_argument("--float",
                         type=strtobool,
                         default=False,
@@ -80,6 +80,6 @@ if __name__ == '__main__':
                         type=strtobool,
                         default=False,
                         help="If true, write transpose of "
-                             "original matrix instead")
+                        "original matrix instead")
     args = parser.parse_args()
     run(args)

@@ -11,7 +11,7 @@ class MCRA(object):
     """
     OM-LSA (Optimally Modified Log-Spectral Amplitude Estimator) with MCRA
     Reference:
-        1) Cohen I, Berdugo B. Speech enhancement for non-stationary noise environments[J]. 
+        1) Cohen I, Berdugo B. Speech enhancement for non-stationary noise environments[J].
            Signal processing, 2001, 81(11): 2403-2418.
     """
 
@@ -39,16 +39,16 @@ class MCRA(object):
                  M=128):
         self.delta = delta
         self.alpha = {"s": alpha_s, "d": alpha_d, "p": alpha_p, "t": alpha}
-        self.gmin = 10 ** (gmin_db / 10)
+        self.gmin = 10**(gmin_db / 10)
         self.beta = beta
         self.w_m = ss.get_window(h_mcra, w_mcra * 2 + 1)
         self.w_g = ss.get_window(h_global, w_global * 2 + 1)
         self.w_l = ss.get_window(h_local, w_local * 2 + 1)
-        self.xi_min = 10 ** (xi_min_db / 10)
-        self.zeta_min = 10 ** (zeta_min_db / 10)
-        self.zeta_max = 10 ** (zeta_max_db / 10)
-        self.zeta_p_min = 10 ** (zeta_p_min_db / 10)
-        self.zeta_p_max = 10 ** (zeta_p_max_db / 10)
+        self.xi_min = 10**(xi_min_db / 10)
+        self.zeta_min = 10**(zeta_min_db / 10)
+        self.zeta_max = 10**(zeta_max_db / 10)
+        self.zeta_p_min = 10**(zeta_p_min_db / 10)
+        self.zeta_p_max = 10**(zeta_p_max_db / 10)
         self.L = L
         self.M = M
         self.q_max = q_max
@@ -67,7 +67,7 @@ class MCRA(object):
 
         exp_para = np.vectorize(expint)
 
-        obs_power = np.abs(stft) ** 2
+        obs_power = np.abs(stft)**2
         gh1 = 1
         p_hat = np.ones(F)
         zeta = np.ones(F)
@@ -85,8 +85,8 @@ class MCRA(object):
             # <<< eq.10
 
             # >>> eq.18: a priori SNR
-            xi_hat = self.alpha["t"] * gh1 ** 2 * gamma + (
-                    1 - self.alpha["t"]) * np.maximum(gamma - 1, 0)
+            xi_hat = self.alpha["t"] * gh1**2 * gamma + (
+                1 - self.alpha["t"]) * np.maximum(gamma - 1, 0)
             xi_hat = np.maximum(xi_hat, self.xi_min)
             # <<< eq.18
 
@@ -105,8 +105,7 @@ class MCRA(object):
                 var_s_tmp = var_s
             else:
                 # >>> eq.33
-                var_s = self.alpha["s"] * var_s + (1 -
-                                                   self.alpha["s"]) * var_sf
+                var_s = self.alpha["s"] * var_s + (1 - self.alpha["s"]) * var_sf
                 # <<< eq.33
 
             if (t + 1) % self.L == beg:
@@ -135,7 +134,7 @@ class MCRA(object):
 
             # >>> eq.30
             lambda_d_hat = alpha_d_hat * lambda_d_hat + (
-                    1 - alpha_d_hat) * obs_power[t]
+                1 - alpha_d_hat) * obs_power[t]
             # <<< eq.30
 
             # >>> eq.23
@@ -153,7 +152,7 @@ class MCRA(object):
                                     zeta_g < self.zeta_max)
             var_p_g[pg_idx] = np.log10(
                 zeta_g[pg_idx] / self.zeta_min) / np.log10(
-                self.zeta_max / self.zeta_min)
+                    self.zeta_max / self.zeta_min)
             pg_idx = zeta_g >= self.zeta_max
             var_p_g[pg_idx] = 1
             # <<< eq.25
@@ -164,7 +163,7 @@ class MCRA(object):
                                     zeta_l < self.zeta_max)
             var_p_l[pl_idx] = np.log10(
                 zeta_l[pl_idx] / self.zeta_min) / np.log10(
-                self.zeta_max / self.zeta_min)
+                    self.zeta_max / self.zeta_min)
             pl_idx = zeta_l >= self.zeta_max
             var_p_l[pl_idx] = 1
             # <<< eq.25
@@ -204,7 +203,7 @@ class MCRA(object):
             # <<< eq.10
 
             # >>> eq.16
-            gain = gh1 ** p * self.gmin ** (1 - p)
+            gain = gh1**p * self.gmin**(1 - p)
             G.append(gain)
             # <<< eq.16
         return np.stack(G)
@@ -214,8 +213,8 @@ class iMCRA(object):
     """
     OM-LSA (Optimally Modified Log-Spectral Amplitude Estimator) with iMCRA
     Reference:
-        1) Cohen I. Noise spectrum estimation in adverse environments: Improved minima controlled 
-           recursive averaging[J]. IEEE Transactions on speech and audio processing, 2003, 11(5): 
+        1) Cohen I. Noise spectrum estimation in adverse environments: Improved minima controlled
+           recursive averaging[J]. IEEE Transactions on speech and audio processing, 2003, 11(5):
            466-475.
     """
 
@@ -239,8 +238,8 @@ class iMCRA(object):
         self.gamma0, self.gamma1 = gamma0, gamma1
         self.zeta0 = zeta0
         self.b_min = 1 / b_min
-        self.xi_min = 10 ** (xi_min_db / 10)
-        self.gain_min = 10 ** (gmin_db / 10)
+        self.xi_min = 10**(xi_min_db / 10)
+        self.gain_min = 10**(gmin_db / 10)
         self.w_m = ss.get_window(h_mcra, w_mcra * 2 + 1)
         self.V = V
         self.U = U
@@ -253,7 +252,7 @@ class iMCRA(object):
             gain: real array, T x F
         """
         T, F = stft.shape
-        obs_power = np.abs(stft) ** 2
+        obs_power = np.abs(stft)**2
         lambda_d_hat = obs_power[0]
         gh1 = 1
 
@@ -273,10 +272,10 @@ class iMCRA(object):
             gamma = obs_power[t] / np.maximum(lambda_d, eps)
             # <<< eq.3
 
-            gain = gh1 ** 2 * gamma
+            gain = gh1**2 * gamma
             # >>> eq.32 : a priori SNR
             xi_hat = self.alpha["t"] * gain + (
-                    1 - self.alpha["t"]) * np.maximum(gamma - 1, 0)
+                1 - self.alpha["t"]) * np.maximum(gamma - 1, 0)
             xi_hat = np.maximum(xi_hat, self.xi_min)
             # <<< eq.32
 
@@ -296,8 +295,7 @@ class iMCRA(object):
                 var_s_min_sw = var_sf
             else:
                 # >>> eq.15
-                var_s = self.alpha["s"] * var_s + (1 -
-                                                   self.alpha["s"]) * var_sf
+                var_s = self.alpha["s"] * var_s + (1 - self.alpha["s"]) * var_sf
                 # <<< eq.15
                 var_s_min = np.minimum(var_s_min, var_s)
                 var_s_min_sw = np.minimum(var_s_min_sw, var_s)
@@ -316,8 +314,7 @@ class iMCRA(object):
                                    self.w_m,
                                    mode="same")
             var_sf_hat = var_s_hat.copy()
-            var_sf_hat[
-                ind_nz_idx] = obs_conv[ind_nz_idx] / ind_conv[ind_nz_idx]
+            var_sf_hat[ind_nz_idx] = obs_conv[ind_nz_idx] / ind_conv[ind_nz_idx]
             # <<< eq.26
 
             if t == 0:
@@ -326,7 +323,7 @@ class iMCRA(object):
             else:
                 # <<< eq.27
                 var_s_hat = self.alpha["s"] * var_s_hat + (
-                        1 - self.alpha["s"]) * var_sf_hat
+                    1 - self.alpha["s"]) * var_sf_hat
                 # >>> eq.27
                 var_s_min_hat = np.minimum(var_s_min_hat, var_s_hat)
                 var_s_min_sw_hat = np.minimum(var_s_min_sw_hat, var_s_hat)
@@ -353,7 +350,7 @@ class iMCRA(object):
             # >>> eq.7
             p_hat = np.zeros(F)
             p_hat_den = 1 + q_hat[qhat_idx] * (1 + xi_hat[qhat_idx]) / (
-                    1 - q_hat[qhat_idx]) * np.exp(-v[qhat_idx])
+                1 - q_hat[qhat_idx]) * np.exp(-v[qhat_idx])
             # (0, 1)
             p_hat[qhat_idx] = 1 / p_hat_den
             phat_idx = np.logical_and(gamma_min_hat >= self.gamma1,
@@ -367,7 +364,7 @@ class iMCRA(object):
 
             # >>> eq.10
             lambda_d_hat = alpha_d_hat * lambda_d_hat + (
-                    1 - alpha_d_hat) * obs_power[t]
+                1 - alpha_d_hat) * obs_power[t]
             # <<< eq.10
 
             s_min_sw.append(var_s_min_sw)
@@ -383,7 +380,7 @@ class iMCRA(object):
                 var_s_min_sw_hat = var_s_hat
 
             # >>> gain function
-            gain = gh1 ** p_hat * self.gain_min ** (1 - p_hat)
+            gain = gh1**p_hat * self.gain_min**(1 - p_hat)
             G.append(gain)
             # <<< gain function
 

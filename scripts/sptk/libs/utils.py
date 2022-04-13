@@ -24,7 +24,7 @@ __all__ = [
 
 def nextpow2(window_size):
     # next power of two
-    return 2 ** math.ceil(math.log2(window_size))
+    return 2**math.ceil(math.log2(window_size))
 
 
 def cmat_abs(cmat):
@@ -39,7 +39,7 @@ def cmat_abs(cmat):
         raise RuntimeError(
             "function cmat_abs expect complex as input, but got {}".format(
                 cmat.dtype))
-    return np.sqrt(cmat.real ** 2 + cmat.imag ** 2)
+    return np.sqrt(cmat.real**2 + cmat.imag**2)
 
 
 def write_wav(fname, samps, sr=16000, normalize=True):
@@ -114,7 +114,7 @@ def forward_stft(samps,
     # pad fft size to power of two or left it same as frame length
     n_fft = nextpow2(frame_len) if round_power_of_two else frame_len
     if window == "sqrthann":
-        window = ss.hann(frame_len, sym=False) ** 0.5
+        window = ss.hann(frame_len, sym=False)**0.5
     # orignal stft accept samps(vector) and return matrix shape as F x T
     # NOTE for librosa.stft:
     # 1) win_length <= n_fft
@@ -154,7 +154,7 @@ def inverse_stft(stft_mat,
     if transpose:
         stft_mat = np.transpose(stft_mat)
     if window == "sqrthann":
-        window = ss.hann(frame_len, sym=False) ** 0.5
+        window = ss.hann(frame_len, sym=False)**0.5
     # orignal istft accept stft result(matrix, shape as FxT)
     samps = librosa.istft(stft_mat,
                           frame_hop,
@@ -168,7 +168,7 @@ def inverse_stft(stft_mat,
         samps = samps * norm / (samps_norm + EPSILON)
     # keep same power
     if power:
-        samps_pow = np.linalg.norm(samps, 2) ** 2 / samps.size
+        samps_pow = np.linalg.norm(samps, 2)**2 / samps.size
         samps = samps * np.sqrt(power / samps_pow)
     return samps
 
@@ -250,9 +250,9 @@ def check_doa(geometry, doa, online=False):
     Check value of the DoA
     """
     if not online:
-       doas = [doa]
+        doas = [doa]
     else:
-       doas = doa
+        doas = doa
     for doa in doas:
         if doa < 0:
             return False

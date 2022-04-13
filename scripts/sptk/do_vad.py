@@ -14,6 +14,7 @@ logger = get_logger(__name__)
 
 
 class VoiceSpliter(object):
+
     def __init__(self, mode, cache_size, sr=16000):
         if cache_size <= 0:
             raise ValueError("--cache-size must >= 1")
@@ -45,7 +46,7 @@ class VoiceSpliter(object):
         self.cur_frame += 1
 
     def report(self, voice=True):
-        if self.voiced and self.cpt_point != self.cur_frame:
+        if self.voiced and self.segment_beg[-1] != self.cur_frame:
             self.segment_end.append(self.cur_frame)
         segments = [(beg - self.cache_size, end)
                     for beg, end in zip(self.segment_beg, self.segment_end)]
@@ -72,6 +73,7 @@ class VoiceSpliter(object):
 
 
 def run(args):
+
     def ms_to_n(ms, sr):
         return int(ms * sr / 1000.0)
 
@@ -103,8 +105,8 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to remove silence from original utterances"
-                    "(using py-webrtcvad from https://github.com/wiseman/py-webrtcvad). "
-                    "This is often used in speaker relative tasks.",
+        "(using py-webrtcvad from https://github.com/wiseman/py-webrtcvad). "
+        "This is often used in speaker relative tasks.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("wav_scp", type=str, help="Input wav scripts")
     parser.add_argument("dst_dir", type=str, help="Output wav directory")
@@ -112,7 +114,7 @@ if __name__ == "__main__":
                         type=int,
                         default=2,
                         help="Vad mode used in webrtc "
-                             "(0->3 less->more aggressive)")
+                        "(0->3 less->more aggressive)")
     parser.add_argument("--chunk-size",
                         type=int,
                         default=10,

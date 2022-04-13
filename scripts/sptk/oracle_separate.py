@@ -19,15 +19,15 @@ logger = get_logger(__name__)
 def compute_mask(mixture, targets_list, mask_type):
     """
     Arguments:
-        mixture: STFT of mixture signal(complex result) 
+        mixture: STFT of mixture signal(complex result)
         targets_list: python list of target signal's STFT results(complex result)
         mask_type: ["irm", "ibm", "iam", "psm"]
     Return:
         masks_list
     """
     if mask_type == "ibm":
-        max_index = np.argmax(
-            np.stack([cmat_abs(mat) for mat in targets_list]), 0)
+        max_index = np.argmax(np.stack([cmat_abs(mat) for mat in targets_list]),
+                              0)
         return [max_index == s for s in range(len(targets_list))]
 
     if mask_type == "irm":
@@ -55,9 +55,7 @@ def run(args):
     }
     logger.info(f"Using mask: {args.mask.upper()}")
     mixture_reader = SpectrogramReader(
-        args.mix_scp,
-        round_power_of_two=args.round_power_of_two,
-        **stft_kwargs)
+        args.mix_scp, round_power_of_two=args.round_power_of_two, **stft_kwargs)
     ref_scp_list = args.ref_scp.split(",")
     logger.info(f"Number of speakers: {len(ref_scp_list)}")
     targets_reader = [
@@ -88,18 +86,18 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to do oracle speech separation, "
-                    "using specified mask(IAM|IBM|IRM|PSM)",
+        "using specified mask(IAM|IBM|IRM|PSM)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("mix_scp",
                         type=str,
                         help="Location of mixture wave "
-                             "scripts in kaldi format")
+                        "scripts in kaldi format")
     parser.add_argument("--ref-scp",
                         type=str,
                         required=True,
                         help="Reference speaker wave scripts in kaldi format, "
-                             "separated using \',\'")
+                        "separated using \',\'")
     parser.add_argument("--dump-dir",
                         type=str,
                         default="sep",

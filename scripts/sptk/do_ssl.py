@@ -29,16 +29,9 @@ def add_wta(masks_list, eps=1e-4):
 
 def get_doa(stft, steer_vector, mask, srp_pair, angles, output, backend):
     if srp_pair:
-        idx = srp_ssl(stft,
-                      steer_vector,
-                      srp_pair=srp_pair,
-                      mask=mask)
+        idx = srp_ssl(stft, steer_vector, srp_pair=srp_pair, mask=mask)
     elif backend == "ml":
-        idx = ml_ssl(stft,
-                     steer_vector,
-                     mask=mask,
-                     compression=-1,
-                     eps=EPSILON)
+        idx = ml_ssl(stft, steer_vector, mask=mask, compression=-1, eps=EPSILON)
     else:
         idx = music_ssl(stft, steer_vector, mask=mask)
     return idx if output == "index" else angles[idx]
@@ -73,9 +66,10 @@ def run(args):
                     f"= {args.chunk_len}, look_back = {args.look_back}")
 
     if args.backend == "srp":
-        split_index = lambda sstr: [
-            tuple(map(int, p.split(","))) for p in sstr.split(";")
-        ]
+
+        def split_index(sstr):
+            return [tuple(map(int, p.split(","))) for p in sstr.split(";")]
+
         srp_pair = split_index(args.srp_pair)
         srp_pair = ([t[0] for t in srp_pair], [t[1] for t in srp_pair])
         logger.info(f"Choose srp-based algorithm, srp pair is {srp_pair}")
@@ -98,7 +92,8 @@ def run(args):
             else:
                 mask = None
             if not online:
-                doa = get_doa(stft, steer_vector, mask, srp_pair, angles, args.output, args.backend)
+                doa = get_doa(stft, steer_vector, mask, srp_pair, angles,
+                              args.output, args.backend)
                 logger.info(f"Processing utterance {key}: {doa:.4f}")
                 doa_out.write(f"{key}\t{doa:.4f}\n")
             else:
@@ -112,7 +107,8 @@ def run(args):
                     else:
                         chunk_mask = None
                     stft_chunk = stft[:, s:t + args.chunk_len, :]
-                    doa = get_doa(stft_chunk, steer_vector, chunk_mask, srp_pair, angles, args.output, args.backend)
+                    doa = get_doa(stft_chunk, steer_vector, chunk_mask,
+                                  srp_pair, angles, args.output, args.backend)
                     online_doa.append(doa)
                 doa_str = " ".join([f"{d:.4f}" for d in online_doa])
                 doa_out.write(f"{key}\t{doa_str}\n")
@@ -122,7 +118,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to ML/SRP based sound souce localization (SSL)."
-                    "Also see scripts/sptk/compute_steer_vector.py",
+        "Also see scripts/sptk/compute_steer_vector.py",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -131,8 +127,8 @@ if __name__ == "__main__":
     parser.add_argument("steer_vector",
                         type=str,
                         help="Pre-computed steer vector in each "
-                             "directions (in shape A x M x F, A: number "
-                             "of DoAs, M: microphone number, F: FFT bins)")
+                        "directions (in shape A x M x F, A: number "
+                        "of DoAs, M: microphone number, F: FFT bins)")
     parser.add_argument("doa_scp",
                         type=str,
                         help="Wspecifier for estimated DoA")
@@ -166,11 +162,11 @@ if __name__ == "__main__":
                         type=int,
                         default=-1,
                         help="Number frames per chunk "
-                             "(for online setups)")
+                        "(for online setups)")
     parser.add_argument("--look-back",
                         type=int,
                         default=125,
                         help="Number of frames to look back "
-                             "(for online setups)")
+                        "(for online setups)")
     args = parser.parse_args()
     run(args)

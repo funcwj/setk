@@ -52,8 +52,7 @@ def run(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=
-        "Command to copy MATLAB's .mat or Python's .npy (real)matrix "
+        description="Command to copy MATLAB's .mat or Python's .npy (real)matrix "
         "to kaldi's archives",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("src_scp",
@@ -66,7 +65,7 @@ if __name__ == "__main__":
                         type=str,
                         default=None,
                         help="If assigned, generate corresponding "
-                             ".scp for archives")
+                        ".scp for archives")
     parser.add_argument("--mat-index",
                         type=str,
                         dest="key",
@@ -76,8 +75,8 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="Operations to applied on source "
-                             "matrix/vector, separated by \",\", now support "
-                             "trans/log/minus/stack")
+                        "matrix/vector, separated by \",\", now support "
+                        "trans/log/minus/stack")
     parser.add_argument("--src-format",
                         type=str,
                         dest="src",

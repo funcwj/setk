@@ -103,7 +103,8 @@ def srp_phat_linear(S, d, normalize=True, apply_floor=True, **kwargs):
         shape as T x D
     """
     if type(d) is not list and type(d) is not tuple:
-        raise ValueError("Now only support linear arrays(in python list/tuple type)")
+        raise ValueError(
+            "Now only support linear arrays(in python list/tuple type)")
     N = S.shape[0]
     if N != len(d):
         raise ValueError(
@@ -128,9 +129,9 @@ def msc(spectrogram, context=1, normalize=True):
     Arguments:
         spectrogram: shape as N x T x F
     Reference:
-        Wang Z Q, Wang D L. On Spatial Features for Supervised Speech Separation 
+        Wang Z Q, Wang D L. On Spatial Features for Supervised Speech Separation
                             and its Application to Beamforming and Robust ASR
-                            [C]//2018 IEEE International Conference on Acoustics, 
+                            [C]//2018 IEEE International Conference on Acoustics,
                             Speech and Signal Processing (ICASSP). IEEE, 2018: 5709-5713.
     """
     N, T, F = spectrogram.shape

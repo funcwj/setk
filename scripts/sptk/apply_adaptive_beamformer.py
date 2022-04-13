@@ -37,7 +37,8 @@ def do_online_beamform(beamformer, speech_mask, interf_mask, stft_mat, args):
     enh_chunks = []
     for c in range(num_chunks):
         base = chunk_size * c
-        mask_n = None if interf_mask is None else interf_mask[base:base + chunk_size]
+        mask_n = None if interf_mask is None else interf_mask[base:base +
+                                                              chunk_size]
         chunk = beamformer.run(speech_mask[base:base + chunk_size],
                                stft_mat[:, :, base:base + chunk_size],
                                mask_n=mask_n,
@@ -79,9 +80,7 @@ def run(args):
         "transpose": False  # F x T
     }
     spectrogram_reader = SpectrogramReader(
-        args.wav_scp,
-        round_power_of_two=args.round_power_of_two,
-        **stft_kwargs)
+        args.wav_scp, round_power_of_two=args.round_power_of_two, **stft_kwargs)
     MaskReader = {"numpy": NumpyReader, "kaldi": ScriptReader}
     tgt_mask_reader = MaskReader[args.fmt](args.tgt_mask)
     itf_mask_reader = MaskReader[args.fmt](
@@ -192,7 +191,7 @@ if __name__ == "__main__":
     parser.add_argument("tgt_mask",
                         type=str,
                         help="Scripts of target masks in kaldi's "
-                             "archive or numpy's ndarray")
+                        "archive or numpy's ndarray")
     parser.add_argument("dst_dir",
                         type=str,
                         help="Location to dump enhanced wave files")
@@ -200,13 +199,13 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="Scripts of interfering masks in kaldi's "
-                             "archive or numpy's ndarray")
+                        "archive or numpy's ndarray")
     parser.add_argument("--mask-format",
                         dest="fmt",
                         choices=["kaldi", "numpy"],
                         default="kaldi",
                         help="Define format of masks, kaldi's "
-                             "archives or numpy's ndarray")
+                        "archives or numpy's ndarray")
     parser.add_argument("--beamformer",
                         type=str,
                         default="mvdr",
@@ -234,18 +233,18 @@ if __name__ == "__main__":
                         type=strtobool,
                         default=False,
                         help="Masking enhanced spectrogram "
-                             "after beamforming or not")
+                        "after beamforming or not")
     parser.add_argument("--vad-proportion",
                         type=float,
                         default=1,
                         help="Energy proportion to filter "
-                             "silence masks [0.5, 1]")
+                        "silence masks [0.5, 1]")
     parser.add_argument("--online.alpha",
                         default=0.8,
                         dest="alpha",
                         type=float,
                         help="Remember coefficient when "
-                             "updating covariance matrix")
+                        "updating covariance matrix")
     parser.add_argument("--online.chunk-size",
                         default=-1,
                         type=int,

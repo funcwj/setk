@@ -40,7 +40,7 @@ def compute_lambda(dereverb, ctx=0):
     """
 
     def cpw(mat):
-        return mat.real ** 2 + mat.imag ** 2
+        return mat.real**2 + mat.imag**2
 
     # F x T
     L = np.mean(cpw(dereverb), axis=1)
@@ -80,10 +80,10 @@ def wpe_step(reverb, yt, lambda_):
 def wpe(reverb, taps=10, delay=3, context=1, num_iters=3):
     """
     GWPE dereverbration algorithm
-    Reference: 
+    Reference:
         1.  https://github.com/fgnt/nara_wpe
-        2.  Yoshioka, Takuya, and Tomohiro Nakatani. "Generalization of multi-channel 
-            linear prediction methods for blind MIMO impulse response shortening." IEEE 
+        2.  Yoshioka, Takuya, and Tomohiro Nakatani. "Generalization of multi-channel
+            linear prediction methods for blind MIMO impulse response shortening." IEEE
             Transactions on Audio, Speech, and Language Processing 20.10 (2012): 2707-2720.
     Arguments:
         reverb: complex spectrogram, F x N x T
@@ -120,12 +120,12 @@ def facted_wpd(obs,
     """
     Joint dereverberation & denoising
     Reference:
-        1.  Nakatani, Tomohiro, and Keisuke Kinoshita. "A unified convolutional beamformer for simultaneous 
+        1.  Nakatani, Tomohiro, and Keisuke Kinoshita. "A unified convolutional beamformer for simultaneous
             denoising and dereverberation." IEEE Signal Processing Letters 26.6 (2019): 903-907.
-        2.  Boeddeker, Christoph, et al. "Jointly optimal dereverberation and beamforming." ICASSP 2020-2020 
+        2.  Boeddeker, Christoph, et al. "Jointly optimal dereverberation and beamforming." ICASSP 2020-2020
             IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP). IEEE, 2020.
-        3.  Nakatani, Tomohiro, and Keisuke Kinoshita. "Maximum likelihood convolutional beamformer for 
-            simultaneous denoising and dereverberation." 2019 27th European Signal Processing Conference 
+        3.  Nakatani, Tomohiro, and Keisuke Kinoshita. "Maximum likelihood convolutional beamformer for
+            simultaneous denoising and dereverberation." 2019 27th European Signal Processing Conference
             (EUSIPCO). IEEE, 2019.
     Args:
         obs: N x T x F
@@ -142,24 +142,24 @@ def facted_wpd(obs,
     # iterations
     for i in range(wpd_iters):
         logger.info(f"Facted WPD: iter = {i + 1}/{wpd_iters}...")
-        logger.info(f"Facted WPD: perform wpe...")
+        logger.info("Facted WPD: perform wpe...")
         # compute lambda: F x T
         if i == 0:
             lambda_ = compute_lambda(obs, ctx=context)
         else:
-            lambda_ = np.abs(wpd_enh) ** 2
+            lambda_ = np.abs(wpd_enh)**2
         # lower bound
         lambda_ = np.maximum(lambda_, EPSILON)
         # F x N x T
         der = wpe_step(obs, yt, lambda_)
         # N x F x T
         der_r = np.einsum("fnt->nft", der)
-        logger.info(f"Facted WPD: mask estimation...")
+        logger.info("Facted WPD: mask estimation...")
         # TF-mask
         trainer = CgmmTrainer(der_r, 2, update_alpha=update_alpha)
         # F x T
         tf_mask = trainer.train(cgmm_iters)
-        logger.info(f"Facted WPD: perform weighted mvdr...")
+        logger.info("Facted WPD: perform weighted mvdr...")
         # F x N x N
         Rd = np.einsum("...nt,...mt->...nm", der / lambda_[:, None],
                        der.conj()) / der.shape[-1]

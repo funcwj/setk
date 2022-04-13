@@ -53,7 +53,7 @@ if __name__ == "__main__":
     parser.add_argument("rspec_or_dir",
                         type=str,
                         help="Read specifier of "
-                             "archives/Directory of ndarrays")
+                        "archives/Directory of ndarrays")
     parser.add_argument("--dim",
                         type=int,
                         default=3,

@@ -37,7 +37,7 @@ def run(args):
     if multi_beam:
         plt.title(f"BeamPattern of Beam-{args.beam + 1}")
     else:
-        plt.title(f"BeamPattern")
+        plt.title("BeamPattern")
     plt.show()
 
 
@@ -48,17 +48,17 @@ if __name__ == "__main__":
     parser.add_argument("weight",
                         type=str,
                         help="Weight of the fixed beamformer "
-                             "(in shape B x F x N or F x N)")
+                        "(in shape B x F x N or F x N)")
     parser.add_argument("steer_vector",
                         type=str,
                         help="Pre-computed steer vector in each "
-                             "directions (in shape A x M x F, A: number "
-                             "of DoAs, M: microphone number, F: FFT bins)")
+                        "directions (in shape A x M x F, A: number "
+                        "of DoAs, M: microphone number, F: FFT bins)")
     parser.add_argument("--beam",
                         type=int,
                         default=0,
                         help="Beam index to plot "
-                             "(if contains multi-beam)")
+                        "(if contains multi-beam)")
     parser.add_argument("--doa-range",
                         type=int,
                         default=360,

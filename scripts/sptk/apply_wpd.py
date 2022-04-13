@@ -26,9 +26,7 @@ def run(args):
         "transpose": True  # T x F
     }
     spectrogram_reader = SpectrogramReader(
-        args.wav_scp,
-        round_power_of_two=args.round_power_of_two,
-        **stft_kwargs)
+        args.wav_scp, round_power_of_two=args.round_power_of_two, **stft_kwargs)
 
     num_done = 0
     with WaveWriter(args.dst_dir, sr=args.sr) as writer:
@@ -65,7 +63,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to do joint dereverbration & denoising algorithm "
-                    "(facted form of WPD)",
+        "(facted form of WPD)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -86,7 +84,7 @@ if __name__ == "__main__":
                         default=1,
                         type=int,
                         help="Context value to compute PSD "
-                             "matrix in WPE algorithm")
+                        "matrix in WPE algorithm")
     parser.add_argument("--wpd-iters",
                         default=3,
                         type=int,

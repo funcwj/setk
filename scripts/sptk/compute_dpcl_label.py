@@ -47,8 +47,7 @@ def run(args):
                 np.sum(sil_idx) * 100 / (T * F)))
             # for each speaker
             act_idx = ~sil_idx
-            labels = np.argmax(np.stack([reader[key]
-                                         for reader in spk_reader]),
+            labels = np.argmax(np.stack([reader[key] for reader in spk_reader]),
                                axis=0)
             masks[act_idx] = labels[act_idx]
             writer.write(key, masks)
@@ -58,14 +57,14 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to compute labels for DC (Deep Clustering) "
-                    "training, -1 means silence, 0..N for each speaker",
+        "training, -1 means silence, 0..N for each speaker",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("mix", type=str, help="Rspecifier for mixture")
     parser.add_argument("spks",
                         type=str,
                         help="Rspecifier for multiple speakers, "
-                             "separated by \',\', egs: spk1.scp,spk2.scp")
+                        "separated by \',\', egs: spk1.scp,spk2.scp")
     parser.add_argument("dir",
                         type=str,
                         help="Directory to store computed labels")

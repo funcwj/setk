@@ -75,3 +75,4 @@ make -j
 
 ***Now I mainly work on [sptk](scripts) package, development based on kaldi is stopped.***
 
+For developers (who want to make commits or PRs), please remember to setup [pre-commit](https://pre-commit.com) for code style formating.

@@ -12,8 +12,8 @@ Reference:
 
 CACGMM Trainer
 Reference:
-    N. Ito, S. Araki, and T. Nakatani, “Complex angular central Gaussian mixture model for 
-    directional statistics in mask-based microphone array signal processing,” in European 
+    N. Ito, S. Araki, and T. Nakatani, “Complex angular central Gaussian mixture model for
+    directional statistics in mask-based microphone array signal processing,” in European
     Signal Processing Conference (EUSIPCO). IEEE, 2016, pp. 1153–1157.
 """
 import pickle
@@ -29,10 +29,10 @@ supported_plan = {
     257: [[20, 70, 170], [2, 90, 190], [2, 50, 150], [2, 110, 210],
           [2, 30, 130], [2, 130, 230], [2, 0, 110], [2, 150, 257]],
     513: [[20, 100, 200], [2, 120, 220], [2, 80, 180], [2, 140, 240],
-          [2, 60, 160], [2, 160, 260], [2, 40, 140], [2, 180, 280],
-          [2, 0, 120], [2, 200, 300], [2, 220, 320], [2, 240, 340],
-          [2, 260, 360], [2, 280, 380], [2, 300, 400], [2, 320, 420],
-          [2, 340, 440], [2, 360, 460], [2, 380, 480], [2, 400, 513]]
+          [2, 60, 160], [2, 160, 260], [2, 40, 140], [2, 180, 280], [2, 0, 120],
+          [2, 200, 300], [2, 220, 320], [2, 240, 340], [2, 260, 360],
+          [2, 280, 380], [2, 300, 400], [2, 320, 420], [2, 340, 440],
+          [2, 360, 460], [2, 380, 480], [2, 400, 513]]
 }
 
 
@@ -433,8 +433,7 @@ class CgmmTrainer(object):
                     logger.info(
                         f"Random initialized, num_classes = {num_classes}")
             if gamma is not None:
-                den = np.maximum(np.sum(gamma, axis=-1, keepdims=True),
-                                 EPSILON)
+                den = np.maximum(np.sum(gamma, axis=-1, keepdims=True), EPSILON)
                 # 2 x F x M x M
                 R = np.einsum("...t,...xt,...yt->...xy", gamma, self.obs,
                               self.obs.conj()) / den[..., None]
@@ -498,8 +497,8 @@ class CacgmmTrainer(object):
                 # using init method like cgmm (not well)
                 # init covar
                 covar = np.stack([
-                    np.einsum("...xt,...yt->...xy", self.obs, self.obs.conj())
-                    / T,
+                    np.einsum("...xt,...yt->...xy", self.obs, self.obs.conj()) /
+                    T,
                     np.stack([np.eye(M, M, dtype=obs.dtype) for _ in range(F)])
                 ])
                 cacg = CacgDistribution(covar)

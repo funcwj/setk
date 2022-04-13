@@ -2,9 +2,9 @@
 
 # wujian@2018
 """
-AuxIVA: 
-    Ono N. Stable and fast update rules for independent vector analysis 
-    based on auxiliary function technique[C]//Applications of Signal 
+AuxIVA:
+    Ono N. Stable and fast update rules for independent vector analysis
+    based on auxiliary function technique[C]//Applications of Signal
     Processing to Audio and Acoustics (WASPAA), 2011 IEEE Workshop on. IEEE, 2011: 189-192.
 Reference: https://github.com/LCAV/pyroomacoustics/blob/master/pyroomacoustics/bss/auxiva.py
 """
@@ -39,7 +39,7 @@ def auxiva(X, epochs=20):
 
     for _ in range(epochs):
         # T x N
-        R = np.sqrt(np.sum(np.abs(Y) ** 2, axis=0))
+        R = np.sqrt(np.sum(np.abs(Y)**2, axis=0))
         # N x T
         Gr = 1 / (R.T + EPSILON)
         for f in range(F):
@@ -67,9 +67,7 @@ def run(args):
     }
 
     spectrogram_reader = SpectrogramReader(
-        args.wav_scp,
-        round_power_of_two=args.round_power_of_two,
-        **stft_kwargs)
+        args.wav_scp, round_power_of_two=args.round_power_of_two, **stft_kwargs)
     for key, spectrogram in spectrogram_reader:
         logger.info(f"Processing utterance {key}...")
         separated = auxiva(spectrogram, args.epochs)

@@ -74,7 +74,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Speech & Noise mask estimation using CGMM model "
-                    "(also see: estimate_cacgmm_masks.py)",
+        "(also see: estimate_cacgmm_masks.py)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -91,7 +91,7 @@ if __name__ == "__main__":
                         type=int,
                         default=2,
                         help="Number of the cluster "
-                             "used in cacgmm model")
+                        "used in cacgmm model")
     parser.add_argument("--seed",
                         type=int,
                         default=777,

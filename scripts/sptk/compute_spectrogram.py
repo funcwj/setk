@@ -57,28 +57,28 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="If assigned, generate corresponding "
-                             "scripts for archives")
+                        "scripts for archives")
     parser.add_argument("--format",
                         type=str,
                         default="kaldi",
                         choices=["kaldi", "exraw"],
                         help="Output archive format, see format "
-                             "in sptk/libs/exraw.py")
+                        "in sptk/libs/exraw.py")
     parser.add_argument("--apply-log",
                         type=strtobool,
                         default=False,
                         help="If true, using log spectrogram "
-                             "instead of linear")
+                        "instead of linear")
     parser.add_argument("--apply-pow",
                         type=strtobool,
                         default=False,
                         help="If true, extract power spectrum "
-                             "instead of magnitude spectrum")
+                        "instead of magnitude spectrum")
     parser.add_argument("--normalize-samples",
                         type=strtobool,
                         default=False,
                         dest="normalize",
                         help="If true, normalize sample "
-                             "values between [-1, 1]")
+                        "values between [-1, 1]")
     args = parser.parse_args()
     run(args)

@@ -72,7 +72,7 @@ if __name__ == "__main__":
     parser.add_argument("mask_scp",
                         type=str,
                         help="Scripts of masks in kaldi's "
-                             "archive or numpy's ndarray")
+                        "archive or numpy's ndarray")
     parser.add_argument("dup_ark",
                         type=str,
                         help="Location to dump features in kaldi's archives")
@@ -80,17 +80,17 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="If assigned, generate corresponding "
-                             "feature scripts")
+                        "feature scripts")
     parser.add_argument("--mask-format",
                         dest="fmt",
                         choices=["kaldi", "numpy"],
                         default="kaldi",
                         help="Define format of masks, in kaldi's "
-                             "archives or numpy's ndarray")
+                        "archives or numpy's ndarray")
     parser.add_argument("--df-pair",
                         type=str,
                         default="0,1",
                         help="Microphone pairs for directional "
-                             "feature computation")
+                        "feature computation")
     args = parser.parse_args()
     run(args)

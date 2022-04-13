@@ -28,7 +28,7 @@ def ml_ssl(stft, sv, compression=0, eps=1e-8, norm=False, mask=None):
     if norm:
         stft = stft / np.maximum(cmat_abs(stft), eps)
     ssh_cor = np.abs(np.einsum("mtf,mtf->tf", stft, stft.conj()))
-    ssv_cor = np.abs(np.einsum("amf,mtf->atf", sv, stft.conj())) ** 2
+    ssv_cor = np.abs(np.einsum("amf,mtf->atf", sv, stft.conj()))**2
     # A x T x F
     delta = ssh_cor[None, ...] - ssv_cor / (1 + eps)
     if compression <= 0:

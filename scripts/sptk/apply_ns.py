@@ -25,9 +25,7 @@ def run(args):
         "center": args.center,
     }
     spectrogram_reader = SpectrogramReader(
-        args.wav_scp,
-        **stft_kwargs,
-        round_power_of_two=args.round_power_of_two)
+        args.wav_scp, **stft_kwargs, round_power_of_two=args.round_power_of_two)
 
     if args.conf:
         with open(args.conf, "r") as conf:
@@ -63,7 +61,7 @@ if __name__ == "__main__":
     parser.add_argument("dst_dir",
                         type=str,
                         help="Location to dump enhanced audio "
-                             "or gain coefficients")
+                        "or gain coefficients")
     parser.add_argument("--conf",
                         type=str,
                         default="",
