@@ -6,6 +6,7 @@
 """
 
 import struct
+
 import numpy as np
 
 debug = False

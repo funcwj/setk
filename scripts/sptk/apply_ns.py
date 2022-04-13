@@ -2,13 +2,14 @@
 
 # wujian@2020
 
-import yaml
 import argparse
 
+import yaml
+
+from libs.data_handler import SpectrogramReader, NumpyWriter, WaveWriter
 from libs.ns import iMCRA
 from libs.opts import StftParser
 from libs.utils import inverse_stft, get_logger
-from libs.data_handler import SpectrogramReader, NumpyWriter, WaveWriter
 
 logger = get_logger(__name__)
 
@@ -62,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument("dst_dir",
                         type=str,
                         help="Location to dump enhanced audio "
-                        "or gain coefficients")
+                             "or gain coefficients")
     parser.add_argument("--conf",
                         type=str,
                         default="",

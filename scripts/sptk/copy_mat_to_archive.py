@@ -3,12 +3,11 @@
 # wujian@2018
 
 import argparse
-import glob
-import numpy as np
-import scipy.io as sio
 
-from libs.utils import filekey, get_logger, EPSILON
+import numpy as np
+
 from libs.data_handler import ArchiveWriter, NumpyReader, MatReader
+from libs.utils import filekey, get_logger, EPSILON
 
 logger = get_logger(__name__)
 
@@ -67,7 +66,7 @@ if __name__ == "__main__":
                         type=str,
                         default=None,
                         help="If assigned, generate corresponding "
-                        ".scp for archives")
+                             ".scp for archives")
     parser.add_argument("--mat-index",
                         type=str,
                         dest="key",
@@ -77,8 +76,8 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="Operations to applied on source "
-                        "matrix/vector, separated by \",\", now support "
-                        "trans/log/minus/stack")
+                             "matrix/vector, separated by \",\", now support "
+                             "trans/log/minus/stack")
     parser.add_argument("--src-format",
                         type=str,
                         dest="src",

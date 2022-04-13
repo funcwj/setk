@@ -103,8 +103,8 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to remove silence from original utterances"
-        "(using py-webrtcvad from https://github.com/wiseman/py-webrtcvad). "
-        "This is often used in speaker relative tasks.",
+                    "(using py-webrtcvad from https://github.com/wiseman/py-webrtcvad). "
+                    "This is often used in speaker relative tasks.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("wav_scp", type=str, help="Input wav scripts")
     parser.add_argument("dst_dir", type=str, help="Output wav directory")
@@ -112,7 +112,7 @@ if __name__ == "__main__":
                         type=int,
                         default=2,
                         help="Vad mode used in webrtc "
-                        "(0->3 less->more aggressive)")
+                             "(0->3 less->more aggressive)")
     parser.add_argument("--chunk-size",
                         type=int,
                         default=10,

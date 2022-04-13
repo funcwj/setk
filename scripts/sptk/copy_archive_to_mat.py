@@ -2,15 +2,13 @@
 # coding=utf-8
 # wujian@2018
 
-import os
 import argparse
-import glob
-import numpy as np
-import scipy.io as sio
+from distutils.util import strtobool
 
-from libs.utils import filekey, get_logger, EPSILON
+import numpy as np
+
 from libs.data_handler import ScriptReader, ArchiveReader, NumpyWriter, MatWriter
-from libs.opts import StrToBoolAction
+from libs.utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -52,11 +50,11 @@ if __name__ == "__main__":
                         default="npy",
                         help="Format of the data to transform to")
     parser.add_argument("--transpose",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         dest="trans",
                         help="If true, transpose matrix "
-                        "before write to ndarray")
+                             "before write to ndarray")
     parser.add_argument("--scp",
                         type=str,
                         default="",

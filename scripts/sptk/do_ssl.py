@@ -6,11 +6,10 @@ import argparse
 
 import numpy as np
 
-from libs.ssl import ml_ssl, srp_ssl, music_ssl
-
 from libs.data_handler import SpectrogramReader, NumpyReader
-from libs.utils import get_logger, EPSILON
 from libs.opts import StftParser, str2tuple
+from libs.ssl import ml_ssl, srp_ssl, music_ssl
+from libs.utils import get_logger, EPSILON
 
 logger = get_logger(__name__)
 
@@ -26,6 +25,23 @@ def add_wta(masks_list, eps=1e-4):
         m = np.where(spk_mask == max_mask, spk_mask, eps)
         wta_masks.append(m)
     return wta_masks
+
+
+def get_doa(stft, steer_vector, mask, srp_pair, angles, output, backend):
+    if srp_pair:
+        idx = srp_ssl(stft,
+                      steer_vector,
+                      srp_pair=srp_pair,
+                      mask=mask)
+    elif backend == "ml":
+        idx = ml_ssl(stft,
+                     steer_vector,
+                     mask=mask,
+                     compression=-1,
+                     eps=EPSILON)
+    else:
+        idx = music_ssl(stft, steer_vector, mask=mask)
+    return idx if output == "index" else angles[idx]
 
 
 def run(args):
@@ -82,20 +98,7 @@ def run(args):
             else:
                 mask = None
             if not online:
-                if srp_pair:
-                    idx = srp_ssl(stft,
-                                  steer_vector,
-                                  srp_pair=srp_pair,
-                                  mask=mask)
-                elif args.backend == "ml":
-                    idx = ml_ssl(stft,
-                                 steer_vector,
-                                 mask=mask,
-                                 compression=-1,
-                                 eps=EPSILON)
-                else:
-                    idx = music_ssl(stft, steer_vector, mask=mask)
-                doa = idx if args.output == "index" else angles[idx]
+                doa = get_doa(stft, steer_vector, mask, srp_pair, angles, args.output, args.backend)
                 logger.info(f"Processing utterance {key}: {doa:.4f}")
                 doa_out.write(f"{key}\t{doa:.4f}\n")
             else:
@@ -109,22 +112,7 @@ def run(args):
                     else:
                         chunk_mask = None
                     stft_chunk = stft[:, s:t + args.chunk_len, :]
-                    if srp_pair:
-                        idx = srp_ssl(stft_chunk,
-                                      steer_vector,
-                                      srp_pair=srp_pair,
-                                      mask=chunk_mask)
-                    elif args.backend == "ml":
-                        idx = ml_ssl(stft_chunk,
-                                     steer_vector,
-                                     mask=chunk_mask,
-                                     compression=-1,
-                                     eps=EPSILON)
-                    else:
-                        idx = music_ssl(stft_chunk,
-                                        steer_vector,
-                                        mask=chunk_mask)
-                    doa = idx if args.output == "index" else angles[idx]
+                    doa = get_doa(stft_chunk, steer_vector, chunk_mask, srp_pair, angles, args.output, args.backend)
                     online_doa.append(doa)
                 doa_str = " ".join([f"{d:.4f}" for d in online_doa])
                 doa_out.write(f"{key}\t{doa_str}\n")
@@ -134,7 +122,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to ML/SRP based sound souce localization (SSL)."
-        "Also see scripts/sptk/compute_steer_vector.py",
+                    "Also see scripts/sptk/compute_steer_vector.py",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -143,8 +131,8 @@ if __name__ == "__main__":
     parser.add_argument("steer_vector",
                         type=str,
                         help="Pre-computed steer vector in each "
-                        "directions (in shape A x M x F, A: number "
-                        "of DoAs, M: microphone number, F: FFT bins)")
+                             "directions (in shape A x M x F, A: number "
+                             "of DoAs, M: microphone number, F: FFT bins)")
     parser.add_argument("doa_scp",
                         type=str,
                         help="Wspecifier for estimated DoA")
@@ -178,11 +166,11 @@ if __name__ == "__main__":
                         type=int,
                         default=-1,
                         help="Number frames per chunk "
-                        "(for online setups)")
+                             "(for online setups)")
     parser.add_argument("--look-back",
                         type=int,
                         default=125,
                         help="Number of frames to look back "
-                        "(for online setups)")
+                             "(for online setups)")
     args = parser.parse_args()
     run(args)

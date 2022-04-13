@@ -2,16 +2,15 @@
 # coding=utf-8
 # wujian@2020
 
-import glob
 import argparse
-
-import numpy as np
-import matplotlib.pyplot as plt
-
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+
 from libs.data_handler import SpectrogramReader
+from libs.opts import StftParser
 from libs.utils import get_logger
-from libs.opts import StrToBoolAction, StftParser
 
 default_font = "Times New Roman"
 default_font_size = 10
@@ -31,6 +30,7 @@ def save_figure(key,
     """
     Save figure to disk
     """
+
     def sub_plot(ax, mat, num_frames, num_bins, xticks=True, title=""):
         ax.imshow(np.transpose(mat),
                   origin="lower",

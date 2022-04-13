@@ -6,12 +6,13 @@ Compute IAM(FFT-mask,SMM)/IBM/IRM/PSM masks, using as training targets
 """
 
 import argparse
+
 import numpy as np
 
 from libs.data_handler import SpectrogramReader, ArchiveWriter
-from libs.utils import get_logger, cmat_abs, EPSILON
-from libs.opts import StftParser
 from libs.exraw import BinaryWriter
+from libs.opts import StftParser
+from libs.utils import get_logger, cmat_abs, EPSILON
 
 logger = get_logger(__name__)
 
@@ -83,7 +84,7 @@ def compute_mask(tgt, mix, mask):
     # irm/iam/psm
     if mask == "irm":
         # denominator = tgt_abs + inf_abs
-        denominator = np.sqrt(tgt_abs**2 + inf_abs**2 + EPSILON)
+        denominator = np.sqrt(tgt_abs ** 2 + inf_abs ** 2 + EPSILON)
     elif mask == "crm":
         denominator = mix + EPSILON
     else:
@@ -158,7 +159,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to compute Tf-mask(as targets for Kaldi's nnet3, "
-        "only for 2 component case, egs: speech & noise)",
+                    "only for 2 component case, egs: speech & noise)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("clean_scp",
@@ -175,27 +176,27 @@ if __name__ == "__main__":
                         default="kaldi",
                         choices=["kaldi", "exraw"],
                         help="Output archive format, see "
-                        "format in sptk/libs/exraw.py")
+                             "format in sptk/libs/exraw.py")
     parser.add_argument("--scp",
                         type=str,
                         default="",
                         help="If assigned, generate "
-                        "corresponding mask scripts")
+                             "corresponding mask scripts")
     parser.add_argument("--mask",
                         type=str,
                         default="irm",
                         choices=["irm", "ibm", "iam", "psm", "psa", "crm"],
                         help="Type of masks(irm/ibm/iam(FFT-mask,"
-                        "smm)/psm/psa/crm) to compute. \'psa\' is not "
-                        "a real mask (nominator of psm), but could compute "
-                        "using this command. Noted that if "
-                        "iam/psm assigned, second .scp is expected "
-                        "to be noisy component.")
+                             "smm)/psm/psa/crm) to compute. \'psa\' is not "
+                             "a real mask (nominator of psm), but could compute "
+                             "using this command. Noted that if "
+                             "iam/psm assigned, second .scp is expected "
+                             "to be noisy component.")
     parser.add_argument("--cutoff",
                         type=float,
                         default=-1,
                         help="Cutoff values(<=0, not cutoff) for "
-                        "some non-bounded masks, "
-                        "egs: iam/psm")
+                             "some non-bounded masks, "
+                             "egs: iam/psm")
     args = parser.parse_args()
     run(args)

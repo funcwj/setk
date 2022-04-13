@@ -102,8 +102,8 @@ def srp_phat_linear(S, d, normalize=True, apply_floor=True, **kwargs):
     Return:
         shape as T x D
     """
-    if type(d) is not list:
-        raise ValueError("Now only support linear arrays(in python list type)")
+    if type(d) is not list and type(d) is not tuple:
+        raise ValueError("Now only support linear arrays(in python list/tuple type)")
     N = S.shape[0]
     if N != len(d):
         raise ValueError(

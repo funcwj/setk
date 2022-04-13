@@ -6,11 +6,12 @@ Compute score for speaker varification tasks
 """
 
 import argparse
+from distutils.util import strtobool
+
 import numpy as np
 
 from libs.data_handler import NumpyReader, ScriptReader, parse_scps
 from libs.utils import get_logger
-from libs.opts import StrToBoolAction
 
 logger = get_logger(__name__)
 
@@ -54,13 +55,13 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to compute scores between candidate embeddings "
-        "and registered ones, output results to stdout, which could "
-        "be used to compute eer using compute-eer in kaldi.",
+                    "and registered ones, output results to stdout, which could "
+                    "be used to compute eer using compute-eer in kaldi.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("spks_scp",
                         type=str,
                         help="Embedding rspecifier computed "
-                        "from enrollment utterances")
+                             "from enrollment utterances")
     parser.add_argument("eval_scp",
                         type=str,
                         help="Embedding rspecifier to evaluate perfermance")
@@ -75,9 +76,9 @@ if __name__ == "__main__":
                         default="kaldi",
                         help="Storage format for embeddings")
     parser.add_argument("--normalize",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If true, normalize embeddings "
-                        "before compute dot product")
+                             "before compute dot product")
     args = parser.parse_args()
     run(args)

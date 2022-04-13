@@ -11,8 +11,8 @@ import argparse
 
 import numpy as np
 
-from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader, NumpyWriter
+from libs.opts import StftParser
 from libs.utils import get_logger, EPSILON
 
 logger = get_logger(__name__)
@@ -58,14 +58,14 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to compute labels for DC (Deep Clustering) "
-        "training, -1 means silence, 0..N for each speaker",
+                    "training, -1 means silence, 0..N for each speaker",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("mix", type=str, help="Rspecifier for mixture")
     parser.add_argument("spks",
                         type=str,
                         help="Rspecifier for multiple speakers, "
-                        "separated by \',\', egs: spk1.scp,spk2.scp")
+                             "separated by \',\', egs: spk1.scp,spk2.scp")
     parser.add_argument("dir",
                         type=str,
                         help="Directory to store computed labels")

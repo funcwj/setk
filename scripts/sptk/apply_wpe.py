@@ -5,14 +5,14 @@
 Do WPE Dereverbration Algorithm
 """
 import argparse
-
-from libs.opts import StrToBoolAction
-from libs.utils import get_logger, inverse_stft
-from libs.opts import StftParser
-from libs.wpe import wpe
-from libs.data_handler import SpectrogramReader, WaveWriter
+from distutils.util import strtobool
 
 import numpy as np
+
+from libs.data_handler import SpectrogramReader, WaveWriter
+from libs.opts import StftParser
+from libs.utils import get_logger, inverse_stft
+from libs.wpe import wpe
 
 logger = get_logger(__name__)
 
@@ -73,7 +73,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to do GWPE dereverbration algorithm (recommended "
-        "configuration: 512/128/blackman)",
+                    "configuration: 512/128/blackman)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -95,7 +95,7 @@ if __name__ == "__main__":
                         dest="context",
                         type=int,
                         help="Context value to compute PSD "
-                        "matrix in GWPE algorithm")
+                             "matrix in GWPE algorithm")
     parser.add_argument("--num-iters",
                         default=3,
                         type=int,
@@ -106,7 +106,7 @@ if __name__ == "__main__":
                         dest="sr",
                         help="Waveform data sample rate")
     parser.add_argument("--nara-wpe",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Use nara-wpe package")
     args = parser.parse_args()

@@ -1,33 +1,29 @@
 #!/usr/bin/env python
 # wujian@2018
 
-import os
-import sys
-import glob
+import _thread
 import codecs
+import glob
+import os
 import pickle
 import random
-import warnings
-
-import _thread
-import threading
 import subprocess
-
+import sys
+import threading
+import warnings
+from io import TextIOWrapper, BytesIO
 from pathlib import Path
 
-import librosa as audio_lib
 import numpy as np
 import scipy.io as sio
 
-from io import TextIOWrapper, BytesIO
 from . import kaldi_io as io
 from .utils import forward_stft, read_wav, write_wav, filekey
 
 __all__ = [
     "ArchiveReader", "ArchiveWriter", "WaveWriter", "NumpyWriter",
     "SpectrogramReader", "ScriptReader", "WaveReader", "NumpyReader",
-    "PickleReader", "MatReader", "BinaryReader"
-]
+    "PickleReader", "MatReader", "BinaryReader", "ScpReader", "MatWriter", "DirReader"]
 
 
 def run_command(command, wait=True):
@@ -45,7 +41,7 @@ def run_command(command, wait=True):
         if p.returncode != 0:
             raise Exception(
                 "There was an error while running the command \"{0}\":\n{1}\n".
-                format(command, bytes.decode(stderr)))
+                    format(command, bytes.decode(stderr)))
         return stdout, stderr
     else:
         return p
@@ -125,6 +121,7 @@ class ext_open(object):
     with open("egs.scp", "r") as f:
         ...
     """
+
     def __init__(self, fname, mode):
         self.fname = fname
         self.mode = mode
@@ -174,6 +171,7 @@ class Reader(object):
     """
     Reader template
     """
+
     def __init__(self, index_dict):
         self.index_dict = index_dict
         self.index_keys = list(self.index_dict.keys())
@@ -228,11 +226,18 @@ class Reader(object):
             raise KeyError(f"Missing utterance {index}!")
         return self._load(index)
 
+    def get(self, index, default=None):
+        if not self.__contains__(index):
+            return default
+        else:
+            return self.__getitem__(index)
+
 
 class ScpReader(Reader):
     """
     Kaldi's scp reader
     """
+
     def __init__(self,
                  scp_rspecifier,
                  value_processor=lambda x: x,
@@ -249,6 +254,7 @@ class DirReader(Reader):
     """
     Directory reader
     """
+
     def __init__(self, obj_dir, prefix):
         obj_dir = Path(obj_dir)
         if not obj_dir.is_dir():
@@ -262,6 +268,7 @@ class Writer(object):
     """
     Basic Writer class to be implemented
     """
+
     def __init__(self, obj_path_or_dir, scp_path=None, is_dir=False):
         self.scp_path = scp_path
         # if dump ark to output, then ignore scp
@@ -302,6 +309,7 @@ class ArchiveReader(object):
     """
     Sequential Reader for Kalid's archive(.ark) object(support matrix/vector)
     """
+
     def __init__(self, ark_or_pipe):
         self.ark_or_pipe = ark_or_pipe
 
@@ -324,6 +332,7 @@ class WaveReader(ScpReader):
     or output from commands, egs:
         key1 sox /home/data/key1.wav -t wav - remix 1 |
     """
+
     def __init__(self, wav_scp, sr=16000, normalize=True):
         super(WaveReader, self).__init__(wav_scp)
         self.sr = sr
@@ -398,13 +407,14 @@ class WaveReader(ScpReader):
     def power(self, key):
         samps = self.read(key)
         s = samps if samps.ndim == 1 else samps[0]
-        return np.linalg.norm(s, 2)**2 / s.size
+        return np.linalg.norm(s, 2) ** 2 / s.size
 
 
 class SegmentWaveReader(ScpReader):
     """
     WaveReader with segments
     """
+
     def __init__(self, wav_scp, segments, sr=None, normalize=True):
         def processor(x):
             wav, beg, end = x
@@ -426,6 +436,7 @@ class NumpyReader(ScpReader):
     """
     Sequential/Random Reader for numpy's ndarray(*.npy) file
     """
+
     def __init__(self, npy_scp):
         super(NumpyReader, self).__init__(npy_scp)
 
@@ -437,6 +448,7 @@ class PickleReader(ScpReader):
     """
     Sequential/Random Reader for pickle object
     """
+
     def __init__(self, obj_scp):
         super(PickleReader, self).__init__(obj_scp)
 
@@ -450,6 +462,7 @@ class MatReader(ScpReader):
     """
     Sequential/Random Reader for matlab matrix object
     """
+
     def __init__(self, mat_scp, key):
         super(MatReader, self).__init__(mat_scp)
         self.key = key
@@ -467,6 +480,7 @@ class SpectrogramReader(WaveReader):
     """
     Sequential/Random Reader for single/multiple channel STFT
     """
+
     def __init__(self, wav_scp, normalize=True, **kwargs):
         super(SpectrogramReader, self).__init__(wav_scp, normalize=normalize)
         self.stft_kwargs = kwargs
@@ -489,6 +503,7 @@ class ScriptReader(ScpReader):
     """
     Reader for kaldi's scripts(for BaseFloat matrix)
     """
+
     def __init__(self, ark_scp):
         def addr_processor(addr):
             addr_token = addr.split(":")
@@ -519,6 +534,7 @@ class BinaryReader(ScpReader):
     """
     Reader for binary objects(raw data)
     """
+
     def __init__(self, bin_scp, length=None, data_type="float32"):
         super(BinaryReader, self).__init__(bin_scp)
         supported_data = {
@@ -544,6 +560,7 @@ class ArchiveWriter(Writer):
     """
     Writer for kaldi's scripts && archive(for BaseFloat matrix)
     """
+
     def __init__(self, ark_path, scp_path=None, dtype=np.float32):
         if not ark_path:
             raise RuntimeError("Seem configure path of archives as None")
@@ -569,6 +586,7 @@ class WaveWriter(Writer):
     """
     Writer for wave files
     """
+
     def __init__(self, dump_dir, scp_path=None, sr=16000, normalize=True):
         super(WaveWriter, self).__init__(dump_dir, scp_path, is_dir=True)
         self.sr = sr
@@ -586,6 +604,7 @@ class NumpyWriter(Writer):
     """
     Writer for numpy ndarray
     """
+
     def __init__(self, dump_dir, scp_path=None):
         super(NumpyWriter, self).__init__(dump_dir, scp_path, is_dir=True)
 
@@ -601,6 +620,7 @@ class MatWriter(Writer):
     """
     Writer for Matlab's matrix
     """
+
     def __init__(self, dump_dir, scp_path=None):
         super(MatWriter, self).__init__(dump_dir, scp_path, is_dir=True)
 

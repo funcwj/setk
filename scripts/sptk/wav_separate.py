@@ -3,13 +3,13 @@
 # wujian@2018
 
 import argparse
-import os
+from distutils.util import strtobool
 
 import numpy as np
 
-from libs.utils import inverse_stft, get_logger
-from libs.opts import StftParser, StrToBoolAction
 from libs.data_handler import SpectrogramReader, NumpyReader, ScriptReader, WaveWriter
+from libs.opts import StftParser
+from libs.utils import inverse_stft, get_logger
 
 logger = get_logger(__name__)
 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     parser.add_argument("mask_scp",
                         type=str,
                         help="Scripts of masks in kaldi's "
-                        "archive or numpy's ndarray")
+                             "archive or numpy's ndarray")
     parser.add_argument("dst_dir",
                         type=str,
                         help="Location to dump separated wave files")
@@ -103,22 +103,22 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="If assigned, use phase of it "
-                        "instead of mixture")
+                             "instead of mixture")
     parser.add_argument("--mask-format",
                         dest="fmt",
                         choices=["kaldi", "numpy"],
                         default="kaldi",
                         help="Define format of masks, kaldi's "
-                        "archives or numpy's ndarray")
+                             "archives or numpy's ndarray")
     parser.add_argument("--keep-length",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If ture, keep result the same length as orginal")
     parser.add_argument("--use-mixed-norm",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=True,
                         dest="mixed_norm",
                         help="If true, keep norm of separated "
-                        "same as mixed one")
+                             "same as mixed one")
     args = parser.parse_args()
     run(args)

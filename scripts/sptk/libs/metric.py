@@ -4,10 +4,10 @@
 2. WER (word error rate)
 """
 
-import numpy as np
-import editdistance as ed
-
 from itertools import permutations
+
+import editdistance as ed
+import numpy as np
 
 
 def si_snr(x, s, eps=1e-8, remove_dc=True):
@@ -17,6 +17,7 @@ def si_snr(x, s, eps=1e-8, remove_dc=True):
         x: vector, enhanced/separated signal
         s: vector, reference signal (ground truth)
     """
+
     def vec_l2norm(x):
         return np.linalg.norm(x, 2)
 
@@ -24,10 +25,10 @@ def si_snr(x, s, eps=1e-8, remove_dc=True):
     if remove_dc:
         x_zm = x - np.mean(x)
         s_zm = s - np.mean(s)
-        t = np.inner(x_zm, s_zm) * s_zm / (vec_l2norm(s_zm)**2 + eps)
+        t = np.inner(x_zm, s_zm) * s_zm / (vec_l2norm(s_zm) ** 2 + eps)
         n = x_zm - t
     else:
-        t = np.inner(x, s) * s / (vec_l2norm(s)**2 + eps)
+        t = np.inner(x, s) * s / (vec_l2norm(s) ** 2 + eps)
         n = x - t
     return 20 * np.log10(vec_l2norm(t) / (vec_l2norm(n) + eps) + eps)
 
@@ -39,6 +40,7 @@ def permute_si_snr(xlist, slist, align=False):
         x: list[vector], enhanced/separated signal
         s: list[vector], reference signal (ground truth)
     """
+
     def si_snr_avg(xlist, slist):
         return sum([si_snr(x, s) for x, s in zip(xlist, slist)]) / len(xlist)
 
@@ -65,6 +67,7 @@ def permute_ed(hlist, rlist):
         hlist: list[vector], hypothesis
         rlist: list[vector], reference 
     """
+
     def distance(hlist, rlist):
         return sum([ed.eval(h, r) for h, r in zip(hlist, rlist)])
 

@@ -2,16 +2,15 @@
 # coding=utf-8
 # wujian@2018
 
-import os
 import argparse
-import logging
+import os
+from distutils.util import strtobool
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 from libs.data_handler import ArchiveReader
 from libs.utils import get_logger
-from libs.opts import StrToBoolAction
 
 default_font = "Times New Roman"
 default_dpi = 200
@@ -61,12 +60,12 @@ def run(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Command to visualize augular spectrum.\n"
-        "egs: ./visualize_angular_spectrum.py a.ark --cache-dir demo",
+                    "egs: ./visualize_angular_spectrum.py a.ark --cache-dir demo",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("srp_ark",
                         type=str,
                         help="Path of augular spectrum in "
-                        "kaldi's archive format")
+                             "kaldi's archive format")
     parser.add_argument("--frame-hop",
                         type=int,
                         default=16,
@@ -77,9 +76,9 @@ if __name__ == '__main__':
                         help="Location to dump pictures")
     parser.add_argument("--sample-tdoa",
                         dest="tdoa",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Sample TDoA instead of DoA when "
-                        "computing spectrum")
+                             "computing spectrum")
     args = parser.parse_args()
     run(args)

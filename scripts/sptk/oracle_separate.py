@@ -4,12 +4,14 @@
 
 import argparse
 import os
+from distutils.util import strtobool
 
 import numpy as np
 from tqdm import tqdm
+
 from libs.data_handler import SpectrogramReader
+from libs.opts import StftParser
 from libs.utils import inverse_stft, get_logger, cmat_abs, write_wav, EPSILON
-from libs.opts import StftParser, StrToBoolAction
 
 logger = get_logger(__name__)
 
@@ -86,18 +88,18 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to do oracle speech separation, "
-        "using specified mask(IAM|IBM|IRM|PSM)",
+                    "using specified mask(IAM|IBM|IRM|PSM)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("mix_scp",
                         type=str,
                         help="Location of mixture wave "
-                        "scripts in kaldi format")
+                             "scripts in kaldi format")
     parser.add_argument("--ref-scp",
                         type=str,
                         required=True,
                         help="Reference speaker wave scripts in kaldi format, "
-                        "separated using \',\'")
+                             "separated using \',\'")
     parser.add_argument("--dump-dir",
                         type=str,
                         default="sep",
@@ -112,7 +114,7 @@ if __name__ == "__main__":
                         default=16000,
                         help="Waveform data sample rate")
     parser.add_argument("--keep-length",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If ture, keep result the same length as orginal")
     args = parser.parse_args()

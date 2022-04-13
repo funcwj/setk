@@ -1,20 +1,16 @@
 #!/usr/bin/env python
 # wujian@2018
 
-import os
-import sys
-import math
-import codecs
 import logging
+import math
+import os
 import warnings
 
 import librosa
+import numpy as np
+import scipy.signal as ss
 # using wf to handle wave IO because it support better than librosa
 import soundfile as sf
-import scipy.io.wavfile as wf
-import scipy.signal as ss
-
-import numpy as np
 
 MAX_INT16 = np.iinfo(np.int16).max
 EPSILON = np.finfo(np.float32).eps
@@ -22,13 +18,13 @@ default_format_str = "%(asctime)s [%(pathname)s:%(lineno)s - %(levelname)s ] %(m
 
 __all__ = [
     "forward_stft", "inverse_stft", "get_logger", "filekey", "write_wav",
-    "read_wav"
+    "read_wav", "check_doa", "cmat_abs", "nextpow2", "EPSILON", "griffin_lim"
 ]
 
 
 def nextpow2(window_size):
     # next power of two
-    return 2**math.ceil(math.log2(window_size))
+    return 2 ** math.ceil(math.log2(window_size))
 
 
 def cmat_abs(cmat):
@@ -43,7 +39,7 @@ def cmat_abs(cmat):
         raise RuntimeError(
             "function cmat_abs expect complex as input, but got {}".format(
                 cmat.dtype))
-    return np.sqrt(cmat.real**2 + cmat.imag**2)
+    return np.sqrt(cmat.real ** 2 + cmat.imag ** 2)
 
 
 def write_wav(fname, samps, sr=16000, normalize=True):
@@ -118,7 +114,7 @@ def forward_stft(samps,
     # pad fft size to power of two or left it same as frame length
     n_fft = nextpow2(frame_len) if round_power_of_two else frame_len
     if window == "sqrthann":
-        window = ss.hann(frame_len, sym=False)**0.5
+        window = ss.hann(frame_len, sym=False) ** 0.5
     # orignal stft accept samps(vector) and return matrix shape as F x T
     # NOTE for librosa.stft:
     # 1) win_length <= n_fft
@@ -158,7 +154,7 @@ def inverse_stft(stft_mat,
     if transpose:
         stft_mat = np.transpose(stft_mat)
     if window == "sqrthann":
-        window = ss.hann(frame_len, sym=False)**0.5
+        window = ss.hann(frame_len, sym=False) ** 0.5
     # orignal istft accept stft result(matrix, shape as FxT)
     samps = librosa.istft(stft_mat,
                           frame_hop,
@@ -172,7 +168,7 @@ def inverse_stft(stft_mat,
         samps = samps * norm / (samps_norm + EPSILON)
     # keep same power
     if power:
-        samps_pow = np.linalg.norm(samps, 2)**2 / samps.size
+        samps_pow = np.linalg.norm(samps, 2) ** 2 / samps.size
         samps = samps * np.sqrt(power / samps_pow)
     return samps
 
@@ -232,6 +228,7 @@ def get_logger(name,
     """
     Get logger instance
     """
+
     def get_handler(handler):
         handler.setLevel(logging.INFO)
         formatter = logging.Formatter(fmt=format_str, datefmt=date_format)
@@ -246,3 +243,21 @@ def get_logger(name,
     else:
         logger.addHandler(logging.StreamHandler())
     return logger
+
+
+def check_doa(geometry, doa, online=False):
+    """
+    Check value of the DoA
+    """
+    if not online:
+       doas = [doa]
+    else:
+       doas = doa
+    for doa in doas:
+        if doa < 0:
+            return False
+        if geometry == "linear" and doa > 180:
+            return False
+        if geometry == "circular" and doa >= 360:
+            return False
+    return True

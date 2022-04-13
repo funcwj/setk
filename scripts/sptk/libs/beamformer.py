@@ -6,6 +6,7 @@ import numpy as np
 import scipy as sp
 
 from .utils import EPSILON, cmat_abs
+
 """
 Implement for some classic beamformer
 """
@@ -115,7 +116,7 @@ def beam_pattern(weight, steer_vector):
     """
 
     if weight.shape[-1] != steer_vector.shape[-1] or weight.shape[
-            -2] != steer_vector.shape[0]:
+        -2] != steer_vector.shape[0]:
         raise RuntimeError("Shape mismatch between weight and steer_vector")
 
     def single_beam(weight, sv):
@@ -238,6 +239,7 @@ class SupervisedBeamformer(Beamformer):
     """
     BaseClass for TF-mask based beamformer
     """
+
     def __init__(self, num_bins):
         super(SupervisedBeamformer, self).__init__()
         self.num_bins = num_bins
@@ -255,7 +257,7 @@ class SupervisedBeamformer(Beamformer):
                 "Input mask matrix should be shape as " +
                 f"[num_frames x num_bins], now is {target_mask.shape}")
         if obs.shape[1] != target_mask.shape[1] or obs.shape[
-                2] != target_mask.shape[0]:
+            2] != target_mask.shape[0]:
             raise ValueError(
                 "Shape of input obs do not match with " +
                 f"mask matrix, {obs.shape} vs {target_mask.shape}")
@@ -287,6 +289,7 @@ class OnlineSupervisedBeamformer(SupervisedBeamformer):
     """
     Online version of SupervisedBeamformer
     """
+
     def __init__(self, num_bins, num_channels, alpha=0.8):
         super(OnlineSupervisedBeamformer, self).__init__(num_bins)
         self.covar_mat_shape = (num_bins, num_channels, num_channels)
@@ -323,6 +326,7 @@ class FixedBeamformer(Beamformer):
     """
     Fixed Beamformer, need predefined weights
     """
+
     def __init__(self, weight):
         super(FixedBeamformer, self).__init__()
         # F x N
@@ -342,6 +346,7 @@ class DSBeamformer(Beamformer):
     """
     Base DS beamformer
     """
+
     def __init__(self, num_mics):
         super(DSBeamformer, self).__init__()
         self.num_mics = num_mics
@@ -377,6 +382,7 @@ class LinearDSBeamformer(DSBeamformer):
     """
     Delay and Sum Beamformer (for linear array)
     """
+
     def __init__(self, linear_topo):
         super(LinearDSBeamformer, self).__init__(len(linear_topo))
         self.linear_topo = np.array(linear_topo)
@@ -397,6 +403,7 @@ class CircularDSBeamformer(DSBeamformer):
     """
     Delay and Sum Beamformer (for circular array)
     """
+
     def __init__(self, radius, num_arounded, center=False):
         super(CircularDSBeamformer,
               self).__init__(num_arounded + 1 if center else num_arounded)
@@ -426,6 +433,7 @@ class LinearSDBeamformer(LinearDSBeamformer):
     """
     Linear SupperDirective Beamformer in diffused noise field
     """
+
     def __init__(self, linear_topo):
         super(LinearSDBeamformer, self).__init__(linear_topo)
         mat = np.tile(self.linear_topo, (self.num_mics, 1))
@@ -458,6 +466,7 @@ class CircularSDBeamformer(CircularDSBeamformer):
     """
     Circular SupperDirective Beamformer in diffused noise field
     """
+
     def __init__(self, radius, num_arounded, center=False):
         super(CircularSDBeamformer, self).__init__(radius,
                                                    num_arounded,
@@ -513,6 +522,7 @@ class MvdrBeamformer(SupervisedBeamformer):
     where
         d(f) = P(R(f)_{xx}) P: principle eigenvector
     """
+
     def __init__(self, num_bins):
         super(MvdrBeamformer, self).__init__(num_bins)
 
@@ -539,6 +549,7 @@ class MpdrBeamformer(SupervisedBeamformer):
     where
         d(f) = P(R(f)_{xx}) P: principle eigenvector
     """
+
     def __init__(self, num_bins, whiten=False):
         super(MpdrBeamformer, self).__init__(num_bins)
         self.whiten = whiten
@@ -601,6 +612,7 @@ class PmwfBeamformer(SupervisedBeamformer):
                             = trace(R(f)_vv^{-1}*R(f)_yy^{-1}) - N
         u(f): pre-assigned or estimated using snr in 1)
     """
+
     def __init__(self, num_bins, beta=0, ref_channel=-1, rank1_appro=""):
         super(PmwfBeamformer, self).__init__(num_bins)
         self.ref_channel = ref_channel
@@ -657,6 +669,7 @@ class GevdBeamformer(SupervisedBeamformer):
     which maximum:
         snr(f) = h(f)^H*R(f)_xx^H*h(f) / h(f)^H*R(f)_vv^H*h(f)
     """
+
     def __init__(self, num_bins):
         super(GevdBeamformer, self).__init__(num_bins)
 
@@ -675,6 +688,7 @@ class OnlineGevdBeamformer(OnlineSupervisedBeamformer):
     """
     Online version of GEVD beamformer
     """
+
     def __init__(self, num_bins, num_channels, alpha=0.8):
         super(OnlineGevdBeamformer, self).__init__(num_bins,
                                                    num_channels,
@@ -695,6 +709,7 @@ class OnlineMvdrBeamformer(OnlineSupervisedBeamformer):
     """
     Online version of MVDR beamformer
     """
+
     def __init__(self, num_bins, num_channels, alpha=0.8):
         super(OnlineMvdrBeamformer, self).__init__(num_bins,
                                                    num_channels,

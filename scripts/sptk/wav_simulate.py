@@ -2,16 +2,16 @@
 
 # wujian@2020
 
-import os
-import time
 import argparse
+import os
 import pathlib
+import time
+from distutils.util import strtobool
 
 import numpy as np
 import scipy.signal as ss
 
 from libs.utils import EPSILON, read_wav, write_wav
-from libs.opts import StrToBoolAction
 
 
 def coeff_snr(sig_pow, ref_pow, snr):
@@ -23,7 +23,7 @@ def coeff_snr(sig_pow, ref_pow, snr):
     we got
         alpha = Pa/[Pb*10^(SNR/10)]^0.5
     """
-    return (ref_pow / (sig_pow * 10**(snr / 10) + EPSILON))**0.5
+    return (ref_pow / (sig_pow * 10 ** (snr / 10) + EPSILON)) ** 0.5
 
 
 def add_room_response(spk, rir, early_energy=False, sr=16000):
@@ -49,9 +49,9 @@ def add_room_response(spk, rir, early_energy=False, sr=16000):
         early_rir = np.zeros_like(rir_ch0)
         early_rir[rir_beg_idx:rir_end_idx] = rir_ch0[rir_beg_idx:rir_end_idx]
         early_rev = ss.convolve(spk, early_rir)[:S]
-        return revb, np.mean(early_rev**2)
+        return revb, np.mean(early_rev ** 2)
     else:
-        return revb, np.mean(revb[0]**2)
+        return revb, np.mean(revb[0] ** 2)
 
 
 def add_speaker(mix_nsamps,
@@ -69,7 +69,7 @@ def add_speaker(mix_nsamps,
         if src_rir is None:
             src = spk[None, ...] if spk.ndim == 1 else spk
             spk_image.append(src)
-            spk_power.append(np.mean(src[0]**2))
+            spk_power.append(np.mean(src[0] ** 2))
         else:
             rir = src_rir[i]
             if rir.ndim == 1:
@@ -121,7 +121,7 @@ def add_point_noise(mix_nsamps,
             src = noise[None, ...] if noise.ndim == 1 else noise
 
             image.append(src)
-            image_power.append(np.mean(src[0, :dur]**2))
+            image_power.append(np.mean(src[0, :dur] ** 2))
         else:
             rir = noise_rir[i]
             if rir.ndim == 1:
@@ -251,7 +251,7 @@ def run_simu(args):
     spk_utt = sum(spk)
     mix = spk_utt.copy()
 
-    spk_power = np.mean(spk_utt[0]**2)
+    spk_power = np.mean(spk_utt[0] ** 2)
     if point_noise:
         noise = add_point_noise(mix_nsamps,
                                 spk_power,
@@ -291,7 +291,7 @@ def run_simu(args):
 
         dur = min(mix_nsamps, isotropic_noise.shape[-1])
         isotropic_chunk = isotropic_noise[0, :dur]
-        power = np.mean(isotropic_chunk**2)
+        power = np.mean(isotropic_chunk ** 2)
         coeff = coeff_snr(power, spk_power, isotropic_snr)
         mix[..., :dur] += coeff * isotropic_chunk
 
@@ -381,15 +381,15 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="Begining samples of the "
-                        "pointsource noises on the mixture "
-                        "utterances (if needed)")
+                             "pointsource noises on the mixture "
+                             "utterances (if needed)")
     parser.add_argument("--point-noise-offset",
                         type=str,
                         default="",
                         help="Add from the offset position "
-                        "of the pointsource noise")
+                             "of the pointsource noise")
     parser.add_argument("--point-noise-repeat",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default="false",
                         help="Repeat the pointsource noise or not")
     parser.add_argument("--isotropic-noise",
@@ -404,7 +404,7 @@ if __name__ == "__main__":
                         type=int,
                         default=0,
                         help="Add noise from the offset position "
-                        "of the isotropic noise")
+                             "of the isotropic noise")
     parser.add_argument("--dump-channel",
                         type=int,
                         default=-1,

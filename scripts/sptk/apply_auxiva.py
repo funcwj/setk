@@ -10,13 +10,13 @@ Reference: https://github.com/LCAV/pyroomacoustics/blob/master/pyroomacoustics/b
 """
 
 import argparse
+from pathlib import Path
 
 import numpy as np
 
-from pathlib import Path
-from libs.utils import inverse_stft, get_logger, write_wav, EPSILON
-from libs.opts import StftParser
 from libs.data_handler import SpectrogramReader
+from libs.opts import StftParser
+from libs.utils import inverse_stft, get_logger, write_wav, EPSILON
 
 logger = get_logger(__name__)
 
@@ -39,7 +39,7 @@ def auxiva(X, epochs=20):
 
     for _ in range(epochs):
         # T x N
-        R = np.sqrt(np.sum(np.abs(Y)**2, axis=0))
+        R = np.sqrt(np.sum(np.abs(Y) ** 2, axis=0))
         # N x T
         Gr = 1 / (R.T + EPSILON)
         for f in range(F):

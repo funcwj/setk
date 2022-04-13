@@ -5,14 +5,14 @@
 Do GWPE Dereverbration Algorithm
 """
 import argparse
-
-from libs.opts import StrToBoolAction
-from libs.utils import get_logger, inverse_stft
-from libs.opts import StftParser, StrToBoolAction
-from libs.wpe import facted_wpd
-from libs.data_handler import SpectrogramReader, WaveWriter
+from distutils.util import strtobool
 
 import numpy as np
+
+from libs.data_handler import SpectrogramReader, WaveWriter
+from libs.opts import StftParser
+from libs.utils import get_logger, inverse_stft
+from libs.wpe import facted_wpd
 
 logger = get_logger(__name__)
 
@@ -65,7 +65,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Command to do joint dereverbration & denoising algorithm "
-        "(facted form of WPD)",
+                    "(facted form of WPD)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[StftParser.parser])
     parser.add_argument("wav_scp",
@@ -86,7 +86,7 @@ if __name__ == "__main__":
                         default=1,
                         type=int,
                         help="Context value to compute PSD "
-                        "matrix in WPE algorithm")
+                             "matrix in WPE algorithm")
     parser.add_argument("--wpd-iters",
                         default=3,
                         type=int,
@@ -96,7 +96,7 @@ if __name__ == "__main__":
                         type=int,
                         help="Number of iterations for WPD")
     parser.add_argument("--update-alpha",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If true, update alpha in M-step")
     parser.add_argument("--sr",
@@ -105,7 +105,7 @@ if __name__ == "__main__":
                         help="Sample rate of the input audio")
     parser.add_argument("--dump-mask",
                         default=False,
-                        action=StrToBoolAction,
+                        type=strtobool,
                         help="Dump cgmm mask or not")
     args = parser.parse_args()
     run(args)

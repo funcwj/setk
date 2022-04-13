@@ -7,15 +7,16 @@ Do mvdr/gevd/... adaptive beamformer
 """
 
 import argparse
+import math
+from distutils.util import strtobool
 
 import numpy as np
-from scipy.io import loadmat
 
-from libs.utils import inverse_stft, get_logger, nextpow2, cmat_abs
-from libs.opts import StftParser, StrToBoolAction
-from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, WaveWriter
 from libs.beamformer import MvdrBeamformer, GevdBeamformer, PmwfBeamformer, MpdrBeamformer
 from libs.beamformer import OnlineGevdBeamformer, OnlineMvdrBeamformer
+from libs.data_handler import SpectrogramReader, ScriptReader, NumpyReader, WaveWriter
+from libs.opts import StftParser
+from libs.utils import inverse_stft, get_logger, nextpow2, cmat_abs
 
 logger = get_logger(__name__)
 beamformers = ["mvdr", "mpdr", "mpdr-whiten", "gevd", "pmwf-0", "pmwf-1"]
@@ -32,23 +33,15 @@ def do_online_beamform(beamformer, speech_mask, interf_mask, stft_mat, args):
     """
     chunk_size = args.chunk_size
     beamformer.reset_stats(args.alpha)
-    num_chunks = stft_mat.shape[-1] // chunk_size
+    num_chunks = math.ceil(stft_mat.shape[-1] / chunk_size)
     enh_chunks = []
-    for c in range(num_chunks + 1):
+    for c in range(num_chunks):
         base = chunk_size * c
-        if c == num_chunks:
-            mask_n = None if interf_mask is None else interf_mask[base:]
-            chunk = beamformer.run(speech_mask[base:],
-                                   stft_mat[:, :, base:],
-                                   mask_n=mask_n,
-                                   normalize=args.ban)
-        else:
-            mask_n = None if interf_mask is None else interf_mask[base:base +
-                                                                  chunk_size]
-            chunk = beamformer.run(speech_mask[base:base + chunk_size],
-                                   stft_mat[:, :, base:base + chunk_size],
-                                   mask_n=mask_n,
-                                   normalize=args.ban)
+        mask_n = None if interf_mask is None else interf_mask[base:base + chunk_size]
+        chunk = beamformer.run(speech_mask[base:base + chunk_size],
+                               stft_mat[:, :, base:base + chunk_size],
+                               mask_n=mask_n,
+                               normalize=args.ban)
         enh_chunks.append(chunk)
     return np.hstack(enh_chunks)
 
@@ -99,23 +92,23 @@ def run(args):
     num_bins = nextpow2(args.frame_len) // 2 + 1
     supported_beamformer = {
         "mvdr":
-        MvdrBeamformer(num_bins),
+            MvdrBeamformer(num_bins),
         "mpdr":
-        MpdrBeamformer(num_bins),
+            MpdrBeamformer(num_bins),
         "mpdr-whiten":
-        MpdrBeamformer(num_bins, whiten=True),
+            MpdrBeamformer(num_bins, whiten=True),
         "gevd":
-        GevdBeamformer(num_bins),
+            GevdBeamformer(num_bins),
         "pmwf-0":
-        PmwfBeamformer(num_bins,
-                       beta=0,
-                       ref_channel=args.pmwf_ref,
-                       rank1_appro=args.rank1_appro),
+            PmwfBeamformer(num_bins,
+                           beta=0,
+                           ref_channel=args.pmwf_ref,
+                           rank1_appro=args.rank1_appro),
         "pmwf-1":
-        PmwfBeamformer(num_bins,
-                       beta=1,
-                       ref_channel=args.pmwf_ref,
-                       rank1_appro=args.rank1_appro)
+            PmwfBeamformer(num_bins,
+                           beta=1,
+                           ref_channel=args.pmwf_ref,
+                           rank1_appro=args.rank1_appro)
     }
     supported_online_beamformer = {
         "mvdr": OnlineMvdrBeamformer(num_bins, args.channels, args.alpha),
@@ -199,7 +192,7 @@ if __name__ == "__main__":
     parser.add_argument("tgt_mask",
                         type=str,
                         help="Scripts of target masks in kaldi's "
-                        "archive or numpy's ndarray")
+                             "archive or numpy's ndarray")
     parser.add_argument("dst_dir",
                         type=str,
                         help="Location to dump enhanced wave files")
@@ -207,13 +200,13 @@ if __name__ == "__main__":
                         type=str,
                         default="",
                         help="Scripts of interfering masks in kaldi's "
-                        "archive or numpy's ndarray")
+                             "archive or numpy's ndarray")
     parser.add_argument("--mask-format",
                         dest="fmt",
                         choices=["kaldi", "numpy"],
                         default="kaldi",
                         help="Define format of masks, kaldi's "
-                        "archives or numpy's ndarray")
+                             "archives or numpy's ndarray")
     parser.add_argument("--beamformer",
                         type=str,
                         default="mvdr",
@@ -228,7 +221,7 @@ if __name__ == "__main__":
                         default=16000,
                         help="Sample rate of the waveform")
     parser.add_argument("--ban",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Do Blind Analytical Normalization (BAN) or not")
     parser.add_argument("--rank1-appro",
@@ -238,21 +231,21 @@ if __name__ == "__main__":
                         help="Weather to use rank1 approximation in PMWF")
     parser.add_argument("--post-masking",
                         dest="mask",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="Masking enhanced spectrogram "
-                        "after beamforming or not")
+                             "after beamforming or not")
     parser.add_argument("--vad-proportion",
                         type=float,
                         default=1,
                         help="Energy proportion to filter "
-                        "silence masks [0.5, 1]")
+                             "silence masks [0.5, 1]")
     parser.add_argument("--online.alpha",
                         default=0.8,
                         dest="alpha",
                         type=float,
                         help="Remember coefficient when "
-                        "updating covariance matrix")
+                             "updating covariance matrix")
     parser.add_argument("--online.chunk-size",
                         default=-1,
                         type=int,

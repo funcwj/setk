@@ -6,11 +6,12 @@ Copy MATLAB's .mat into (C)Matrix binary format
 """
 
 import argparse
+from distutils.util import strtobool
+
 import numpy as np
 import scipy.io as sio
 
 from libs.kaldi_io import write_common_mat, write_token, write_int32, write_binary_symbol
-from libs.opts import StrToBoolAction
 
 
 def write_complex_mat(fd, cmat):
@@ -54,7 +55,7 @@ def run(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Command to copy MATLAB's (complex) "
-        "matrix into (C)Matrix.",
+                    "matrix into (C)Matrix.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("mmat",
@@ -67,18 +68,18 @@ if __name__ == '__main__':
                         type=str,
                         help="Key values to index matrix in mmat")
     parser.add_argument("--double",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If true, then write matrix "
-                        "in float64/complex128")
+                             "in float64/complex128")
     parser.add_argument("--float",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If true, then write matrix in float32/complex64")
     parser.add_argument("--transpose",
-                        action=StrToBoolAction,
+                        type=strtobool,
                         default=False,
                         help="If true, write transpose of "
-                        "original matrix instead")
+                             "original matrix instead")
     args = parser.parse_args()
     run(args)

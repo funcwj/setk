@@ -1,4 +1,5 @@
-Python scripts (work with python 3.6+) for speech enhancement/separation integrated with kaldi, which could be used independently.
+Python scripts (work with python 3.6+) for speech enhancement/separation integrated with kaldi, which could be used
+independently.
 
 * Supervised (mask-based) adaptive beamformer (GEVD/MVDR/PWWF)
 * Data convertion among MATLAB, Numpy and Kaldi
