@@ -22,6 +22,7 @@ echo "egs asset/egs.wav" > wav.scp
     --cmap binary \
     --frame-hop 256 \
     mask
+echo "egs mask/egs.npy" > mask.scp
 # mvdr
 ../../scripts/sptk/apply_adaptive_beamformer.py \
     --frame-len 512 \
