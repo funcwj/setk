@@ -7,7 +7,7 @@ numpy==1.22.3
 pypesq==1.2.4
 PyYAML==6.0
 scikit_learn==1.0.2
-scipy==1.7.3
+scipy==1.10.0
 SoundFile==0.10.3.post1
 tqdm==4.62.3
 webrtcvad==2.0.10
